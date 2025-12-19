@@ -2,33 +2,44 @@ from pathlib import Path
 
 import fastf1
 from fastf1.core import Session
+from fastf1.events import EventSchedule, Event
 from fastf1.mvapi import CircuitInfo
 
-from f1p.services.data_extractor.enums import SessionIdentifiers
-
-
 class DataExtractorService:
-    def __init__(self, year: int, round_number: int, session_id: SessionIdentifiers):
-        self.year = year
-        self.round_number = round_number
-        self.session_id = session_id
+    year: int
+    event_name: str
+    session_id: str
+    cache_path: Path = Path(__file__).parent.parent.parent.parent.parent / '.fastf1-cache'
 
-        self.cache_path = Path(__file__).parent.parent.parent.parent.parent / '.fastf1-cache'
-
+    def __init__(self):
+        self._event_schedule: EventSchedule | None = None
+        self._event: Event | None = None
         self._session: Session | None = None
         self._circuit_info: CircuitInfo | None = None
 
-    def enable_cache(self):
         if not self.cache_path.exists():
             self.cache_path.mkdir(parents=True)
 
         fastf1.Cache.enable_cache(str(self.cache_path))
 
     @property
+    def event_schedule(self) -> EventSchedule:
+        if self._event_schedule is None:
+            self._event_schedule = fastf1.get_event_schedule(self.year)
+
+        return self._event_schedule
+
+    @property
+    def event(self) -> Event:
+        if self._event is None:
+            self._event = fastf1.get_event(self.year, self.event_name)
+
+        return self._event
+
+    @property
     def session(self) -> Session:
         if self._session is None:
-            self._session = fastf1.get_session(self.year, self.round_number, self.session_id.value)
-            self._session.load()
+            self._session = fastf1.get_session(self.year, self.event_name, self.session_id)
 
         return self._session
 
@@ -39,7 +50,5 @@ class DataExtractorService:
 
         return self._circuit_info
 
-
     def extract(self):
-        self.enable_cache()
-        print(self.circuit_info)
+        self.session.load()
