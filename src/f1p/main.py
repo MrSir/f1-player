@@ -4,17 +4,25 @@ from direct.showbase.ShowBase import ShowBase
 from panda3d.core import WindowProperties
 
 from f1p.services.data_extractor import DataExtractorService
+from f1p.ui.components.map import Map
 from f1p.ui.components.menu import Menu
+from f1p.ui.components.origin import Origin
 
 
 class F1PlayerApp(ShowBase):
-    def __init__(self, width: int = 800, height: int = 800):
+    def __init__(self, width: int = 800, height: int = 800, draw_origin: bool = False):
         super().__init__(self)
 
         self.width = width
         self.height = height
 
         self._data_extractor: DataExtractorService | None = None
+        self.cam.setPos(0, -70, 40)
+        self.cam.lookAt(0, 0, 0)
+
+        if draw_origin:
+            origin = Origin(self.render)
+            origin.render()
 
     @property
     def data_extractor(self) -> DataExtractorService:
@@ -36,11 +44,16 @@ class F1PlayerApp(ShowBase):
 
         return self
 
+    def register_map(self) -> Self:
+        map = Map(self.render, self.data_extractor)
 
-app = F1PlayerApp()
-app.disableMouse()  # disable camera controls
+        return self
+
+app = F1PlayerApp(draw_origin=True)
+# app.disableMouse()  # disable camera controls
 (
     app.configure_window()
     .draw_menu()
+    .register_map()
     .run()
 )

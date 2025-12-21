@@ -2,7 +2,7 @@ import datetime
 
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectOptionMenu import DirectOptionMenu
-from fastf1.core import Session
+from direct.showbase.MessengerGlobal import messenger
 from panda3d.core import Point3
 
 from f1p.services.data_extractor import DataExtractorService
@@ -36,6 +36,11 @@ class Menu:
     def select_year(self, year: str) -> None:
         if year != "Year":
             self.data_extractor._event_schedule = None
+            self.data_extractor._event = None
+            self.data_extractor._session = None
+            self.data_extractor._fastest_lap = None
+            self.data_extractor._circuit_info = None
+            messenger.send("clearMaps")
             self.data_extractor.year = int(year)
 
             event_schedule = self.data_extractor.event_schedule
@@ -62,6 +67,10 @@ class Menu:
     def select_event(self, event_name: str) -> None:
         if event_name != "Event":
             self.data_extractor._event = None
+            self.data_extractor._session = None
+            self.data_extractor._fastest_lap = None
+            self.data_extractor._circuit_info = None
+            messenger.send("clearMaps")
             self.data_extractor.event_name = event_name
 
             event = self.data_extractor.event
@@ -90,6 +99,9 @@ class Menu:
     def select_session(self, session_id: str) -> None:
         if session_id != "Session":
             self.data_extractor._session = None
+            self.data_extractor._fastest_lap = None
+            self.data_extractor._circuit_info = None
+            messenger.send("clearMaps")
             self.data_extractor.session_id = session_id
 
             self.data_extractor.extract()

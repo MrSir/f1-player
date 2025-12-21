@@ -1,7 +1,8 @@
 from pathlib import Path
 
 import fastf1
-from fastf1.core import Session
+from direct.showbase.MessengerGlobal import messenger
+from fastf1.core import Session, Lap
 from fastf1.events import EventSchedule, Event
 from fastf1.mvapi import CircuitInfo
 
@@ -16,6 +17,7 @@ class DataExtractorService:
         self._event: Event | None = None
         self._session: Session | None = None
         self._circuit_info: CircuitInfo | None = None
+        self._fastest_lap: Lap | None = None
 
         if not self.cache_path.exists():
             self.cache_path.mkdir(parents=True)
@@ -44,6 +46,13 @@ class DataExtractorService:
         return self._session
 
     @property
+    def fastest_lap(self) -> Lap:
+        if self._fastest_lap is None:
+            self._fastest_lap = self.session.laps.pick_fastest()
+
+        return self._fastest_lap
+
+    @property
     def circuit_info(self) -> CircuitInfo:
         if self._circuit_info is None:
             self._circuit_info = self.session.get_circuit_info()
@@ -52,3 +61,4 @@ class DataExtractorService:
 
     def extract(self):
         self.session.load()
+        messenger.send("sessionSelected")
