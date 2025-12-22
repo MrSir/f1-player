@@ -113,7 +113,7 @@ class PlaybackControls(DirectObject):
         current_x = self.camera.getX()
         current_y = self.camera.getY()
 
-        deg = 0.5
+        deg = 0.25
         rad = deg * math.pi / 180
 
         self.camera.setX((current_x*cos(rad)) - (current_y * sin(rad)))
