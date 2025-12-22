@@ -58,6 +58,7 @@ class F1PlayerApp(ShowBase):
             PlaybackControls(
                 self.pixel2d,
                 self.cam,
+                self.taskMgr,
                 self.height,
                 self.width,
                 30,

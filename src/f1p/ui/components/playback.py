@@ -1,9 +1,13 @@
+import math
+from math import sin, cos
+
 from direct.gui.DirectButton import DirectButton
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectGuiGlobals import RAISED
 from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.gui.DirectSlider import DirectSlider
 from direct.showbase.DirectObject import DirectObject
+from direct.task.Task import TaskManager
 from panda3d.core import Point3, StaticTextFont, Camera
 
 from f1p.services.data_extractor import DataExtractorService
@@ -16,6 +20,7 @@ class PlaybackControls(DirectObject):
         self,
         pixel2d,
         camera: Camera,
+        task_manager: TaskManager,
         window_height: int,
         width: int,
         height: int,
@@ -27,6 +32,7 @@ class PlaybackControls(DirectObject):
 
         self.pixel2d = pixel2d
         self.camera = camera
+        self.task_manager = task_manager
         self.window_height = window_height
         self.width = width
         self.height = height
@@ -41,6 +47,9 @@ class PlaybackControls(DirectObject):
         self.timeline: DirectSlider | None = None
         self.playback_speed_button: DirectOptionMenu | None = None
         self.camera_button: DirectOptionMenu | None = None
+
+        self.orbiting_camera: bool = True
+
 
     def render_frame(self) -> None:
         self.frame = DirectFrame(
@@ -97,10 +106,29 @@ class PlaybackControls(DirectObject):
             pos=Point3(self.width - 97, 0, -self.height / 2)
         )
 
-    # def switch_camera(self, item: str) -> None:
-    #     match item:
-    #         case "📹":
-    #
+    def move_camera(self, task):
+        if not self.orbiting_camera:
+            return task.cont
+
+        current_x = self.camera.getX()
+        current_y = self.camera.getY()
+
+        deg = 0.5
+        rad = deg * math.pi / 180
+
+        self.camera.setX((current_x*cos(rad)) - (current_y * sin(rad)))
+        self.camera.setY((current_x*sin(rad)) + (current_y * cos(rad)))
+
+        self.camera.lookAt(0,0,0)
+
+        return task.cont
+
+    def switch_camera(self, item: str) -> None:
+        match item:
+            case "📹":
+                self.orbiting_camera = True
+            case "🖑":
+                self.orbiting_camera = False
 
     def render_camera_button(self) -> None:
         self.camera_button = BlackDropDown(
@@ -110,7 +138,7 @@ class PlaybackControls(DirectObject):
             font=self.symbols_font,
             font_scale= self.height -10,
             popup_menu_below=False,
-            command=None,
+            command=self.switch_camera,
             text="camera",
             text_pos=(5, (-self.height / 2) + 8),
             item_text_pos=(5, (-self.height / 2) + 8),
@@ -120,6 +148,7 @@ class PlaybackControls(DirectObject):
         )
 
     def render(self):
+        self.task_manager.add(self.move_camera, "move_camera")
         self.render_frame()
         self.render_play_button()
         self.render_timeline()
