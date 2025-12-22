@@ -55,7 +55,16 @@ class F1PlayerApp(ShowBase):
     def register_ui_components(self) -> Self:
         self.ui_components = [
             Map(self.render, self.data_extractor),
-            PlaybackControls(self.pixel2d, self.height, self.width, 30, self.symbols_font, self.text_font, self.data_extractor),
+            PlaybackControls(
+                self.pixel2d,
+                self.cam,
+                self.height,
+                self.width,
+                30,
+                self.symbols_font,
+                self.text_font,
+                self.data_extractor
+            ),
         ]
 
         return self

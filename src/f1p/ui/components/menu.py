@@ -1,12 +1,14 @@
 import datetime
 
 from direct.gui.DirectFrame import DirectFrame
+from direct.gui.DirectGuiGlobals import RAISED
 from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.showbase.MessengerGlobal import messenger
 from panda3d.core import Point3, StaticTextFont
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.services.data_extractor.enums import SprintQualifyingSessionIdentifiers, ConventionalSessionIdentifiers
+from f1p.ui.components.gui.drop_down import BlackDropDown
 
 
 class Menu:
@@ -31,7 +33,6 @@ class Menu:
             parent=self.pixel2d,
             frameColor=(0, 0, 0, 0.5),
             frameSize=(0, self.width, -self.height, 0),
-            pos=Point3(0, 0, 0),
         )
 
     def select_year(self, year: str) -> None:
@@ -48,19 +49,21 @@ class Menu:
             event_schedule = event_schedule[event_schedule["Session5"] == "Race"]
 
             self.events_menu["items"] = ["Event"] + event_schedule["EventName"].tolist()
+            self.events_menu.setItems()
 
     def render_year_menu(self) -> None:
-        self.year_menu = DirectOptionMenu(
+        self.year_menu = BlackDropDown(
             parent=self.frame,
-            text="options",
-            scale=self.height,
-            frameSize=(0, 1.7, -1, 0),
+            width=90,
+            height=self.height,
+            font=self.text_font,
+            font_scale=self.height - 7,
+            text="year",
+            text_pos=(5, (-self.height / 2) + 10),
+            item_text_pos=(5, (-self.height / 2) + 10),
             items=["Year"] + [str(year) for year in range(2018, self.current_year + 1)],
             initialitem=0,
-            highlightColor=(0.65, 0.65, 0.65, 1),
-            text_scale=0.5,
-            text_pos=(0.1, -0.7),
-            # item_text_scale=0.1,
+            pos=Point3(0, 0, -self.height / 2)
         )
 
         self.year_menu["command"] = self.select_year
@@ -82,19 +85,19 @@ class Menu:
                     self.session_menu["items"] = ["Session"] + ConventionalSessionIdentifiers.all_values()
 
     def render_events_menu(self) -> None:
-        self.events_menu = DirectOptionMenu(
+        self.events_menu = BlackDropDown(
             parent=self.frame,
-            text="options",
-            scale=self.height,
             command=self.select_event,
-            frameSize=(0, 12, -1, 0),
+            width=500,
+            height=self.height,
+            font=self.text_font,
+            font_scale=self.height - 7,
+            text="event",
+            text_pos=(5, (-self.height / 2) + 10),
+            item_text_pos=(5, (-self.height / 2) + 10),
             items=["Event"],
             initialitem=0,
-            highlightColor=(0.65, 0.65, 0.65, 1),
-            text_scale=0.5,
-            text_pos=(0.1, -0.7),
-            # item_text_scale=0.1,
-            pos=Point3(92, 0, 0)
+            pos=Point3(92, 0, -self.height / 2)
         )
 
     def select_session(self, session_id: str) -> None:
@@ -108,21 +111,20 @@ class Menu:
             self.data_extractor.extract()
 
     def render_session_menu(self) -> None:
-        self.session_menu = DirectOptionMenu(
+        self.session_menu = BlackDropDown(
             parent=self.frame,
-            text="options",
-            scale=self.height,
             command=self.select_session,
-            frameSize=(0, 4.5, -1, 0),
+            width=500,
+            height=self.height,
+            font=self.text_font,
+            font_scale=self.height - 7,
+            text="session",
+            text_pos=(5, (-self.height / 2) + 10),
+            item_text_pos=(5, (-self.height / 2) + 10),
             items=["Session"],
             initialitem=0,
-            highlightColor=(0.65, 0.65, 0.65, 1),
-            text_scale=0.5,
-            text_pos=(0.1, -0.7),
-            # item_text_scale=0.1,
-            pos=Point3(596, 0, 0)
+            pos=Point3(594, 0, -self.height / 2)
         )
-
 
     def render(self):
         self.render_frame()
