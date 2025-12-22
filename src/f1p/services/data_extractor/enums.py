@@ -17,7 +17,7 @@ class SprintQualifyingSessionIdentifiers(Enum):
     SPRINT_QUALIFYING = "Sprint Qualifying"
     SPRINT = "Sprint"
     QUALIFYING = "Qualifying"
-    RACE = "R"
+    RACE = "Race"
 
     @staticmethod
     def all_values() -> list[str]:
