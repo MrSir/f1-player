@@ -3,17 +3,18 @@ import datetime
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.showbase.MessengerGlobal import messenger
-from panda3d.core import Point3
+from panda3d.core import Point3, StaticTextFont
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.services.data_extractor.enums import SprintQualifyingSessionIdentifiers, ConventionalSessionIdentifiers
 
 
 class Menu:
-    def __init__(self, pixel2d, width: int, height: int, data_extractor: DataExtractorService):
+    def __init__(self, pixel2d, width: int, height: int, text_font: StaticTextFont, data_extractor: DataExtractorService):
         self.pixel2d = pixel2d
         self.width = width
         self.height = height
+        self.text_font = text_font
         self.data_extractor = data_extractor
 
         self.frame: DirectFrame | None = None
