@@ -86,7 +86,7 @@ class Menu:
             text="options",
             scale=self.height,
             command=self.select_event,
-            frameSize=(0, 10, -1, 0),
+            frameSize=(0, 12, -1, 0),
             items=["Event"],
             initialitem=0,
             highlightColor=(0.65, 0.65, 0.65, 1),
@@ -112,14 +112,14 @@ class Menu:
             text="options",
             scale=self.height,
             command=self.select_session,
-            frameSize=(0, 5, -1, 0),
+            frameSize=(0, 4.5, -1, 0),
             items=["Session"],
             initialitem=0,
             highlightColor=(0.65, 0.65, 0.65, 1),
             text_scale=0.5,
             text_pos=(0.1, -0.7),
             # item_text_scale=0.1,
-            pos=Point3(516, 0, 0)
+            pos=Point3(596, 0, 0)
         )
 
 
