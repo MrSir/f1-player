@@ -7,7 +7,7 @@ from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.gui.DirectSlider import DirectSlider
 from direct.showbase.DirectObject import DirectObject
 from direct.task.Task import TaskManager
-from panda3d.core import Point3, StaticTextFont, Camera, deg2Rad
+from panda3d.core import Point3, StaticTextFont, Camera, deg2Rad, TextNode
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.gui.button import BlackButton
@@ -65,7 +65,8 @@ class PlaybackControls(DirectObject):
             command=None,  # TODO
             text_font=self.symbols_font,
             text="⏯",
-            text_scale=self.height,
+            text_scale=self.height - 5,
+            text_align=TextNode.ACenter,
             text_pos=(-2, (-self.height / 2) + 7),
             pos=Point3(17, 0, -self.height / 2)
         )
@@ -76,7 +77,7 @@ class PlaybackControls(DirectObject):
             value=0,  # TODO
             range=(0, 100),  # TODO
             pageSize=1,  # TODO
-            frameSize=(0, self.width - 131, -self.height / 2, self.height / 2),
+            frameSize=(0, self.width - 121, -self.height / 2, self.height / 2),
             frameColor=(0.1, 0.1, 0.1, 1),
             thumb_frameSize=(0, 5, -self.height / 2, self.height / 2),
             thumb_frameColor=(0.05, 0.05, 0.05, 1),
@@ -91,18 +92,20 @@ class PlaybackControls(DirectObject):
     def render_playback_speed_button(self) -> None:
         self.playback_speed_button = BlackDropDown(
             parent=self.frame,
-            width=65,
+            width=47,
             height=self.height,
             font=self.text_font,
-            font_scale=self.height - 7,
+            font_scale=self.height - 15,
             popup_menu_below=False,
             command=None,  # TODO
             text="speed",
-            text_pos=(5, (-self.height / 2) + 8),
-            item_text_pos=(5, (-self.height / 2) + 8),
-            items=["x0.5", "x1.0", "x1.5", "x2.0"],
-            initialitem=1,
-            pos=Point3(self.width - 97, 0, -self.height / 2)
+            text_pos=(23.5, (-self.height / 2) + 10),
+            text_align=TextNode.ACenter,
+            item_text_pos=(23.5, (-self.height / 2) + 10),
+            item_text_align=TextNode.ACenter,
+            items=["x1.0", "x2.0"],
+            initialitem=0,
+            pos=Point3(self.width - 87, 0, -self.height / 2)
         )
 
     def move_camera(self, task):
@@ -137,18 +140,20 @@ class PlaybackControls(DirectObject):
     def render_camera_button(self) -> None:
         self.camera_button = BlackDropDown(
             parent=self.frame,
-            width=30,
+            width=40,
             height=self.height,
             font=self.symbols_font,
             font_scale=self.height - 10,
             popup_menu_below=False,
             command=self.switch_camera,
             text="camera",
-            text_pos=(5, (-self.height / 2) + 8),
-            item_text_pos=(5, (-self.height / 2) + 8),
+            text_pos=(20, (-self.height / 2) + 10),
+            text_align=TextNode.ACenter,
+            item_text_pos=(20, (-self.height / 2) + 10),
+            item_text_align=TextNode.ACenter,
             items=["🌎", "🗺"],
             initialitem=0,
-            pos=Point3(self.width - 30, 0, -self.height / 2)
+            pos=Point3(self.width - 40, 0, -self.height / 2)
         )
 
     def render(self):

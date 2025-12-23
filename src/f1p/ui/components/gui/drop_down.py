@@ -113,7 +113,7 @@ class BlackDropDown(DirectOptionMenu):
             # So entire extent of item's slot on popup is reactive to mouse
             item['frameSize'] = (0, self.width, -self.height / 2, self.height / 2)
             # Move it to its correct position on the popup
-            item.setPos(0, 0, (i * (-self.height)) - 3)
+            item.setPos(0, 0, (i * (-self.height)) + 5)
             item.bind(B1RELEASE, self.hidePopupMenu)
             # Highlight background when mouse is in item
             item.bind(WITHIN, lambda x, i=i, item=item: self._highlightItem(item, i))
