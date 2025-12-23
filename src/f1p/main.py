@@ -70,8 +70,8 @@ class F1PlayerApp(ShowBase):
 
         return self
 
-app = F1PlayerApp(draw_origin=True)
-# app.disableMouse()  # disable camera controls
+app = F1PlayerApp()
+app.disableMouse()  # disable camera controls
 (
     app.configure_window()
     .draw_menu()

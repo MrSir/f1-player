@@ -3,12 +3,11 @@ from math import sin, cos
 
 from direct.gui.DirectButton import DirectButton
 from direct.gui.DirectFrame import DirectFrame
-from direct.gui.DirectGuiGlobals import RAISED
 from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.gui.DirectSlider import DirectSlider
 from direct.showbase.DirectObject import DirectObject
 from direct.task.Task import TaskManager
-from panda3d.core import Point3, StaticTextFont, Camera
+from panda3d.core import Point3, StaticTextFont, Camera, deg2Rad
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.gui.button import BlackButton
@@ -113,21 +112,26 @@ class PlaybackControls(DirectObject):
         current_x = self.camera.getX()
         current_y = self.camera.getY()
 
-        deg = 0.25
-        rad = deg * math.pi / 180
+        rad = deg2Rad(0.1)
 
-        self.camera.setX((current_x*cos(rad)) - (current_y * sin(rad)))
-        self.camera.setY((current_x*sin(rad)) + (current_y * cos(rad)))
+        self.camera.setX((current_x * cos(rad)) - (current_y * sin(rad)))
+        self.camera.setY((current_x * sin(rad)) + (current_y * cos(rad)))
 
-        self.camera.lookAt(0,0,0)
+        self.camera.lookAt(0, 0, 0)
 
         return task.cont
 
     def switch_camera(self, item: str) -> None:
         match item:
-            case "📹":
+            case "🌎":
+                self.camera.setPos(0, -70, 40)
+                self.camera.lookAt(0, 0, 0)
+
                 self.orbiting_camera = True
-            case "🖑":
+            case "🗺":
+                self.camera.setPos(0, 0, 100)
+                self.camera.lookAt(0, 0, 0)
+
                 self.orbiting_camera = False
 
     def render_camera_button(self) -> None:
@@ -136,13 +140,13 @@ class PlaybackControls(DirectObject):
             width=30,
             height=self.height,
             font=self.symbols_font,
-            font_scale= self.height -10,
+            font_scale=self.height - 10,
             popup_menu_below=False,
             command=self.switch_camera,
             text="camera",
             text_pos=(5, (-self.height / 2) + 8),
             item_text_pos=(5, (-self.height / 2) + 8),
-            items=["📹", "🖑"],
+            items=["🌎", "🗺"],
             initialitem=0,
             pos=Point3(self.width - 30, 0, -self.height / 2)
         )

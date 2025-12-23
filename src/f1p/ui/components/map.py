@@ -1,10 +1,11 @@
 from direct.showbase.DirectObject import DirectObject
 from fastf1.core import Telemetry
 from fastf1.mvapi import CircuitInfo
-from panda3d.core import LineSegs, NodePath
+from panda3d.core import LineSegs, NodePath, deg2Rad
 from pandas import DataFrame
 
 from f1p.services.data_extractor import DataExtractorService
+from f1p.utils.geometry import rotate, scale, shift, find_center
 
 
 class Map(DirectObject):
@@ -27,27 +28,6 @@ class Map(DirectObject):
     @property
     def fastest_lap_telemetry(self) -> Telemetry:
         return self.data_extractor.fastest_lap.get_pos_data()
-
-    def scale(self, df: DataFrame, factor: float) -> DataFrame:
-        new_df = df.copy()
-        new_df["X"] = new_df["X"] * factor
-        new_df["Y"] = new_df["Y"] * factor
-        new_df["Z"] = new_df["Z"] * factor
-
-        return new_df
-
-    def shift(self, df: DataFrame, direction: str, amount: float) -> DataFrame:
-        new_df = df.copy()
-        new_df[direction] = new_df[direction] + amount
-
-        return new_df
-
-    def df_center(self, df: DataFrame) -> list[float]:
-        return [
-            ((df["X"].max() - df["X"].min()) / 2) + df["X"].min(),
-            ((df["Y"].max() - df["Y"].min()) / 2) + df["Y"].min(),
-            ((df["Z"].max() - df["Z"].min()) / 2) + df["Z"].min(),
-        ]
 
     def render_map(self, df: DataFrame) -> NodePath:
         line_segments = LineSegs("map")
@@ -82,15 +62,22 @@ class Map(DirectObject):
             self.outer_border_node_path.removeNode()
 
     def render(self) -> None:
+        map_rotation = self.circuit_info.rotation
+        map_rotation_rad = deg2Rad(map_rotation)
+
         fastest_lap_telemetry = self.fastest_lap_telemetry
         coordinates_only = fastest_lap_telemetry[['X', 'Y', 'Z']]
-        scaled_coordinates_df = self.scale(coordinates_only, 1/600)
 
-        df_center = self.df_center(scaled_coordinates_df)
+        rotated_coordinates = rotate(coordinates_only, map_rotation_rad)
 
-        shifted_x_coordinates_df = self.shift(scaled_coordinates_df, direction="X", amount=-df_center[0])
-        shifted_y_coordinates_df = self.shift(shifted_x_coordinates_df, direction="Y", amount=-df_center[1])
-        shifted_z_coordinates_df = self.shift(shifted_y_coordinates_df, direction="Z", amount=-df_center[2])
+        #TODO calculate scale factor such that maps are roughly same size
+        scaled_coordinates_df = scale(rotated_coordinates, 1/600)
+
+        df_center = find_center(scaled_coordinates_df)
+
+        shifted_x_coordinates_df = shift(scaled_coordinates_df, direction="X", amount=-df_center[0])
+        shifted_y_coordinates_df = shift(shifted_x_coordinates_df, direction="Y", amount=-df_center[1])
+        shifted_z_coordinates_df = shift(shifted_y_coordinates_df, direction="Z", amount=-df_center[2])
 
         self.fastest_lap_node_path = self.render_map(shifted_z_coordinates_df)
         self.fastest_lap_node_path.reparentTo(self.parent)
