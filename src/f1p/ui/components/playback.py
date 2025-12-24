@@ -6,6 +6,7 @@ from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.gui.DirectSlider import DirectSlider
 from direct.showbase.DirectObject import DirectObject
+from direct.showbase.ShowBaseGlobal import globalClock
 from direct.task.Task import TaskManager
 from panda3d.core import Point3, StaticTextFont, Camera, deg2Rad, TextNode
 
@@ -48,6 +49,8 @@ class PlaybackControls(DirectObject):
         self.camera_button: DirectOptionMenu | None = None
 
         self.orbiting_camera: bool = True
+        self.playing: bool = False
+        self.playback_speed: float = 1.0
 
 
     def render_frame(self) -> None:
@@ -58,11 +61,33 @@ class PlaybackControls(DirectObject):
             pos=Point3(0, 0, self.height - self.window_height)
         )
 
+    def move_timeline(self, task):
+        if not self.playing:
+            return task.cont
+
+        dt = globalClock.getDt()
+        current_value = self.timeline["value"]
+        new_value = current_value + (dt * 1000 * self.playback_speed)
+
+        if new_value > self.timeline["range"][1]:
+            self.playing = False
+            return task.cont
+
+        self.timeline["value"] = new_value
+
+        return task.cont
+
+    def play_pause(self) -> None:
+        if not self.playing:
+            self.playing = True
+        else:
+            self.playing = False
+
     def render_play_button(self) -> None:
         self.play_button = BlackButton(
             parent=self.frame,
             frameSize=(-17, 17, -self.height / 2, self.height / 2),
-            command=None,  # TODO
+            command=self.play_pause,
             text_font=self.symbols_font,
             text="⏯",
             text_scale=self.height - 5,
@@ -72,11 +97,15 @@ class PlaybackControls(DirectObject):
         )
 
     def render_timeline(self) -> None:
+        session_status = self.data_extractor.session.session_status
+        start_time = session_status[session_status["Status"] == "Started"]["Time"].item()
+        end_time = session_status[session_status["Status"] == "Finalised"]["Time"].item()
+
         self.timeline = DirectSlider(
             parent=self.frame,
-            value=0,  # TODO
-            range=(0, 100),  # TODO
-            pageSize=1,  # TODO
+            value=int(start_time.total_seconds() * 1e3),  # in total milliseconds
+            range=(int(start_time.total_seconds() * 1e3), int(end_time.total_seconds() * 1e3)),  # in total milliseconds
+            pageSize=1,  # in milliseconds
             frameSize=(0, self.width - 121, -self.height / 2, self.height / 2),
             frameColor=(0.15, 0.15, 0.15, 1),
             thumb_frameSize=(0, 5, -self.height / 2, self.height / 2),
@@ -89,6 +118,19 @@ class PlaybackControls(DirectObject):
             pos=Point3(34, 0, -self.height / 2)
         )
 
+    def change_playback_speed(self, playback_speed: str) -> None:
+        match playback_speed:
+            case "x1.0":
+                self.playback_speed = 1.0
+            case "x2.0":
+                self.playback_speed = 2.0
+            case "x3.0":
+                self.playback_speed = 3.0
+            case "x4.0":
+                self.playback_speed = 4.0
+            case "x5.0":
+                self.playback_speed = 5.0
+
     def render_playback_speed_button(self) -> None:
         self.playback_speed_button = BlackDropDown(
             parent=self.frame,
@@ -97,7 +139,7 @@ class PlaybackControls(DirectObject):
             font=self.text_font,
             font_scale=self.height - 15,
             popup_menu_below=False,
-            command=None,  # TODO
+            command=self.change_playback_speed,
             text="speed",
             text_pos=(23.5, (-self.height / 2) + 10),
             text_align=TextNode.ACenter,
@@ -158,6 +200,7 @@ class PlaybackControls(DirectObject):
 
     def render(self):
         self.task_manager.add(self.move_camera, "move_camera")
+        self.task_manager.add(self.move_timeline, "move_timeline")
         self.render_frame()
         self.render_play_button()
         self.render_timeline()

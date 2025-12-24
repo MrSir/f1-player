@@ -106,7 +106,6 @@ class Menu:
             self.data_extractor._circuit_info = None
             messenger.send("clearMaps")
             self.data_extractor.session_id = session_id
-
             self.data_extractor.extract()
 
     def render_session_menu(self) -> None:

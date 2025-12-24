@@ -209,8 +209,11 @@ class BlackDropDown(DirectOptionMenu):
         super().showPopupMenu(event=event)
 
         self.popupMenu.setX(0)
-        self.popupMenu.setZ(-self.height + 6 if self.popup_menu_below else (
-                    self.height * self.item_scale * len(self.items)))
+
+        z_coordinate = -self.height + 6
+        if not self.popup_menu_below:
+            z_coordinate = self.height * self.item_scale * len(self.items)
+        self.popupMenu.setZ(z_coordinate)
 
     def _highlightItem(self, item, index):
         self._prevItemTextScale = item['text_scale']
