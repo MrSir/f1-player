@@ -4,11 +4,12 @@ from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectGuiGlobals import RAISED
 from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.showbase.MessengerGlobal import messenger
-from panda3d.core import Point3, StaticTextFont
+from panda3d.core import Point3, StaticTextFont, TextNode
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.services.data_extractor.enums import SprintQualifyingSessionIdentifiers, ConventionalSessionIdentifiers
-from f1p.ui.components.gui.drop_down import BlackDropDown
+from f1p.ui.components.gui.button import BlackButton
+from f1p.ui.components.gui.drop_down import BlackDropDown, BlackDropDownV2
 
 
 class Menu:
@@ -54,13 +55,12 @@ class Menu:
     def render_year_menu(self) -> None:
         self.year_menu = BlackDropDown(
             parent=self.frame,
-            width=90,
+            width=75,
             height=self.height,
             font=self.text_font,
-            font_scale=self.height - 7,
+            font_scale=self.height - 15,
             text="year",
-            text_pos=(5, (-self.height / 2) + 10),
-            item_text_pos=(5, (-self.height / 2) + 10),
+            text_pos=(5, (-self.height / 2) + 13),
             items=["Year"] + [str(year) for year in range(2018, self.current_year + 1)],
             initialitem=0,
             pos=Point3(0, 0, -self.height / 2)
@@ -88,16 +88,15 @@ class Menu:
         self.events_menu = BlackDropDown(
             parent=self.frame,
             command=self.select_event,
-            width=500,
+            width=529,
             height=self.height,
             font=self.text_font,
-            font_scale=self.height - 7,
+            font_scale=self.height - 15,
             text="event",
-            text_pos=(5, (-self.height / 2) + 10),
-            item_text_pos=(5, (-self.height / 2) + 10),
+            text_pos=(5, (-self.height / 2) + 13),
             items=["Event"],
             initialitem=0,
-            pos=Point3(92, 0, -self.height / 2)
+            pos=Point3(76, 0, -self.height / 2)
         )
 
     def select_session(self, session_id: str) -> None:
@@ -114,16 +113,15 @@ class Menu:
         self.session_menu = BlackDropDown(
             parent=self.frame,
             command=self.select_session,
-            width=500,
+            width=195,
             height=self.height,
             font=self.text_font,
-            font_scale=self.height - 7,
+            font_scale=self.height - 15,
             text="session",
-            text_pos=(5, (-self.height / 2) + 10),
-            item_text_pos=(5, (-self.height / 2) + 10),
+            text_pos=(5, (-self.height / 2) + 13),
             items=["Session"],
             initialitem=0,
-            pos=Point3(594, 0, -self.height / 2)
+            pos=Point3(606, 0, -self.height / 2)
         )
 
     def render(self):

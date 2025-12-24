@@ -1,8 +1,9 @@
-from direct.gui.DirectButton import DirectButton
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectGuiGlobals import RAISED, B1RELEASE, WITHIN, WITHOUT
 from direct.gui.DirectOptionMenu import DirectOptionMenu
 from panda3d.core import StaticTextFont, NodePath, TextNode
+
+from f1p.ui.components.gui.button import BlackButton
 
 
 class BlackDropDown(DirectOptionMenu):
@@ -14,6 +15,16 @@ class BlackDropDown(DirectOptionMenu):
         font: StaticTextFont | None = None,
         font_scale: float = 1.0,
         popup_menu_below: bool = True,
+
+        scale: float = 1.0,
+        frameColor: tuple[float, float, float, float] = (0.15, 0.15, 0.15, 1),
+        highlightColor: tuple[float, float, float, float] = (0.2, 0.2, 0.2, 1),
+        highlightScale: tuple[float, float] = (0.9, 0.9),
+        borderWidth: tuple[float, float] = (3, 3),
+        pressEffect: int = 1,
+        text_fg: tuple[float, float, float, float] = (1, 1, 1, 1),
+        text_pos: tuple[float, float] = (0, 0),
+
         **kwargs,
     ):
         self.width = width
@@ -22,25 +33,49 @@ class BlackDropDown(DirectOptionMenu):
         self.font_scale = font_scale
         self.popup_menu_below = popup_menu_below
 
+        self.scale = scale
+        self.item_scale = 0.7
+        self.frame_size = (0, width, -height / 2, height / 2)
+        self.frame_color = frameColor
+        self.highlight_color = highlightColor
+        self.highlight_scale = highlightScale
+        self.border_width = borderWidth
+        self.press_effect = pressEffect
+        self.text_font = self.font
+        self.text_scale = self.font_scale
+        self.text_fg = text_fg
+        self.text_pos = text_pos
+        self.item_frame_size = (0, width, -(height * self.item_scale) / 2, (height * self.item_scale) / 2)
+        self.item_frame_color = frameColor
+        self.item_text_font = self.font
+        self.item_text_scale = self.font_scale * self.item_scale
+        self.item_text_fg = text_fg
+        self.item_text_pos = (text_pos[0], text_pos[1] * self.item_scale)
+        self.item_border_width = borderWidth
+        self.item_press_effect = pressEffect
+
         default_options = (
-            ("scale", 1, None),
-            ("frameSize", (0, width, -height / 2, height / 2), None),
-            ("frameColor", (0.1, 0.1, 0.1, 1), None),
-            ("highlightColor", (0.2, 0.2, 0.2, 1), None),
-            ("highlightScale", (1, 1), None),
+            ("scale", self.scale, None),
+            ("frameSize", self.frame_size, None),
+            ("frameColor", self.frame_color, None),
+            ("highlightColor", self.highlight_color, None),
+            ("highlightScale", self.highlight_scale, None),
             ("relief", RAISED, None),
-            ("borderWidth", (3, 3), None),
-            ("pressEffect", 1, None),
+            ("borderWidth", self.border_width, None),
+            ("pressEffect", self.press_effect, None),
             ("text_font", self.font, None),
             ("text_scale", self.font_scale, None),
-            ("text_fg", (1, 1, 1, 1), None),
-            ("item_frameColor", (0.1, 0.1, 0.1, 1), None),
-            ("item_text_font", self.font, None),
-            ("item_text_scale", self.font_scale, None),
-            ("item_text_fg", (1, 1, 1, 1), None),
+            ("text_fg", self.text_fg, None),
+            ("text_pos", self.text_pos, None),
+            ("item_frameSize", self.item_frame_size, None),
+            ("item_frameColor", self.item_frame_color, None),
+            ("item_text_font", self.item_text_font, None),
+            ("item_text_scale", self.item_text_scale, None),
+            ("item_text_fg", self.item_text_fg, None),
+            ("item_text_pos", self.item_text_pos, None),
             ("item_relief", RAISED, None),
-            ("item_borderWidth", (3, 3), None),
-            ("item_pressEffect", 1, None),
+            ("item_borderWidth", self.item_border_width, None),
+            ("item_pressEffect", self.item_press_effect, None),
         )
         self.defineoptions(kwargs, default_options)
 
@@ -63,7 +98,8 @@ class BlackDropDown(DirectOptionMenu):
             None,
             DirectFrame,
             (self,),
-            relief='raised',
+            frameColor=(0, 0, 0, 0),
+            relief=RAISED,
         )
         # Make sure it is on top of all the other gui widgets
         self.popupMenu.setBin('gui-popup', 0)
@@ -79,10 +115,19 @@ class BlackDropDown(DirectOptionMenu):
                 'item%d' % itemIndex,
                 (),
                 'item',
-                DirectButton,
+                BlackButton,
                 (self.popupMenu,),
                 text=item,
+                frameSize=self.item_frame_size,
+                frameColor=self.item_frame_color,
                 text_align=TextNode.ALeft,
+                text_font=self.item_text_font,
+                text_scale=self.item_text_scale,
+                text_fg=self.item_text_fg,
+                text_pos=self.item_text_pos,
+                relief=RAISED,
+                borderWidth=self.item_border_width,
+                pressEffect=self.item_press_effect,
                 command=lambda i=itemIndex: self.set(i)
             )
             bounds = c.getBounds()
@@ -111,9 +156,9 @@ class BlackDropDown(DirectOptionMenu):
         for i in range(itemIndex):
             item = self.component('item%d' % i)
             # So entire extent of item's slot on popup is reactive to mouse
-            item['frameSize'] = (0, self.width, -self.height / 2, self.height / 2)
+            item['frameSize'] = self.item_frame_size
             # Move it to its correct position on the popup
-            item.setPos(0, 0, (i * (-self.height)) + 5)
+            item.setPos(0, 0, (i * (-self.height * self.item_scale)))
             item.bind(B1RELEASE, self.hidePopupMenu)
             # Highlight background when mouse is in item
             item.bind(WITHIN, lambda x, i=i, item=item: self._highlightItem(item, i))
@@ -159,17 +204,17 @@ class BlackDropDown(DirectOptionMenu):
         super().showPopupMenu(event=event)
 
         self.popupMenu.setX(0)
-        self.popupMenu.setZ(-self.height + 3 if self.popup_menu_below else self.popupMenu.getHeight() + self.height / 2)
+        self.popupMenu.setZ(-self.height + 6 if self.popup_menu_below else self.popupMenu.getHeight() + self.height / 2)
 
     def _highlightItem(self, item, index):
         self._prevItemTextScale = item['text_scale']
-        item['frameColor'] = self['highlightColor']
-        item['frameSize'] = (0, self.width, -self.height / 2, self.height / 2)
-        item['text_scale'] = (self.font_scale, self.font_scale)  # OVERRODE THE INSANITY THAT WAS THIS LINE
+        item['frameColor'] = self.highlight_color
+        item['frameSize'] = self.item_frame_size
+        item['text_scale'] = (self.item_text_scale, self.item_text_scale)  # OVERRODE THE INSANITY THAT WAS THIS LINE
         self.highlightedIndex = index
 
     def _unhighlightItem(self, item, frameColor):
         item['frameColor'] = frameColor
-        item['frameSize'] = (0, self.width, -self.height / 2, self.height / 2)
+        item['frameSize'] = self.item_frame_size
         item['text_scale'] = self._prevItemTextScale
         self.highlightedIndex = None
