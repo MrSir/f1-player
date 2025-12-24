@@ -1,4 +1,5 @@
 import math
+from datetime import timedelta
 from math import sin, cos
 
 from direct.gui.DirectButton import DirectButton
@@ -13,6 +14,7 @@ from panda3d.core import Point3, StaticTextFont, Camera, deg2Rad, TextNode
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.gui.button import BlackButton
 from f1p.ui.components.gui.drop_down import BlackDropDown
+from f1p.ui.components.map import Map
 
 
 class PlaybackControls(DirectObject):
@@ -26,6 +28,7 @@ class PlaybackControls(DirectObject):
         height: int,
         symbols_font: StaticTextFont,
         text_font: StaticTextFont,
+        circuit_map: Map,
         data_extractor: DataExtractorService
     ):
         super().__init__()
@@ -38,6 +41,7 @@ class PlaybackControls(DirectObject):
         self.height = height
         self.symbols_font = symbols_font
         self.text_font = text_font
+        self.circuit_map = circuit_map
         self.data_extractor = data_extractor
 
         self.accept("sessionSelected", self.render)
@@ -96,6 +100,17 @@ class PlaybackControls(DirectObject):
             pos=Point3(17, 0, -self.height / 2)
         )
 
+    def update_drivers(self) -> None:
+        milliseconds = self.timeline["value"]
+
+        for driver in self.circuit_map.drivers:
+            pos_data_passed = driver.pos_data[driver.pos_data["SessionTime"] <= timedelta(milliseconds=milliseconds)]
+
+            current_record = pos_data_passed.tail(1)
+            driver.X = current_record["X"].item()
+            driver.Y = current_record["Y"].item()
+            driver.Z = current_record["Z"].item()
+
     def render_timeline(self) -> None:
         session_status = self.data_extractor.session.session_status
         start_time = session_status[session_status["Status"] == "Started"]["Time"].item()
@@ -110,7 +125,7 @@ class PlaybackControls(DirectObject):
             frameColor=(0.15, 0.15, 0.15, 1),
             thumb_frameSize=(0, 5, -self.height / 2, self.height / 2),
             thumb_frameColor=(0.1, 0.1, 0.1, 1),
-            command=None,  # TODO
+            command=self.update_drivers,
             text_font=self.text_font,
             text_scale=self.height,
             text_fg=(1, 1, 1, 1),

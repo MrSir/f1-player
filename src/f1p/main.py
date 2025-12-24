@@ -51,8 +51,10 @@ class F1PlayerApp(ShowBase):
         return self
 
     def register_ui_components(self) -> Self:
+        circuit_map = Map(self.render, self.data_extractor)
+
         self.ui_components = [
-            Map(self.render, self.data_extractor),
+            circuit_map,
             PlaybackControls(
                 self.pixel2d,
                 self.cam,
@@ -62,6 +64,7 @@ class F1PlayerApp(ShowBase):
                 30,
                 self.symbols_font,
                 self.text_font,
+                circuit_map,
                 self.data_extractor
             ),
         ]

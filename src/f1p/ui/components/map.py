@@ -5,11 +5,12 @@ from panda3d.core import LineSegs, NodePath, deg2Rad
 from pandas import DataFrame
 
 from f1p.services.data_extractor import DataExtractorService
+from f1p.ui.components.driver import Driver
 from f1p.utils.geometry import rotate, scale, shift, find_center
 
 
 class Map(DirectObject):
-    def __init__(self, parent: NodePath,  data_extractor: DataExtractorService):
+    def __init__(self, parent: NodePath, data_extractor: DataExtractorService):
         super().__init__()
 
         self.parent = parent
@@ -18,7 +19,9 @@ class Map(DirectObject):
         self.fastest_lap_node_path: NodePath | None = None
         self.outer_border_node_path: NodePath | None = None
 
-        self.accept("sessionSelected", self.render)
+        self.drivers: list[Driver] = []
+
+        self.accept("sessionSelected", self.select_session)
         self.accept("clearMaps", self.clear_out_maps)
 
     @property
@@ -36,7 +39,7 @@ class Map(DirectObject):
 
         track = df.loc[:, ('X', 'Y', 'Z')].to_numpy()
 
-        first_point  = None
+        first_point = None
         previous_point = None
         for point in track:
             if first_point is None:
@@ -70,8 +73,8 @@ class Map(DirectObject):
 
         rotated_coordinates = rotate(coordinates_only, map_rotation_rad)
 
-        #TODO calculate scale factor such that maps are roughly same size
-        scaled_coordinates_df = scale(rotated_coordinates, 1/600)
+        # TODO calculate scale factor such that maps are roughly same size
+        scaled_coordinates_df = scale(rotated_coordinates, 1 / 600)
 
         df_center = find_center(scaled_coordinates_df)
 
@@ -81,3 +84,12 @@ class Map(DirectObject):
 
         self.fastest_lap_node_path = self.render_map(shifted_z_coordinates_df)
         self.fastest_lap_node_path.reparentTo(self.parent)
+
+    def initialize_drivers(self) -> None:
+        # TODO rotate pos_data based on track angle
+        for _, driver_sr in self.data_extractor.session.results.iterrows():
+             self.drivers.append(Driver.from_df(driver_sr, self.data_extractor.session.pos_data[driver_sr["DriverNumber"]]))
+
+    def select_session(self) -> None:
+        self.render()
+        self.initialize_drivers()
