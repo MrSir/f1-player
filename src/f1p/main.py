@@ -11,7 +11,6 @@ from f1p.ui.components.playback import PlaybackControls
 
 
 class F1PlayerApp(ShowBase):
-
     def __init__(self, width: int = 800, height: int = 800, draw_origin: bool = False):
         super().__init__(self)
 
