@@ -107,9 +107,7 @@ class PlaybackControls(DirectObject):
             pos_data_passed = driver.pos_data[driver.pos_data["SessionTime"] <= timedelta(milliseconds=milliseconds)]
 
             current_record = pos_data_passed.tail(1)
-            driver.X = current_record["X"].item()
-            driver.Y = current_record["Y"].item()
-            driver.Z = current_record["Z"].item()
+            driver.update_coordinates(current_record)
 
     def render_timeline(self) -> None:
         session_status = self.data_extractor.session.session_status
@@ -144,7 +142,7 @@ class PlaybackControls(DirectObject):
             case "x4.0":
                 self.playback_speed = 4.0
             case "x5.0":
-                self.playback_speed = 5.0
+                self.playback_speed = 10.0
 
     def render_playback_speed_button(self) -> None:
         self.playback_speed_button = BlackDropDown(
