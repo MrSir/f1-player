@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Self
 
 from direct.showbase.ShowBase import ShowBase

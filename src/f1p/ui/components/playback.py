@@ -53,7 +53,7 @@ class PlaybackControls(DirectObject):
     def render_frame(self) -> None:
         self.frame = DirectFrame(
             parent=self.pixel2d,
-            frameColor=(0, 0, 0, 0.6),
+            frameColor=(0, 0, 0, 0.5),
             frameSize=(0, self.width, 0, -self.height),
             pos=Point3(0, 0, self.height - self.window_height)
         )
@@ -78,9 +78,9 @@ class PlaybackControls(DirectObject):
             range=(0, 100),  # TODO
             pageSize=1,  # TODO
             frameSize=(0, self.width - 121, -self.height / 2, self.height / 2),
-            frameColor=(0.1, 0.1, 0.1, 1),
+            frameColor=(0.15, 0.15, 0.15, 1),
             thumb_frameSize=(0, 5, -self.height / 2, self.height / 2),
-            thumb_frameColor=(0.05, 0.05, 0.05, 1),
+            thumb_frameColor=(0.1, 0.1, 0.1, 1),
             command=None,  # TODO
             text_font=self.text_font,
             text_scale=self.height,
@@ -101,9 +101,9 @@ class PlaybackControls(DirectObject):
             text="speed",
             text_pos=(23.5, (-self.height / 2) + 10),
             text_align=TextNode.ACenter,
-            item_text_pos=(23.5, (-self.height / 2) + 10),
             item_text_align=TextNode.ACenter,
-            items=["x1.0", "x2.0"],
+            items=["x1.0", "x2.0", "x3.0", "x4.0", "x5.0"],
+            item_scale=1.0,
             initialitem=0,
             pos=Point3(self.width - 87, 0, -self.height / 2)
         )
@@ -149,9 +149,9 @@ class PlaybackControls(DirectObject):
             text="camera",
             text_pos=(20, (-self.height / 2) + 10),
             text_align=TextNode.ACenter,
-            item_text_pos=(20, (-self.height / 2) + 10),
             item_text_align=TextNode.ACenter,
             items=["🌎", "🗺"],
+            item_scale=1.0,
             initialitem=0,
             pos=Point3(self.width - 40, 0, -self.height / 2)
         )

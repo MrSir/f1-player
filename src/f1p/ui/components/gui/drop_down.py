@@ -17,6 +17,7 @@ class BlackDropDown(DirectOptionMenu):
         popup_menu_below: bool = True,
 
         scale: float = 1.0,
+        item_scale: float = 1.0,
         frameColor: tuple[float, float, float, float] = (0.15, 0.15, 0.15, 1),
         highlightColor: tuple[float, float, float, float] = (0.2, 0.2, 0.2, 1),
         highlightScale: tuple[float, float] = (0.9, 0.9),
@@ -24,6 +25,8 @@ class BlackDropDown(DirectOptionMenu):
         pressEffect: int = 1,
         text_fg: tuple[float, float, float, float] = (1, 1, 1, 1),
         text_pos: tuple[float, float] = (0, 0),
+
+        items: list[str] | None = None,
 
         **kwargs,
     ):
@@ -34,7 +37,7 @@ class BlackDropDown(DirectOptionMenu):
         self.popup_menu_below = popup_menu_below
 
         self.scale = scale
-        self.item_scale = 0.7
+        self.item_scale = item_scale
         self.frame_size = (0, width, -height / 2, height / 2)
         self.frame_color = frameColor
         self.highlight_color = highlightColor
@@ -45,6 +48,7 @@ class BlackDropDown(DirectOptionMenu):
         self.text_scale = self.font_scale
         self.text_fg = text_fg
         self.text_pos = text_pos
+        self.items = items if items else []
         self.item_frame_size = (0, width, -(height * self.item_scale) / 2, (height * self.item_scale) / 2)
         self.item_frame_color = frameColor
         self.item_text_font = self.font
@@ -67,6 +71,7 @@ class BlackDropDown(DirectOptionMenu):
             ("text_scale", self.font_scale, None),
             ("text_fg", self.text_fg, None),
             ("text_pos", self.text_pos, None),
+            ("items", self.items, self.setItems),
             ("item_frameSize", self.item_frame_size, None),
             ("item_frameColor", self.item_frame_color, None),
             ("item_text_font", self.item_text_font, None),
@@ -204,7 +209,8 @@ class BlackDropDown(DirectOptionMenu):
         super().showPopupMenu(event=event)
 
         self.popupMenu.setX(0)
-        self.popupMenu.setZ(-self.height + 6 if self.popup_menu_below else self.popupMenu.getHeight() + self.height / 2)
+        self.popupMenu.setZ(-self.height + 6 if self.popup_menu_below else (
+                    self.height * self.item_scale * len(self.items)))
 
     def _highlightItem(self, item, index):
         self._prevItemTextScale = item['text_scale']

@@ -1,15 +1,13 @@
 import datetime
 
 from direct.gui.DirectFrame import DirectFrame
-from direct.gui.DirectGuiGlobals import RAISED
 from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.showbase.MessengerGlobal import messenger
-from panda3d.core import Point3, StaticTextFont, TextNode
+from panda3d.core import Point3, StaticTextFont
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.services.data_extractor.enums import SprintQualifyingSessionIdentifiers, ConventionalSessionIdentifiers
-from f1p.ui.components.gui.button import BlackButton
-from f1p.ui.components.gui.drop_down import BlackDropDown, BlackDropDownV2
+from f1p.ui.components.gui.drop_down import BlackDropDown
 
 
 class Menu:
@@ -62,6 +60,7 @@ class Menu:
             text="year",
             text_pos=(5, (-self.height / 2) + 13),
             items=["Year"] + [str(year) for year in range(2018, self.current_year + 1)],
+            item_scale=0.7,
             initialitem=0,
             pos=Point3(0, 0, -self.height / 2)
         )
@@ -95,6 +94,7 @@ class Menu:
             text="event",
             text_pos=(5, (-self.height / 2) + 13),
             items=["Event"],
+            item_scale=0.7,
             initialitem=0,
             pos=Point3(76, 0, -self.height / 2)
         )
@@ -120,6 +120,7 @@ class Menu:
             text="session",
             text_pos=(5, (-self.height / 2) + 13),
             items=["Session"],
+            item_scale=0.7,
             initialitem=0,
             pos=Point3(606, 0, -self.height / 2)
         )
