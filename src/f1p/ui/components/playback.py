@@ -54,13 +54,13 @@ class PlaybackControls(DirectObject):
 
         self.orbiting_camera: bool = True
         self.playing: bool = False
-        self.playback_speed: float = 1.0
+        self.playback_speed: float = 5.0
 
 
     def render_frame(self) -> None:
         self.frame = DirectFrame(
             parent=self.pixel2d,
-            frameColor=(0, 0, 0, 0.5),
+            frameColor=(0.18, 0.18, 0.18, 1),
             frameSize=(0, self.width, 0, -self.height),
             pos=Point3(0, 0, self.height - self.window_height)
         )
@@ -69,9 +69,10 @@ class PlaybackControls(DirectObject):
         if not self.playing:
             return task.cont
 
-        dt = globalClock.getDt()
+        fps = globalClock.getAverageFrameRate()
+        spf = 1 / fps
         current_value = self.timeline["value"]
-        new_value = current_value + (dt * 1000 * self.playback_speed)
+        new_value = current_value + (spf * 1000 * self.playback_speed)
 
         if new_value > self.timeline["range"][1]:
             self.playing = False
@@ -105,8 +106,8 @@ class PlaybackControls(DirectObject):
 
         for driver in self.circuit_map.drivers:
             pos_data_passed = driver.pos_data[driver.pos_data["SessionTime"] <= timedelta(milliseconds=milliseconds)]
-
             current_record = pos_data_passed.tail(1)
+
             driver.update_coordinates(current_record)
 
     def render_timeline(self) -> None:
@@ -133,16 +134,14 @@ class PlaybackControls(DirectObject):
 
     def change_playback_speed(self, playback_speed: str) -> None:
         match playback_speed:
-            case "x1.0":
-                self.playback_speed = 1.0
-            case "x2.0":
-                self.playback_speed = 2.0
-            case "x3.0":
-                self.playback_speed = 3.0
-            case "x4.0":
-                self.playback_speed = 4.0
             case "x5.0":
+                self.playback_speed = 5.0
+            case "x10":
                 self.playback_speed = 10.0
+            case "x25":
+                self.playback_speed = 25.0
+            case "x50":
+                self.playback_speed = 50.0
 
     def render_playback_speed_button(self) -> None:
         self.playback_speed_button = BlackDropDown(
@@ -157,7 +156,7 @@ class PlaybackControls(DirectObject):
             text_pos=(23.5, (-self.height / 2) + 10),
             text_align=TextNode.ACenter,
             item_text_align=TextNode.ACenter,
-            items=["x1.0", "x2.0", "x3.0", "x4.0", "x5.0"],
+            items=["x5.0", "x10", "x25", "x50"],
             item_scale=1.0,
             initialitem=0,
             pos=Point3(self.width - 87, 0, -self.height / 2)
@@ -170,7 +169,7 @@ class PlaybackControls(DirectObject):
         current_x = self.camera.getX()
         current_y = self.camera.getY()
 
-        rad = deg2Rad(0.1)
+        rad = deg2Rad(0.3)
 
         self.camera.setX((current_x * cos(rad)) - (current_y * sin(rad)))
         self.camera.setY((current_x * sin(rad)) + (current_y * cos(rad)))

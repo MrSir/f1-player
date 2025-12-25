@@ -24,7 +24,7 @@ class Driver:
     @staticmethod
     def create_node_path(parent, driver_sr: Series) -> NodePath:
         sphere_maker = SphereMaker(
-            radius=0.25,
+            radius=0.10,
         )
         sphere = sphere_maker.generate()
         node_path = parent.attachNewNode(sphere)

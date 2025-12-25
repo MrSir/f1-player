@@ -24,6 +24,8 @@ class F1PlayerApp(ShowBase):
         self.cam.setPos(0, -70, 40)
         self.cam.lookAt(0, 0, 0)
 
+        self.setBackgroundColor(0.2, 0.2, 0.2, 1)
+
         self.ui_components: list = []
 
         if draw_origin:

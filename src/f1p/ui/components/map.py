@@ -1,3 +1,4 @@
+import numpy as np
 from direct.showbase.DirectObject import DirectObject
 from fastf1.core import Telemetry
 from fastf1.mvapi import CircuitInfo
@@ -16,7 +17,7 @@ class Map(DirectObject):
         self.parent = parent
         self.data_extractor = data_extractor
 
-        self.fastest_lap_node_path: NodePath | None = None
+        self.inner_border_node_path: NodePath | None = None
         self.outer_border_node_path: NodePath | None = None
 
         self.drivers: list[Driver] = []
@@ -31,36 +32,73 @@ class Map(DirectObject):
         return self.data_extractor.circuit_info
 
     @property
+    def map_rotation(self) -> float:
+        return deg2Rad(self.circuit_info.rotation)
+
+    @property
     def fastest_lap_telemetry(self) -> Telemetry:
         return self.data_extractor.fastest_lap.get_pos_data()
 
-    @property
-    def scaled_map_coordinates(self):
-        map_rotation = self.circuit_info.rotation
-        map_rotation_rad = deg2Rad(map_rotation)
+    def transform_coordinates(self, coordinates_df: DataFrame) -> DataFrame:
+        new_coordinates_df = coordinates_df.copy()
+        coordinates_cols_only_df = new_coordinates_df[['X', 'Y', 'Z']]
 
-        fastest_lap_telemetry = self.fastest_lap_telemetry
-        coordinates_only = fastest_lap_telemetry[['X', 'Y', 'Z']]
+        rotated_coordinates_df = rotate(coordinates_cols_only_df, self.map_rotation)
+        scaled_coordinates_df = scale(rotated_coordinates_df, 1 / 600)
 
-        rotated_coordinates = rotate(coordinates_only, map_rotation_rad)
-
-        # TODO calculate scale factor such that maps are roughly same size
-        return scale(rotated_coordinates, 1 / 600)
-
-
-    @property
-    def map_center_coordinate(self) -> list[float]:
         if self._map_center_coordinate is None:
-            self._map_center_coordinate = find_center(self.scaled_map_coordinates)
+            self._map_center_coordinate = find_center(scaled_coordinates_df)
 
-        return self._map_center_coordinate
+        shifted_x_coordinates_df = shift(scaled_coordinates_df, direction="X", amount=-self._map_center_coordinate[0])
+        shifted_y_coordinates_df = shift(scaled_coordinates_df, direction="Y", amount=-self._map_center_coordinate[1])
+        shifted_z_coordinates_df = shift(scaled_coordinates_df, direction="Z", amount=-self._map_center_coordinate[2])
 
-    def render_map(self, df: DataFrame) -> NodePath:
+        new_coordinates_df["X"] = shifted_x_coordinates_df["X"]
+        new_coordinates_df["Y"] = shifted_y_coordinates_df["Y"]
+        new_coordinates_df["Z"] = shifted_z_coordinates_df["Z"]
+
+        return new_coordinates_df
+
+    def render_map(self, df: DataFrame) -> None:
+        new_df = df.copy()
+
+        track_width = 0.5
+        track_x = new_df["X"]
+        track_y = new_df["Y"]
+
+        dx = np.gradient(track_x)
+        dy = np.gradient(track_y)
+
+        norm = np.sqrt(dx ** 2 + dy ** 2)
+        norm[norm == 0] = 1.0
+        dx /= norm
+        dy /= norm
+
+        nx = -dy
+        ny = dx
+        x_outer = track_x + nx * (track_width / 2)
+        y_outer = track_y + ny * (track_width / 2)
+        x_inner = track_x - nx * (track_width / 2)
+        y_inner = track_y - ny * (track_width / 2)
+
+        inner_df = new_df.copy()
+        inner_df["X"] = x_inner
+        inner_df["Y"] = y_inner
+        inner_track = inner_df.loc[:, ('X', 'Y', 'Z')].to_numpy()
+        self.inner_border_node_path = self.draw_track(inner_track, (0.9, 0.9, 0.9, 1))
+        self.inner_border_node_path.reparentTo(self.parent)
+
+        outer_df = new_df.copy()
+        outer_df["X"] = x_outer
+        outer_df["Y"] = y_outer
+        outer_track = outer_df.loc[:, ('X', 'Y', 'Z')].to_numpy()
+        self.outer_border_node_path = self.draw_track(outer_track, (0.9, 0.9, 0.9, 1))
+        self.outer_border_node_path.reparentTo(self.parent)
+
+    def draw_track(self, track: list[tuple[float, float, float]], color: tuple[float, float, float, float]):
         line_segments = LineSegs("map")
-        line_segments.setThickness(3)
-        line_segments.setColor(1, 0, 0, 1)
-
-        track = df.loc[:, ('X', 'Y', 'Z')].to_numpy()
+        line_segments.setThickness(1)
+        line_segments.setColor(*color)
 
         first_point = None
         previous_point = None
@@ -81,62 +119,31 @@ class Map(DirectObject):
         return NodePath(line_node)
 
     def clear_out_maps(self) -> None:
-        if self.fastest_lap_node_path is not None:
-            self.fastest_lap_node_path.removeNode()
+        if self.inner_border_node_path is not None:
+            self.inner_border_node_path.removeNode()
 
         if self.outer_border_node_path is not None:
             self.outer_border_node_path.removeNode()
-
-    def render(self) -> None:
-        # TODO calculate scale factor such that maps are roughly same size
-        scaled_coordinates_df = self.scaled_map_coordinates
-
-        df_center = self.map_center_coordinate
-
-        shifted_x_coordinates_df = shift(scaled_coordinates_df, direction="X", amount=-df_center[0])
-        shifted_y_coordinates_df = shift(shifted_x_coordinates_df, direction="Y", amount=-df_center[1])
-        shifted_z_coordinates_df = shift(shifted_y_coordinates_df, direction="Z", amount=-df_center[2])
-
-        self.fastest_lap_node_path = self.render_map(shifted_z_coordinates_df)
-        self.fastest_lap_node_path.reparentTo(self.parent)
 
     @property
     def adjusted_pos_data(self) -> DataFrame:
         if self._pos_data is None:
             pos_data = self.data_extractor.session.pos_data
-            map_rotation = self.circuit_info.rotation
-            map_rotation_rad = deg2Rad(map_rotation)
 
             for _, driver_sr in self.data_extractor.session.results.iterrows():
-                driver_pos_data = pos_data[driver_sr["DriverNumber"]]
-                just_coordinates = driver_pos_data[['X', 'Y', 'Z']]
-                rotated_coordinates = rotate(just_coordinates, map_rotation_rad)
-                scaled_coordinates_df = scale(rotated_coordinates, 1 / 600)
-
-                df_center = self.map_center_coordinate
-
-                shifted_x_coordinates_df = shift(scaled_coordinates_df, direction="X", amount=-df_center[0])
-                shifted_y_coordinates_df = shift(shifted_x_coordinates_df, direction="Y", amount=-df_center[1])
-                shifted_z_coordinates_df = shift(shifted_y_coordinates_df, direction="Z", amount=-df_center[2])
-
-                driver_pos_data["X"] = shifted_z_coordinates_df["X"]
-                driver_pos_data["Y"] = shifted_z_coordinates_df["Y"]
-                driver_pos_data["Z"] = shifted_z_coordinates_df["Z"]
-
-                pos_data[driver_sr["DriverNumber"]] = driver_pos_data
+                transformed_pos_data = self.transform_coordinates(pos_data[driver_sr["DriverNumber"]])
+                pos_data[driver_sr["DriverNumber"]] = transformed_pos_data
 
             self._pos_data = pos_data
 
         return self._pos_data
 
-
     def initialize_drivers(self) -> None:
-        # TODO rotate pos_data based on track angle
         for _, driver_sr in self.data_extractor.session.results.iterrows():
             driver = Driver.from_df(self.parent, driver_sr, self.adjusted_pos_data[driver_sr["DriverNumber"]])
 
             self.drivers.append(driver)
 
     def select_session(self) -> None:
-        self.render()
+        self.render_map(self.transform_coordinates(self.fastest_lap_telemetry))
         self.initialize_drivers()
