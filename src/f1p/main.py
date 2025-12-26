@@ -4,6 +4,7 @@ from direct.showbase.ShowBase import ShowBase
 from panda3d.core import WindowProperties
 
 from f1p.services.data_extractor import DataExtractorService
+from f1p.ui.components.leaderboard import Leaderboard
 from f1p.ui.components.map import Map
 from f1p.ui.components.menu import Menu
 from f1p.ui.components.origin import Origin
@@ -15,7 +16,7 @@ class F1PlayerApp(ShowBase):
         super().__init__(self)
 
         self.symbols_font = self.loader.loadFont("./src/f1p/ui/fonts/NotoSansSymbols2-Regular.ttf")
-        self.text_font = self.loader.loadFont("./src/f1p/ui/fonts/RobotoMono-Bold.ttf")
+        self.text_font = self.loader.loadFont("./src/f1p/ui/fonts/f1_font.ttf")
 
         self.width = width
         self.height = height
@@ -69,6 +70,16 @@ class F1PlayerApp(ShowBase):
                 circuit_map,
                 self.data_extractor
             ),
+            Leaderboard(
+                self.pixel2d,
+                self.render2d,
+                self.taskMgr,
+                self.loader,
+                self.symbols_font,
+                self.text_font,
+                circuit_map,
+                self.data_extractor
+            )
         ]
 
         return self

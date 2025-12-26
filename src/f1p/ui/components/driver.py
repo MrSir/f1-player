@@ -21,6 +21,10 @@ class Driver:
 
     node_path: NodePath = None
 
+    @property
+    def team_color_obj(self) -> LVecBase4f:
+        return self.node_path.getColor()
+
     @staticmethod
     def create_node_path(parent, driver_sr: Series) -> NodePath:
         sphere_maker = SphereMaker(

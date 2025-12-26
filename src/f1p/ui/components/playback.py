@@ -56,7 +56,6 @@ class PlaybackControls(DirectObject):
         self.playing: bool = False
         self.playback_speed: float = 5.0
 
-
     def render_frame(self) -> None:
         self.frame = DirectFrame(
             parent=self.pixel2d,
