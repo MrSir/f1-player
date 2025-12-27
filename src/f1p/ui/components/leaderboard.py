@@ -1,11 +1,17 @@
+from datetime import timedelta
+
+import pandas as pd
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectLabel import DirectLabel
 from direct.gui.OnscreenImage import OnscreenImage
 from direct.showbase.DirectObject import DirectObject
 from direct.task.Task import TaskManager
-from panda3d.core import StaticTextFont, Point3, Loader, TransparencyAttrib, TextNode
+from fastf1.core import Laps
+from panda3d.core import StaticTextFont, Point3, Loader, TransparencyAttrib
+from pandas import DataFrame
 
 from f1p.services.data_extractor import DataExtractorService
+from f1p.ui.components.driver import Driver
 from f1p.ui.components.map import Map
 
 
@@ -27,7 +33,7 @@ class Leaderboard(DirectObject):
         self.render2d = render2d
         self.task_manager = task_manager
         self.loader = loader
-        self.width = 200
+        self.width = 210
         self._height: float | None = None
         self.symbols_font = symbols_font
         self.text_font = text_font
@@ -44,12 +50,27 @@ class Leaderboard(DirectObject):
         self.driver_times: list[DirectLabel] = []
         self.driver_tires: list[DirectLabel] = []
 
+        self.sorted_drivers: list[Driver] = self.circuit_map.drivers
+
+        self._total_laps: int | None = None
+
     @property
     def height(self) -> float:
         if self._height is None:
             self._height = 25 + 50 + (len(self.circuit_map.drivers) * 23)
 
         return self._height
+
+    @property
+    def total_laps(self) -> int:
+        if self._total_laps is None:
+            self._total_laps = self.data_extractor.session.total_laps
+
+        return self._total_laps
+
+    @property
+    def laps(self) -> Laps:
+        return self.data_extractor.laps
 
     def render_frame(self) -> None:
         self.frame = DirectFrame(
@@ -76,11 +97,11 @@ class Leaderboard(DirectObject):
             frameColor=(0.1, 0.1, 0.1, 0.0),
             text_fg=(1, 1, 1, 0.8),
             text_font=self.text_font,
-            text='LAP 1/57',  # TODO grab actual laps and lap count
+            text=f'LAP 1/{self.total_laps}',  # TODO grab actual laps and lap count
         )
 
     def render_drivers(self) -> None:
-        for index, driver in enumerate(self.circuit_map.drivers):
+        for index, driver in enumerate(self.sorted_drivers):
             DirectLabel(
                 parent=self.frame,
                 pos=Point3(20, 0, -85 - (index * 23)),
@@ -127,18 +148,37 @@ class Leaderboard(DirectObject):
             self.driver_tires.append(
                 DirectLabel(
                     parent=self.frame,
-                    pos=Point3(185, 0, -85 - (index * 23)),
+                    pos=Point3(190, 0, -85 - (index * 23)),
                     scale=self.width / 14,
                     frameColor=(0, 0, 0, 0),
                     text_fg=(1, 0, 0, 0.8), # TODO compute tire color
                     text_font=self.text_font,
-                    text="S", # TODO compute actual tire compound
+                    text="S",
                 )
             )
 
-    def update(self) -> None:
-        # TODO implement appropriate updates
-        pass
+    def update(self, session_time: timedelta) -> None:
+        laps_passed = self.laps[self.laps["LapStartTime"] <= session_time]
+        current_lap = int(laps_passed["LapNumber"].max())
+
+        self.lap_counter["text"] = f"LAP {current_lap}/{self.total_laps}"
+
+        for driver in self.sorted_drivers:
+            driver_laps = laps_passed[laps_passed["Driver"] == driver.abbreviation]
+            driver.current_lap = driver_laps[driver_laps["LapNumber"] == driver_laps["LapNumber"].max()]
+
+        self.sorted_drivers = sorted(self.sorted_drivers, key=lambda d: d.current_position)
+
+        for index, driver in enumerate(self.sorted_drivers):
+            self.team_colors[index]["frameColor"] = driver.team_color_obj
+            self.driver_abbreviations[index]["text"] = driver.abbreviation
+
+            if index > 0:
+                self.driver_times[index]["text"] = "+1.23"
+
+            self.driver_tires[index]["text_fg"] = driver.current_tire_compound_color
+            self.driver_tires[index]["text"] = driver.current_tire_compound
+
 
     def render(self) -> None:
         self.render_frame()

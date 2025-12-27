@@ -14,6 +14,7 @@ from panda3d.core import Point3, StaticTextFont, Camera, deg2Rad, TextNode
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.gui.button import BlackButton
 from f1p.ui.components.gui.drop_down import BlackDropDown
+from f1p.ui.components.leaderboard import Leaderboard
 from f1p.ui.components.map import Map
 
 
@@ -29,6 +30,7 @@ class PlaybackControls(DirectObject):
         symbols_font: StaticTextFont,
         text_font: StaticTextFont,
         circuit_map: Map,
+        leaderboard: Leaderboard,
         data_extractor: DataExtractorService
     ):
         super().__init__()
@@ -42,6 +44,7 @@ class PlaybackControls(DirectObject):
         self.symbols_font = symbols_font
         self.text_font = text_font
         self.circuit_map = circuit_map
+        self.leaderboard = leaderboard
         self.data_extractor = data_extractor
 
         self.accept("sessionSelected", self.render)
@@ -100,14 +103,14 @@ class PlaybackControls(DirectObject):
             pos=Point3(17, 0, -self.height / 2)
         )
 
-    def update_drivers(self) -> None:
+    def update_components(self) -> None:
         milliseconds = self.timeline["value"]
+        session_time = timedelta(milliseconds=milliseconds)
 
         for driver in self.circuit_map.drivers:
-            pos_data_passed = driver.pos_data[driver.pos_data["SessionTime"] <= timedelta(milliseconds=milliseconds)]
-            current_record = pos_data_passed.tail(1)
+            driver.update_coordinates(session_time)
 
-            driver.update_coordinates(current_record)
+        self.leaderboard.update(session_time)
 
     def render_timeline(self) -> None:
         session_status = self.data_extractor.session.session_status
@@ -123,7 +126,7 @@ class PlaybackControls(DirectObject):
             frameColor=(0.15, 0.15, 0.15, 1),
             thumb_frameSize=(0, 5, -self.height / 2, self.height / 2),
             thumb_frameColor=(0.1, 0.1, 0.1, 1),
-            command=self.update_drivers,
+            command=self.update_components,
             text_font=self.text_font,
             text_scale=self.height,
             text_fg=(1, 1, 1, 1),

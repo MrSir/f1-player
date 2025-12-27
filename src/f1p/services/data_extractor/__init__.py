@@ -2,7 +2,7 @@ from pathlib import Path
 
 import fastf1
 from direct.showbase.MessengerGlobal import messenger
-from fastf1.core import Session, Lap
+from fastf1.core import Session, Lap, Laps
 from fastf1.events import EventSchedule, Event
 from fastf1.mvapi import CircuitInfo
 
@@ -17,6 +17,7 @@ class DataExtractorService:
         self._event: Event | None = None
         self._session: Session | None = None
         self._circuit_info: CircuitInfo | None = None
+        self._laps: Laps | None = None
         self._fastest_lap: Lap | None = None
 
         if not self.cache_path.exists():
@@ -46,9 +47,16 @@ class DataExtractorService:
         return self._session
 
     @property
+    def laps(self) -> Laps:
+        if self._laps is None:
+            self._laps = self.session.laps
+
+        return self._laps
+
+    @property
     def fastest_lap(self) -> Lap:
         if self._fastest_lap is None:
-            self._fastest_lap = self.session.laps.pick_fastest()
+            self._fastest_lap = self.laps.pick_fastest()
 
         return self._fastest_lap
 

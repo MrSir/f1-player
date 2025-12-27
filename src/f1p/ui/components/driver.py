@@ -1,5 +1,11 @@
 from dataclasses import dataclass
+from datetime import timedelta
+from unittest import case
 
+import numpy
+import numpy as np
+import pandas as pd
+from fastf1.core import Lap
 from panda3d.core import GeomNode, NodePath, LVecBase4f, VBase4F
 from pandas import Series, DataFrame
 
@@ -19,11 +25,48 @@ class Driver:
 
     pos_data: Series
 
+    current_lap: Lap | None = None
+
     node_path: NodePath = None
 
     @property
     def team_color_obj(self) -> LVecBase4f:
         return self.node_path.getColor()
+
+    @property
+    def current_lap_number(self) -> int:
+        return int(self.current_lap.iloc[0]["LapNumber"])
+
+    @property
+    def current_position(self) -> int:
+        position = self.current_lap.iloc[0]["Position"]
+
+        if pd.isna(position):
+            return 99
+
+        return int(position)
+
+    @property
+    def current_tire_compound_color(self) -> tuple[float, float, float, float]:
+        match self.current_tire_compound:
+            case "S":
+                return 1, 0, 0, 0.8
+            case "M":
+                return 1, 1, 0, 0.8
+            case "H":
+                return 1, 1, 1, 0.8
+            case "I":
+                return 0, 1, 0, 0.8
+            case "W":
+                return 0, 0, 1, 0.8
+            case _:
+                return 0, 0, 0, 0.8
+
+    @property
+    def current_tire_compound(self) -> str:
+        compound = self.current_lap.iloc[0]["Compound"]
+
+        return compound[0]
 
     @staticmethod
     def create_node_path(parent, driver_sr: Series) -> NodePath:
@@ -57,9 +100,12 @@ class Driver:
             node_path=cls.create_node_path(parent, driver_sr),
         )
 
-    def update_coordinates(self, driver_df: DataFrame) -> None:
-        X = driver_df["X"].item()
-        Y = driver_df["Y"].item()
-        Z = driver_df["Z"].item()
+    def update_coordinates(self, session_time: timedelta) -> None:
+        pos_data_passed = self.pos_data[self.pos_data["SessionTime"] <= session_time]
+        current_record = pos_data_passed.tail(1)
+
+        X = current_record["X"].item()
+        Y = current_record["Y"].item()
+        Z = current_record["Z"].item()
 
         self.node_path.setPos(X, Y, Z)

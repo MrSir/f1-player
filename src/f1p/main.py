@@ -55,9 +55,20 @@ class F1PlayerApp(ShowBase):
 
     def register_ui_components(self) -> Self:
         circuit_map = Map(self.render, self.data_extractor)
+        leaderboard = Leaderboard(
+            self.pixel2d,
+            self.render2d,
+            self.taskMgr,
+            self.loader,
+            self.symbols_font,
+            self.text_font,
+            circuit_map,
+            self.data_extractor
+        )
 
         self.ui_components = [
             circuit_map,
+            leaderboard,
             PlaybackControls(
                 self.pixel2d,
                 self.cam,
@@ -68,21 +79,13 @@ class F1PlayerApp(ShowBase):
                 self.symbols_font,
                 self.text_font,
                 circuit_map,
+                leaderboard,
                 self.data_extractor
             ),
-            Leaderboard(
-                self.pixel2d,
-                self.render2d,
-                self.taskMgr,
-                self.loader,
-                self.symbols_font,
-                self.text_font,
-                circuit_map,
-                self.data_extractor
-            )
         ]
 
         return self
+
 
 app = F1PlayerApp()
 app.disableMouse()  # disable camera controls
