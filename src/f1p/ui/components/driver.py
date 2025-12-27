@@ -46,6 +46,18 @@ class Driver:
 
         return int(position)
 
+    def is_in_pit(self, session_time: timedelta) -> bool:
+        in_time = self.current_lap.iloc[0]["PitInTime"]
+        out_time = self.current_lap.iloc[0]["PitOutTime"]
+
+        if pd.notna(in_time):
+            return in_time <= session_time
+
+        if pd.notna(out_time):
+            return session_time <= out_time
+
+        return False
+
     @property
     def current_tire_compound_color(self) -> tuple[float, float, float, float]:
         match self.current_tire_compound:

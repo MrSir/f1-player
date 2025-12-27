@@ -174,7 +174,12 @@ class Leaderboard(DirectObject):
             self.driver_abbreviations[index]["text"] = driver.abbreviation
 
             if index > 0:
-                self.driver_times[index]["text"] = "+1.23"
+                if driver.is_in_pit(session_time):
+                    self.driver_times[index]["text_fg"] = driver.team_color_obj
+                    self.driver_times[index]["text"] = "IN PIT"
+                else:
+                    self.driver_times[index]["text_fg"] = (1, 1, 1, 0.8)
+                    self.driver_times[index]["text"] = "+1.23"
 
             self.driver_tires[index]["text_fg"] = driver.current_tire_compound_color
             self.driver_tires[index]["text"] = driver.current_tire_compound
