@@ -39,7 +39,7 @@ class Map(DirectObject):
     def fastest_lap_telemetry(self) -> Telemetry:
         return self.data_extractor.fastest_lap.get_pos_data()
 
-    def transform_coordinates(self, coordinates_df: DataFrame) -> DataFrame:
+    def transform_coordinates(self, coordinates_df: Telemetry) -> DataFrame:
         new_coordinates_df = coordinates_df.copy()
         coordinates_cols_only_df = new_coordinates_df[['X', 'Y', 'Z']]
 
@@ -131,7 +131,8 @@ class Map(DirectObject):
             pos_data = self.data_extractor.session.pos_data
 
             for _, driver_sr in self.data_extractor.session.results.iterrows():
-                transformed_pos_data = self.transform_coordinates(pos_data[driver_sr["DriverNumber"]])
+                driver_pos_data = pos_data[driver_sr["DriverNumber"]]
+                transformed_pos_data = self.transform_coordinates(driver_pos_data)
                 pos_data[driver_sr["DriverNumber"]] = transformed_pos_data
 
             self._pos_data = pos_data

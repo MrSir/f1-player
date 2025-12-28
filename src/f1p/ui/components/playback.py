@@ -10,6 +10,7 @@ from direct.showbase.DirectObject import DirectObject
 from direct.showbase.ShowBaseGlobal import globalClock
 from direct.task.Task import TaskManager
 from panda3d.core import Point3, StaticTextFont, Camera, deg2Rad, TextNode
+from pandas import Timedelta
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.gui.button import BlackButton
@@ -105,10 +106,10 @@ class PlaybackControls(DirectObject):
 
     def update_components(self) -> None:
         milliseconds = self.timeline["value"]
-        session_time = timedelta(milliseconds=milliseconds)
+        session_time = Timedelta(milliseconds=milliseconds)
 
         for driver in self.circuit_map.drivers:
-            driver.update_coordinates(session_time)
+            driver.update(session_time)
 
         self.leaderboard.update(session_time)
 

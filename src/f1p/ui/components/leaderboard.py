@@ -7,11 +7,12 @@ from direct.gui.OnscreenImage import OnscreenImage
 from direct.showbase.DirectObject import DirectObject
 from direct.task.Task import TaskManager
 from fastf1.core import Laps
-from panda3d.core import StaticTextFont, Point3, Loader, TransparencyAttrib
-from pandas import DataFrame
+from panda3d.core import StaticTextFont, Point3, Loader, TransparencyAttrib, TextNode
+from pandas import DataFrame, Timedelta
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.driver import Driver
+from f1p.ui.components.gui.drop_down import BlackDropDown
 from f1p.ui.components.map import Map
 
 
@@ -33,7 +34,7 @@ class Leaderboard(DirectObject):
         self.render2d = render2d
         self.task_manager = task_manager
         self.loader = loader
-        self.width = 210
+        self.width = 215
         self._height: float | None = None
         self.symbols_font = symbols_font
         self.text_font = text_font
@@ -45,6 +46,7 @@ class Leaderboard(DirectObject):
         self.frame: DirectFrame | None = None
         self.f1_logo: OnscreenImage | None = None
         self.lap_counter: DirectLabel | None = None
+        self.mode: str = "interval"
         self.team_colors: list[DirectFrame] = []
         self.driver_abbreviations: list[DirectLabel] = []
         self.driver_times: list[DirectLabel] = []
@@ -100,6 +102,36 @@ class Leaderboard(DirectObject):
             text=f'LAP 1/{self.total_laps}',  # TODO grab actual laps and lap count
         )
 
+    def switch_mode(self, mode: str) -> None:
+        match mode:
+            case "🕒":
+                self.mode = "interval"
+            case "🕘":
+                self.mode = "leader"
+            case "🛠":
+                self.mode = "pits"
+            case "⛁":
+                self.mode = "tires"
+
+    def render_mode_selector(self) -> None:
+        BlackDropDown(
+            parent=self.frame,
+            width=40,
+            height=30,
+            font=self.symbols_font,
+            font_scale=20,
+            popup_menu_below=True,
+            command=self.switch_mode,
+            text="leaderboard",
+            text_pos=(20, -5),
+            text_align=TextNode.ACenter,
+            item_text_align=TextNode.ACenter,
+            items=["🕒", "🕘", "🛠", "⛁"],
+            item_scale=1.0,
+            initialitem=0,
+            pos=Point3(self.width - 45, 0, -19),
+        ),
+
     def render_drivers(self) -> None:
         for index, driver in enumerate(self.sorted_drivers):
             DirectLabel(
@@ -141,23 +173,23 @@ class Leaderboard(DirectObject):
                     frameColor=(0, 0, 0, 0),
                     text_fg=(1, 1, 1, 0.8),
                     text_font=self.text_font,
-                    text="Interval" if index == 0 else "+12.250", # TODO compute actual intervals
+                    text="Interval",
                 )
             )
 
             self.driver_tires.append(
                 DirectLabel(
                     parent=self.frame,
-                    pos=Point3(190, 0, -85 - (index * 23)),
+                    pos=Point3(200, 0, -85 - (index * 23)),
                     scale=self.width / 14,
                     frameColor=(0, 0, 0, 0),
-                    text_fg=(1, 0, 0, 0.8), # TODO compute tire color
+                    text_fg=(1, 0, 0, 0.8),
                     text_font=self.text_font,
                     text="S",
                 )
             )
 
-    def update(self, session_time: timedelta) -> None:
+    def update(self, session_time: Timedelta) -> None:
         laps_passed = self.laps[self.laps["LapStartTime"] <= session_time]
         current_lap = int(laps_passed["LapNumber"].max())
 
@@ -169,24 +201,43 @@ class Leaderboard(DirectObject):
 
         self.sorted_drivers = sorted(self.sorted_drivers, key=lambda d: d.current_position)
 
+        driver_in_front = None
+        time_to_leader = Timedelta(milliseconds=0)
+
         for index, driver in enumerate(self.sorted_drivers):
             self.team_colors[index]["frameColor"] = driver.team_color_obj
             self.driver_abbreviations[index]["text"] = driver.abbreviation
 
-            if index > 0:
-                if driver.is_in_pit(session_time):
-                    self.driver_times[index]["text_fg"] = driver.team_color_obj
-                    self.driver_times[index]["text"] = "IN PIT"
-                else:
-                    self.driver_times[index]["text_fg"] = (1, 1, 1, 0.8)
-                    self.driver_times[index]["text"] = "+1.23"
+            driver.set_time_to_car_in_front(driver_in_front, session_time)
+            driver.set_time_to_leader(time_to_leader)
+
+            if driver.is_in_pit(session_time):
+                self.driver_times[index]["text_fg"] = driver.team_color_obj
+                self.driver_times[index]["text"] = "IN PIT"
+            else:
+                self.driver_times[index]["text_fg"] = (1, 1, 1, 0.8)
+                match self.mode:
+                    case "interval":
+                        if index > 0:
+                            self.driver_times[index]["text"] = driver.formatted_time_to_car_in_front
+                        else:
+                            self.driver_times[index]["text"] = "Interval"
+                    case "leader":
+                        if index > 0:
+                            self.driver_times[index]["text"] = driver.formatted_time_to_leader
+                        else:
+                            self.driver_times[index]["text"] = "Leader"
 
             self.driver_tires[index]["text_fg"] = driver.current_tire_compound_color
             self.driver_tires[index]["text"] = driver.current_tire_compound
+
+            driver_in_front = driver
+            time_to_leader += driver.time_to_car_in_front
 
 
     def render(self) -> None:
         self.render_frame()
         self.render_f1_logo()
         self.render_lap_counter()
+        self.render_mode_selector()
         self.render_drivers()
