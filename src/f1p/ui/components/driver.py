@@ -1,36 +1,56 @@
-from dataclasses import dataclass
 from datetime import timedelta
-from unittest import case
+from datetime import timedelta
+from decimal import Decimal
 
-import numpy
-import numpy as np
 import pandas as pd
-from fastf1.core import Lap, Telemetry
-from panda3d.core import GeomNode, NodePath, LVecBase4f, VBase4F
-from pandas import Series, DataFrame, NaT, Timedelta
+from direct.showbase.DirectObject import DirectObject
+from fastf1.core import Lap, Telemetry, Laps
+from panda3d.core import NodePath, LVecBase4f
+from pandas import Series, NaT, Timedelta
 
 from f1p.services.procedural3d import SphereMaker
 from f1p.utils.color import hex_to_rgb_saturation
 
 
-@dataclass
-class Driver:
-    number: str
-    first_name: str
-    last_name: str
-    broadcast_name: str
-    abbreviation: str
-    team_name: str
-    team_color: str
+class Driver(DirectObject):
+    def __init__(
+        self,
+        number: str,
+        first_name: str,
+        last_name: str,
+        broadcast_name: str,
+        abbreviation: str,
+        team_name: str,
+        team_color: str,
+        pos_data: Telemetry,
+        current_lap: Lap | None = None,
+        current_lap_time: Timedelta = Timedelta(milliseconds=0),
+        time_to_car_in_front: Timedelta = Timedelta(milliseconds=0),
+        time_to_leader: Timedelta = Timedelta(milliseconds=0),
+        node_path: NodePath = None,
+        laps: Laps | None = None,
+    ):
+        super().__init__()
 
-    pos_data: Telemetry
+        self.number = number
+        self.first_name = first_name
+        self.last_name = last_name
+        self.broadcast_name = broadcast_name
+        self.abbreviation = abbreviation
+        self.team_name = team_name
+        self.team_color = team_color
+        self.pos_data = pos_data
+        self.current_lap = current_lap
+        self.current_lap_time = current_lap_time
+        self.time_to_car_in_front = time_to_car_in_front
+        self.time_to_leader = time_to_leader
+        self.node_path = node_path
+        self.laps = laps
+        self.in_pit: bool = False
 
-    current_lap: Lap | None = None
-    current_lap_time: Timedelta = Timedelta(milliseconds=0)
-    time_to_car_in_front: Timedelta = Timedelta(milliseconds=0)
-    time_to_leader: Timedelta = Timedelta(milliseconds=0)
+        self.accept("updateDrivers", self.update)
 
-    node_path: NodePath = None
+        self._last_session_time: int | None = None
 
     @property
     def team_color_obj(self) -> LVecBase4f:
@@ -77,17 +97,6 @@ class Driver:
     def current_lap_sector_3_session_time(self) -> Timedelta | NaT:
         return self.current_lap.iloc[0]["Sector3SessionTime"]
 
-    def set_current_lap_time(self, session_time: Timedelta) -> None:
-        self.current_lap_time = Timedelta(milliseconds=0)
-
-        if self.current_lap is not None:
-            pos_lap = self.pos_data.slice_by_lap(self.current_lap)
-            pos_data_passed = pos_lap.slice_by_time(self.current_lap_start_time, session_time)
-            current_record = pos_data_passed.tail(1)
-
-            if not pos_data_passed.empty:
-                self.current_lap_time = current_record.iloc[0]["Time"]
-
     @property
     def formatted_current_lap_time(self) -> str:
         seconds = self.current_lap_time.total_seconds()
@@ -99,25 +108,23 @@ class Driver:
 
         return result
 
-    def set_time_to_car_in_front(self, driver_in_front: Driver | None, session_time: Timedelta) -> None:
-        if driver_in_front is None:
-            self.time_to_car_in_front = Timedelta(milliseconds=0)
-            return
+    def get_time_to_car_in_front(self, session_time: Timedelta) -> Timedelta:
+        if self.current_lap_sector_3_session_time <= session_time:
+            self.time_to_car_in_front = self.current_lap.iloc[0]["Sector3TimeToCarInFront"]
+            return self.time_to_car_in_front
 
-        if self.current_lap_number == driver_in_front.current_lap_number:
-            if self.current_lap_sector_3_session_time <= session_time:
-                self.time_to_car_in_front = self.current_lap_sector_3_session_time - driver_in_front.current_lap_sector_3_session_time
-            elif self.current_lap_sector_2_session_time <= session_time:
-                self.time_to_car_in_front = self.current_lap_sector_2_session_time - driver_in_front.current_lap_sector_2_session_time
-            elif self.current_lap_sector_1_session_time <= session_time:
-                self.time_to_car_in_front = self.current_lap_sector_1_session_time - driver_in_front.current_lap_sector_1_session_time
+        if self.current_lap_sector_2_session_time <= session_time:
+            self.time_to_car_in_front = self.current_lap.iloc[0]["Sector2TimeToCarInFront"]
+            return self.time_to_car_in_front
 
-    def set_time_to_leader(self, time_to_leader_car_in_front: timedelta) -> None:
-        self.time_to_leader = time_to_leader_car_in_front + self.time_to_car_in_front
+        if self.current_lap_sector_1_session_time <= session_time:
+            self.time_to_car_in_front = self.current_lap.iloc[0]["Sector1TimeToCarInFront"]
+            return self.time_to_car_in_front
 
-    @property
-    def formatted_time_to_car_in_front(self) -> str:
-        seconds = self.time_to_car_in_front.total_seconds()
+        return self.time_to_car_in_front
+
+    def get_formatted_time_to_car_in_front(self, session_time: Timedelta) -> str:
+        seconds = self.get_time_to_car_in_front(session_time).total_seconds()
         minutes, remaining_seconds = divmod(seconds, 60)
 
         result = f"+{seconds:.3f}"
@@ -126,9 +133,23 @@ class Driver:
 
         return result
 
-    @property
-    def formatted_time_to_leader(self) -> str:
-        seconds = self.time_to_leader.total_seconds()
+    def get_time_to_leader(self, session_time: Timedelta) -> Timedelta:
+        if self.current_lap_sector_3_session_time <= session_time:
+            self.time_to_leader = self.current_lap.iloc[0]["Sector3TimeToLeader"]
+            return self.time_to_leader
+
+        if self.current_lap_sector_2_session_time <= session_time:
+            self.time_to_leader = self.current_lap.iloc[0]["Sector2TimeToLeader"]
+            return self.time_to_leader
+
+        if self.current_lap_sector_1_session_time <= session_time:
+            self.time_to_leader = self.current_lap.iloc[0]["Sector1TimeToLeader"]
+            return self.time_to_leader
+
+        return self.time_to_leader
+
+    def get_formatted_time_to_leader(self, session_time: Timedelta) -> str:
+        seconds = self.get_time_to_leader(session_time).total_seconds()
         minutes, remaining_seconds = divmod(seconds, 60)
 
         result = f"+{seconds:.3f}"
@@ -136,34 +157,6 @@ class Driver:
             result = f"+{int(minutes)}:{seconds:.3f}"
 
         return result
-
-    def is_in_pit(self, session_time: timedelta) -> bool:
-        in_time = self.current_lap.iloc[0]["PitInTime"]
-        out_time = self.current_lap.iloc[0]["PitOutTime"]
-
-        if pd.notna(in_time):
-            return in_time <= session_time
-
-        if pd.notna(out_time):
-            return session_time <= out_time
-
-        return False
-
-    @property
-    def current_tire_compound_color(self) -> tuple[float, float, float, float]:
-        match self.current_tire_compound:
-            case "S":
-                return 1, 0, 0, 0.8
-            case "M":
-                return 1, 1, 0, 0.8
-            case "H":
-                return 1, 1, 1, 0.8
-            case "I":
-                return 0, 1, 0, 0.8
-            case "W":
-                return 0, 0, 1, 0.8
-            case _:
-                return 0, 0, 0, 0.8
 
     @property
     def current_tire_compound(self) -> str:
@@ -190,7 +183,13 @@ class Driver:
         return node_path
 
     @classmethod
-    def from_df(cls, parent: NodePath, driver_sr: Series, pos_data: Telemetry) -> Driver:
+    def from_df(
+        cls,
+        parent: NodePath,
+        driver_sr: Series,
+        pos_data: Telemetry,
+        laps: Laps,
+    ) -> Driver:
         return Driver(
             number=driver_sr["DriverNumber"],
             first_name=driver_sr["FirstName"],
@@ -201,16 +200,23 @@ class Driver:
             team_color=driver_sr["TeamColor"],
             pos_data=pos_data,
             node_path=cls.create_node_path(parent, driver_sr),
+            laps=laps,
         )
 
-    def update(self, session_time: Timedelta) -> None:
-        pos_data_passed = self.pos_data[self.pos_data["SessionTime"] <= session_time]
-        current_record = pos_data_passed.tail(1)
+    def update(self, session_time_tick: int) -> None:
+        current_record = self.pos_data[self.pos_data["SessionTimeTick"] == session_time_tick].iloc[0]
 
-        X = current_record["X"].item()
-        Y = current_record["Y"].item()
-        Z = current_record["Z"].item()
+        precision = Decimal("0.001")
 
-        self.node_path.setPos(X, Y, Z)
+        X = Decimal(current_record["X"]).quantize(precision)
+        Y = Decimal(current_record["Y"]).quantize(precision)
+        Z = Decimal(current_record["Z"]).quantize(precision)
 
-        self.set_current_lap_time(session_time)
+        current_pos = self.node_path.getPos()
+        current_X = Decimal(current_pos.x).quantize(precision)
+        current_Y = Decimal(current_pos.y).quantize(precision)
+        current_Z = Decimal(current_pos.z).quantize(precision)
+
+        if (current_X, current_Y, current_Z) != (X, Y, Z):
+            self.node_path.setPos(X, Y, Z)
+            # self.set_current_lap_time(session_time)

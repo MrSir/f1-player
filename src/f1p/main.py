@@ -1,7 +1,7 @@
 from typing import Self
 
 from direct.showbase.ShowBase import ShowBase
-from panda3d.core import WindowProperties
+from panda3d.core import WindowProperties, PStatClient
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.leaderboard import Leaderboard
@@ -26,6 +26,9 @@ class F1PlayerApp(ShowBase):
         self.cam.lookAt(0, 0, 0)
 
         self.setBackgroundColor(0.2, 0.2, 0.2, 1)
+
+        self.setFrameRateMeter(True)
+        # PStatClient.connect()
 
         self.ui_components: list = []
 

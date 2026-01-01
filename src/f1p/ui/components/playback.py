@@ -1,5 +1,5 @@
 import math
-from datetime import timedelta
+from datetime import timedelta, datetime
 from math import sin, cos
 
 from direct.gui.DirectButton import DirectButton
@@ -7,6 +7,7 @@ from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.gui.DirectSlider import DirectSlider
 from direct.showbase.DirectObject import DirectObject
+from direct.showbase.MessengerGlobal import messenger
 from direct.showbase.ShowBaseGlobal import globalClock
 from direct.task.Task import TaskManager
 from panda3d.core import Point3, StaticTextFont, Camera, deg2Rad, TextNode
@@ -58,7 +59,7 @@ class PlaybackControls(DirectObject):
 
         self.orbiting_camera: bool = True
         self.playing: bool = False
-        self.playback_speed: float = 5.0
+        self.playback_speed: float = 1.0
 
     def render_frame(self) -> None:
         self.frame = DirectFrame(
@@ -72,10 +73,13 @@ class PlaybackControls(DirectObject):
         if not self.playing:
             return task.cont
 
-        fps = globalClock.getAverageFrameRate()
-        spf = 1 / fps
+        # fps = globalClock.getAverageFrameRate()
+        # spf = 1 / fps
+        # current_value = self.timeline["value"]
+        # new_value = current_value + (spf * 1000 * self.playback_speed)
+
         current_value = self.timeline["value"]
-        new_value = current_value + (spf * 1000 * self.playback_speed)
+        new_value = current_value + self.playback_speed
 
         if new_value > self.timeline["range"][1]:
             self.playing = False
@@ -105,24 +109,16 @@ class PlaybackControls(DirectObject):
         )
 
     def update_components(self) -> None:
-        milliseconds = self.timeline["value"]
-        session_time = Timedelta(milliseconds=milliseconds)
-
-        for driver in self.circuit_map.drivers:
-            driver.update(session_time)
-
-        self.leaderboard.update(session_time)
+        session_time_tick = int(self.timeline["value"])
+        messenger.send("updateDrivers", sentArgs=[session_time_tick])
+        messenger.send("updateLeaderboard", sentArgs=[session_time_tick])
 
     def render_timeline(self) -> None:
-        session_status = self.data_extractor.session.session_status
-        start_time = session_status[session_status["Status"] == "Started"]["Time"].item()
-        end_time = session_status[session_status["Status"] == "Finalised"]["Time"].item()
-
         self.timeline = DirectSlider(
             parent=self.frame,
-            value=int(start_time.total_seconds() * 1e3),  # in total milliseconds
-            range=(int(start_time.total_seconds() * 1e3), int(end_time.total_seconds() * 1e3)),  # in total milliseconds
-            pageSize=1,  # in milliseconds
+            value=1,
+            range=(1, self.data_extractor.session_ticks),
+            pageSize=1,
             frameSize=(0, self.width - 121, -self.height / 2, self.height / 2),
             frameColor=(0.15, 0.15, 0.15, 1),
             thumb_frameSize=(0, 5, -self.height / 2, self.height / 2),
@@ -137,14 +133,16 @@ class PlaybackControls(DirectObject):
 
     def change_playback_speed(self, playback_speed: str) -> None:
         match playback_speed:
+            case "x1.0":
+                self.playback_speed = 1.0
+            case "x2.0":
+                self.playback_speed = 2.0
+            case "x3.0":
+                self.playback_speed = 3.0
+            case "x4.0":
+                self.playback_speed = 4.0
             case "x5.0":
                 self.playback_speed = 5.0
-            case "x10":
-                self.playback_speed = 10.0
-            case "x25":
-                self.playback_speed = 25.0
-            case "x50":
-                self.playback_speed = 50.0
 
     def render_playback_speed_button(self) -> None:
         self.playback_speed_button = BlackDropDown(
@@ -159,7 +157,7 @@ class PlaybackControls(DirectObject):
             text_pos=(23.5, (-self.height / 2) + 10),
             text_align=TextNode.ACenter,
             item_text_align=TextNode.ACenter,
-            items=["x5.0", "x10", "x25", "x50"],
+            items=["x1.0", "x2.0", "x3.0", "x4.0", "x5.0"],
             item_scale=1.0,
             initialitem=0,
             pos=Point3(self.width - 87, 0, -self.height / 2)
