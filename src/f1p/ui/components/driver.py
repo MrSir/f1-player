@@ -47,6 +47,7 @@ class Driver(DirectObject):
         self.node_path = node_path
         self.laps = laps
         self.in_pit: bool = False
+        self.is_dnf: bool = False
 
         self.accept("updateDrivers", self.update)
 
@@ -55,114 +56,6 @@ class Driver(DirectObject):
     @property
     def team_color_obj(self) -> LVecBase4f:
         return self.node_path.getColor()
-
-    @property
-    def current_lap_number(self) -> int:
-        return int(self.current_lap.iloc[0]["LapNumber"])
-
-    @property
-    def current_position(self) -> int:
-        position = self.current_lap.iloc[0]["Position"]
-
-        if pd.isna(position):
-            return 99
-
-        return int(position)
-
-    @property
-    def current_lap_start_time(self) -> Timedelta | NaT:
-        return self.current_lap.iloc[0]["LapStartTime"]
-
-    @property
-    def current_lap_sector_1_time(self) -> Timedelta | NaT:
-        return self.current_lap.iloc[0]["Sector1Time"]
-
-    @property
-    def current_lap_sector_2_time(self) -> Timedelta | NaT:
-        return self.current_lap.iloc[0]["Sector2Time"]
-
-    @property
-    def current_lap_sector_3_time(self) -> Timedelta | NaT:
-        return self.current_lap.iloc[0]["Sector3Time"]
-
-    @property
-    def current_lap_sector_1_session_time(self) -> Timedelta | NaT:
-        return self.current_lap.iloc[0]["Sector1SessionTime"]
-
-    @property
-    def current_lap_sector_2_session_time(self) -> Timedelta | NaT:
-        return self.current_lap.iloc[0]["Sector2SessionTime"]
-
-    @property
-    def current_lap_sector_3_session_time(self) -> Timedelta | NaT:
-        return self.current_lap.iloc[0]["Sector3SessionTime"]
-
-    @property
-    def formatted_current_lap_time(self) -> str:
-        seconds = self.current_lap_time.total_seconds()
-        minutes, remaining_seconds = divmod(seconds, 60)
-
-        result = f"+{seconds:.3f}"
-        if minutes > 0:
-            result = f"+{int(minutes)}:{seconds:.3f}"
-
-        return result
-
-    def get_time_to_car_in_front(self, session_time: Timedelta) -> Timedelta:
-        if self.current_lap_sector_3_session_time <= session_time:
-            self.time_to_car_in_front = self.current_lap.iloc[0]["Sector3TimeToCarInFront"]
-            return self.time_to_car_in_front
-
-        if self.current_lap_sector_2_session_time <= session_time:
-            self.time_to_car_in_front = self.current_lap.iloc[0]["Sector2TimeToCarInFront"]
-            return self.time_to_car_in_front
-
-        if self.current_lap_sector_1_session_time <= session_time:
-            self.time_to_car_in_front = self.current_lap.iloc[0]["Sector1TimeToCarInFront"]
-            return self.time_to_car_in_front
-
-        return self.time_to_car_in_front
-
-    def get_formatted_time_to_car_in_front(self, session_time: Timedelta) -> str:
-        seconds = self.get_time_to_car_in_front(session_time).total_seconds()
-        minutes, remaining_seconds = divmod(seconds, 60)
-
-        result = f"+{seconds:.3f}"
-        if minutes > 0:
-            result = f"+{int(minutes)}:{seconds:.3f}"
-
-        return result
-
-    def get_time_to_leader(self, session_time: Timedelta) -> Timedelta:
-        if self.current_lap_sector_3_session_time <= session_time:
-            self.time_to_leader = self.current_lap.iloc[0]["Sector3TimeToLeader"]
-            return self.time_to_leader
-
-        if self.current_lap_sector_2_session_time <= session_time:
-            self.time_to_leader = self.current_lap.iloc[0]["Sector2TimeToLeader"]
-            return self.time_to_leader
-
-        if self.current_lap_sector_1_session_time <= session_time:
-            self.time_to_leader = self.current_lap.iloc[0]["Sector1TimeToLeader"]
-            return self.time_to_leader
-
-        return self.time_to_leader
-
-    def get_formatted_time_to_leader(self, session_time: Timedelta) -> str:
-        seconds = self.get_time_to_leader(session_time).total_seconds()
-        minutes, remaining_seconds = divmod(seconds, 60)
-
-        result = f"+{seconds:.3f}"
-        if minutes > 0:
-            result = f"+{int(minutes)}:{seconds:.3f}"
-
-        return result
-
-    @property
-    def current_tire_compound(self) -> str:
-        compound = self.current_lap.iloc[0]["Compound"]
-
-        return compound[0]
 
     @staticmethod
     def create_node_path(parent, driver_sr: Series) -> NodePath:
@@ -205,6 +98,9 @@ class Driver(DirectObject):
 
     def update(self, session_time_tick: int) -> None:
         current_record = self.pos_data[self.pos_data["SessionTimeTick"] == session_time_tick].iloc[0]
+
+        self.is_dnf = current_record["IsDNF"]
+        self.in_pit = current_record["InPit"]
 
         precision = Decimal("0.001")
 

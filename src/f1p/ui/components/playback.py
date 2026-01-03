@@ -133,15 +133,15 @@ class PlaybackControls(DirectObject):
 
     def change_playback_speed(self, playback_speed: str) -> None:
         match playback_speed:
-            case "x1.0":
+            case "x10":
                 self.playback_speed = 1.0
-            case "x2.0":
+            case "x20":
                 self.playback_speed = 2.0
-            case "x3.0":
+            case "x30":
                 self.playback_speed = 3.0
-            case "x4.0":
+            case "x40":
                 self.playback_speed = 4.0
-            case "x5.0":
+            case "x50":
                 self.playback_speed = 5.0
 
     def render_playback_speed_button(self) -> None:
@@ -157,7 +157,7 @@ class PlaybackControls(DirectObject):
             text_pos=(23.5, (-self.height / 2) + 10),
             text_align=TextNode.ACenter,
             item_text_align=TextNode.ACenter,
-            items=["x1.0", "x2.0", "x3.0", "x4.0", "x5.0"],
+            items=["x10", "x20", "x30", "x40", "x50"],
             item_scale=1.0,
             initialitem=0,
             pos=Point3(self.width - 87, 0, -self.height / 2)

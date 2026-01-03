@@ -171,7 +171,7 @@ class Leaderboard(DirectObject):
                     scale=self.width / 14,
                     fg=(1, 1, 1, 0.8),
                     font=self.text_font,
-                    text="-",
+                    text="NO TIME",
                 )
             )
 
@@ -235,42 +235,6 @@ class Leaderboard(DirectObject):
             return
 
         processor.update(session_time_tick)
-
-
-
-
-
-        # for index, driver in enumerate(self.sorted_drivers):
-            # if driver.is_in_pit(session_time):
-            #     self.driver_times[index]["fg"] = driver.team_color_obj
-            #
-            #     if self.driver_times[index]["text"] != "IN PIT":
-            #         self.driver_times[index]["text"] = "IN PIT"
-            # else:
-            #     self.driver_times[index]["fg"] = (1, 1, 1, 0.8)
-
-                # match self.mode:
-                #     case "interval":
-                #         if index > 0:
-                #             time_to_car_in_front = driver.get_formatted_time_to_car_in_front(session_time)
-                #             if self.driver_times[index]["text"] != time_to_car_in_front:
-                #                 self.driver_times[index]["text"] = time_to_car_in_front
-                #         else:
-                #             if self.driver_times[index]["text"] != "Interval":
-                #                 self.driver_times[index]["text"] = "Interval"
-                #     case "leader":
-                #         if index > 0:
-                #             time_to_leader = driver.get_formatted_time_to_leader(session_time)
-                #             if self.driver_times[index]["text"] != time_to_leader:
-                #                 self.driver_times[index]["text"] = time_to_leader
-                #         else:
-                #             self.driver_times[index]["text"] = "Leader"
-            #
-            # self.driver_tires[index]["fg"] = driver.current_tire_compound_color
-            #
-            # if self.driver_tires[index]["text"] != driver.current_tire_compound:
-            #     self.driver_tires[index]["text"] = driver.current_tire_compound
-
 
     def render(self) -> None:
         self.render_frame()

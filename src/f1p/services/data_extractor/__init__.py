@@ -138,6 +138,7 @@ class DataExtractorService:
 
         return df.min()
 
+    # @timeit
     def process_fastest_lap(self) -> Self:
         pos_data = self.fastest_lap.get_pos_data()
         resized_pos_data_df = resize_pos_data(self.map_rotation, pos_data)
@@ -148,6 +149,7 @@ class DataExtractorService:
 
         return self
 
+    # @timeit
     def combine_position_data(self) -> Self:
         drivers_pos_data = []
         for driver_number, pos_data in self.pos_data.items():
@@ -158,12 +160,14 @@ class DataExtractorService:
 
         return self
 
+    # @timeit
     def remove_records_before_session_start_time(self) -> Self:
         self.processed_pos_data = self.processed_pos_data[
             self.processed_pos_data["SessionTime"] >= self.session_start_time]
 
         return self
 
+    # @timeit
     def normalize_position_data(self) -> Self:
         df = self.processed_pos_data.copy()
 
@@ -172,6 +176,7 @@ class DataExtractorService:
 
         return self
 
+    # @timeit
     def add_session_time_in_milliseconds(self) -> Self:
         session_time_in_milliseconds = self.processed_pos_data["SessionTime"].dt.total_seconds() * 1e3
 
@@ -179,6 +184,7 @@ class DataExtractorService:
 
         return self
 
+    # @timeit
     def add_common_session_time(self) -> Self:
         df = self.processed_pos_data.copy()
 
@@ -188,12 +194,15 @@ class DataExtractorService:
 
         return self
 
+    # @timeit
     def process_laps(self) -> Self:
         laps = self.laps.copy()
 
-        lap_start_time_in_milliseconds = laps["LapStartTime"].dt.total_seconds() * 1e3
+        lap_start_time_in_milliseconds = laps["LapStartTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
         laps["LapStartTimeMilliseconds"] = lap_start_time_in_milliseconds.astype("int64")
-        laps["LapEndTimeMilliseconds"] = laps["LapStartTimeMilliseconds"].shift(-1).fillna(self.session_end_time_milliseconds).astype("int64")
+        lap_time_in_milliseconds = laps["LapTime"].fillna(Timedelta(milliseconds=1)).dt.total_seconds() * 1e3
+        laps["LapTimeMilliseconds"] = lap_time_in_milliseconds.astype("int64")
+        laps["LapEndTimeMilliseconds"] = laps["LapStartTimeMilliseconds"] + laps["LapTimeMilliseconds"]
 
         pit_in_time_in_milliseconds = laps.loc[laps["PitInTime"].notna(), "PitInTime"].dt.total_seconds() * 1e3
         laps.loc[laps["PitInTime"].notna(), "PitInTimeMilliseconds"] = pit_in_time_in_milliseconds.astype("int64")
@@ -214,6 +223,7 @@ class DataExtractorService:
 
         return self
 
+    # @timeit
     def merge_pos_and_laps(self) -> Self:
         pos_data_df = self.processed_pos_data.copy()
         laps_df = self.laps.copy()
@@ -228,17 +238,24 @@ class DataExtractorService:
 
         combined_df = (
             pos_data_df.merge(laps_df, on=["DriverNumber", "LapNumber"], how="left")
-            .rename(columns={"Time_x": "Time"})
-            .drop(columns="Time_y")
+            .rename(columns={"Time_x": "Time", "Time_y": "Time_Lap"})
+            # .drop(columns="Time_y")
         )
 
-        # TODO better strategy for handling NaN Position instead of 99, it's suppose to be DNF but order matters
-        combined_df["Position"] = combined_df["Position"].fillna(99).astype("int64")
+        combined_df["LapNumber"] = combined_df.groupby("DriverNumber")["LapNumber"].ffill()
+        combined_df["ElapsedTimeSinceStartOfLapMilliseconds"] = combined_df["SessionTimeMilliseconds"] - combined_df["LapStartTimeMilliseconds"]
+        combined_df["LapPercentageCompletion"] = combined_df["ElapsedTimeSinceStartOfLapMilliseconds"] / combined_df["LapTimeMilliseconds"]
+        combined_df["LapPercentageCompletion"] = combined_df["LapPercentageCompletion"].fillna(0)
+        combined_df["LapsCompletion"] = combined_df["LapNumber"] + combined_df["LapPercentageCompletion"]
+        combined_df["PositionIndex"] = combined_df.sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False]).groupby("SessionTimeTick").cumcount().add(1) - 1
+        combined_df.loc[combined_df["Position"].notna(), "IsDNF"] = False
+        combined_df.loc[combined_df["Position"].isna(), "IsDNF"] = True
 
         self.processed_pos_data = combined_df
 
         return self
 
+    # @timeit
     def add_in_pit_column(self) -> Self:
         df = self.processed_pos_data.copy()
 
@@ -256,17 +273,18 @@ class DataExtractorService:
             "InPit"
         ] = True
 
-        # df["InPit"] = df["InPit"].astype(bool)
         df["InPit"] = df["InPit"].astype("boolean").fillna(False)
 
         self.processed_pos_data = df
 
         return self
 
+    # @timeit
     def process_tire_compound_columns(self) -> Self:
         df = self.processed_pos_data.copy()
 
-        df["Compound"] = df["Compound"].str[0]
+        df["Compound"] = df["Compound"].str[0].astype("string")
+        df["Compound"] = df.groupby("DriverNumber")["Compound"].ffill()
         df["SCompoundColor"] = LVecBase4f(1, 0, 0, 0.8)
         df["MCompoundColor"] = LVecBase4f(1, 1, 0, 0.8)
         df["HCompoundColor"] = LVecBase4f(1, 1, 1, 0.8)
@@ -305,7 +323,9 @@ class DataExtractorService:
             # - figure out time to leader
         )
 
-        print(self.processed_pos_data.dtypes)
+
+
+        # print(self.processed_pos_data.dtypes)
         # print(self.laps.dtypes)
 
         messenger.send("sessionSelected")

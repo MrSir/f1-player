@@ -38,10 +38,16 @@ class LeaderboardProcessor:
         for driver in self.drivers:
             current_record = driver.pos_data[driver.pos_data["SessionTimeTick"] == session_time_tick].iloc[0]
 
-            index = current_record["Position"] - 1
+            index = current_record["PositionIndex"]
 
-            if index > len(self.drivers) - 1:
-                continue
+            default_color = LVecBase4f(1, 1, 1, 0.8)
+            dnf_color = LVecBase4f(1, 1, 1, 0.5)
+            current_color = self.driver_abbreviations[index].textNode.getTextColor()
+
+            color = dnf_color if driver.is_dnf else default_color
+
+            if current_color != color:
+                self.driver_abbreviations[index]["fg"] = color
 
             if self.team_colors[index]["frameColor"] != driver.team_color_obj:
                 self.team_colors[index]["frameColor"] = driver.team_color_obj
@@ -55,6 +61,7 @@ class LeaderboardProcessor:
 class IntervalLeaderboardProcessor(LeaderboardProcessor):
     def update_times(self, driver: Driver, current_record: Series, index: int) -> None:
         default_color = LVecBase4f(1, 1, 1, 0.8)
+        dnf_color = LVecBase4f(1, 1, 1, 0.5)
         current_color = self.driver_times[index].textNode.getTextColor()
 
         if index == 0:
@@ -66,21 +73,38 @@ class IntervalLeaderboardProcessor(LeaderboardProcessor):
 
             return
 
-        if current_record["InPit"]:
+        if driver.is_dnf:
+            if current_color != dnf_color:
+                self.driver_times[index]["fg"] = dnf_color
+
+            if self.driver_times[index]["text"] != "OUT":
+                self.driver_times[index]["text"] = "OUT"
+
+            return
+
+        if driver.in_pit:
             if current_color != driver.team_color_obj:
                 self.driver_times[index]["fg"] = driver.team_color_obj
 
             if self.driver_times[index]["text"] != "IN PIT":
                 self.driver_times[index]["text"] = "IN PIT"
-        else:
-            if current_color != default_color:
-                self.driver_times[index]["fg"] = default_color
 
-            # TODO interval times
-            if self.driver_times[index]["text"] != "+1.23":
-                self.driver_times[index]["text"] = "+1.23"
+            return
 
-    def update_tire_compound(self, current_record: Series, index: int) -> None:
+        if current_color != default_color:
+            self.driver_times[index]["fg"] = default_color
+
+        # TODO interval times
+        if self.driver_times[index]["text"] != "+1.23":
+            self.driver_times[index]["text"] = "+1.23"
+
+    def update_tire_compound(self, driver: Driver, current_record: Series, index: int) -> None:
+        if driver.is_dnf:
+            if self.driver_tires[index]["text"] != "":
+                self.driver_tires[index]["text"] = ""
+
+            return
+
         tire_compound: str = current_record["Compound"]
         tire_compound__color = current_record["CompoundColor"]
         current_tire_compound_color = self.driver_tires[index].textNode.getTextColor()
@@ -92,12 +116,13 @@ class IntervalLeaderboardProcessor(LeaderboardProcessor):
 
     def update_driver(self, driver: Driver, current_record: Series, index: int) -> None:
         self.update_times(driver, current_record, index)
-        self.update_tire_compound(current_record, index)
+        self.update_tire_compound(driver, current_record, index)
 
 
 class LeaderLeaderboardProcessor(IntervalLeaderboardProcessor):
     def update_times(self, driver: Driver, current_record: Series, index: int) -> None:
         default_color = LVecBase4f(1, 1, 1, 0.8)
+        dnf_color = LVecBase4f(1, 1, 1, 0.5)
         current_color = self.driver_times[index].textNode.getTextColor()
 
         if index == 0:
@@ -109,19 +134,30 @@ class LeaderLeaderboardProcessor(IntervalLeaderboardProcessor):
 
             return
 
-        if current_record["InPit"]:
+        if driver.is_dnf:
+            if current_color != dnf_color:
+                self.driver_times[index]["fg"] = dnf_color
+
+            if self.driver_times[index]["text"] != "OUT":
+                self.driver_times[index]["text"] = "OUT"
+
+            return
+
+        if driver.in_pit:
             if current_color != driver.team_color_obj:
                 self.driver_times[index]["fg"] = driver.team_color_obj
 
             if self.driver_times[index]["text"] != "IN PIT":
                 self.driver_times[index]["text"] = "IN PIT"
-        else:
-            if current_color != default_color:
-                self.driver_times[index]["fg"] = default_color
 
-            # TODO time to leader
-            if self.driver_times[index]["text"] != "+1.23":
-                self.driver_times[index]["text"] = "+1.23"
+            return
+
+        if current_color != default_color:
+            self.driver_times[index]["fg"] = default_color
+
+        # TODO time to leader
+        if self.driver_times[index]["text"] != "+1.23":
+            self.driver_times[index]["text"] = "+1.23"
 
 
 class PitsLeaderboardProcessor(LeaderboardProcessor):
@@ -132,7 +168,17 @@ class PitsLeaderboardProcessor(LeaderboardProcessor):
 class TiresLeaderboardProcessor(IntervalLeaderboardProcessor):
     def update_times(self, driver: Driver, current_record: Series, index: int) -> None:
         default_color = LVecBase4f(1, 1, 1, 0.8)
+        dnf_color = LVecBase4f(1, 1, 1, 0.5)
         current_color = self.driver_times[index].textNode.getTextColor()
+
+        if driver.is_dnf:
+            if current_color != dnf_color:
+                self.driver_times[index]["fg"] = dnf_color
+
+            if self.driver_times[index]["text"] != "OUT":
+                self.driver_times[index]["text"] = "OUT"
+
+            return
 
         tire_age = str(int(current_record["TyreLife"]))
 
