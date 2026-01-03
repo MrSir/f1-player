@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 from typing import Self
 
@@ -29,6 +30,7 @@ class DataExtractorService:
         self._session_end_time: Timedelta | None = None
         self._pos_data: dict[str, Telemetry] | None = None
         self._circuit_info: CircuitInfo | None = None
+        self._total_laps: int | None = None
         self._laps: Laps | None = None
         self._fastest_lap: Lap | None = None
         self.fastest_lap_telemetry: DataFrame | None = None
@@ -70,6 +72,13 @@ class DataExtractorService:
         return self._session_status
 
     @property
+    def total_laps(self) -> int:
+        if self._total_laps is None:
+            self._total_laps = int(self.session.total_laps)
+
+        return self._total_laps
+
+    @property
     def pos_data(self) -> dict[str, Telemetry]:
         if self._pos_data is None:
             self._pos_data = self.session.pos_data
@@ -87,7 +96,7 @@ class DataExtractorService:
         df = self.processed_pos_data
         df = df[df["SessionTimeTick"] == session_time_tick]
 
-        return int(df["LapNumber"].max())
+        return int(math.ceil(df["LapsCompletion"].max()))
 
     @property
     def fastest_lap(self) -> Lap:
@@ -228,6 +237,8 @@ class DataExtractorService:
         pos_data_df = self.processed_pos_data.copy()
         laps_df = self.laps.copy()
 
+        end_of_race = laps_df.loc[laps_df["LapNumber"] == self.total_laps, "LapEndTimeMilliseconds"].min()
+
         for lap in laps_df.itertuples():
             pos_data_df.loc[
                 (pos_data_df["DriverNumber"] == lap.DriverNumber) &
@@ -243,13 +254,28 @@ class DataExtractorService:
         )
 
         combined_df["LapNumber"] = combined_df.groupby("DriverNumber")["LapNumber"].ffill()
+
+        combined_df.loc[
+            (combined_df["LapNumber"] == self.total_laps) &
+            (combined_df["SessionTimeMilliseconds"] > end_of_race),
+            "LapNumber"
+        ] = self.total_laps + 1
+
         combined_df["ElapsedTimeSinceStartOfLapMilliseconds"] = combined_df["SessionTimeMilliseconds"] - combined_df["LapStartTimeMilliseconds"]
         combined_df["LapPercentageCompletion"] = combined_df["ElapsedTimeSinceStartOfLapMilliseconds"] / combined_df["LapTimeMilliseconds"]
         combined_df["LapPercentageCompletion"] = combined_df["LapPercentageCompletion"].fillna(0)
-        combined_df["LapsCompletion"] = combined_df["LapNumber"] + combined_df["LapPercentageCompletion"]
+        combined_df["LapsCompletion"] = (combined_df["LapNumber"] - 1) + combined_df["LapPercentageCompletion"]
         combined_df["PositionIndex"] = combined_df.sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False]).groupby("SessionTimeTick").cumcount().add(1) - 1
+
         combined_df.loc[combined_df["Position"].notna(), "IsDNF"] = False
         combined_df.loc[combined_df["Position"].isna(), "IsDNF"] = True
+
+        combined_df.loc[combined_df["LapsCompletion"] == self.total_laps, "IsFinished"] = True
+        combined_df.loc[combined_df["IsFinished"].isna(), "IsFinished"] = False
+        combined_df.loc[combined_df["IsFinished"], "IsDNF"] = False
+
+        combined_df.loc[combined_df["SessionTimeMilliseconds"] >= end_of_race, "PositionIndex"] = pd.NA
+        combined_df["PositionIndex"] = combined_df.groupby("DriverNumber")["PositionIndex"].ffill().astype("int64")
 
         self.processed_pos_data = combined_df
 

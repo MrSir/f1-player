@@ -48,6 +48,7 @@ class Driver(DirectObject):
         self.laps = laps
         self.in_pit: bool = False
         self.is_dnf: bool = False
+        self.is_finished: bool = False
 
         self.accept("updateDrivers", self.update)
 
@@ -101,6 +102,7 @@ class Driver(DirectObject):
 
         self.is_dnf = current_record["IsDNF"]
         self.in_pit = current_record["InPit"]
+        self.is_finished = current_record["IsFinished"]
 
         precision = Decimal("0.001")
 

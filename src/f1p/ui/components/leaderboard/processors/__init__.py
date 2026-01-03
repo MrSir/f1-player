@@ -1,5 +1,6 @@
+from direct.gui.DirectFrame import DirectFrame
 from direct.gui.OnscreenText import OnscreenText
-from panda3d.core import LVecBase4f
+from panda3d.core import LVecBase4f, StaticTextFont
 from pandas import DataFrame, Series
 
 from f1p.services.data_extractor import DataExtractorService
@@ -11,6 +12,7 @@ class LeaderboardProcessor:
         self,
         lap_counter: OnscreenText,
         drivers: list[Driver],
+        checkered_flags: list[OnscreenText],
         team_colors: list[OnscreenText],
         driver_abbreviations: list[OnscreenText],
         driver_times: list[OnscreenText],
@@ -19,6 +21,7 @@ class LeaderboardProcessor:
     ):
         self.lap_counter = lap_counter
         self.drivers = drivers
+        self.checkered_flags = checkered_flags
         self.team_colors = team_colors
         self.driver_abbreviations = driver_abbreviations
         self.driver_times = driver_times
@@ -29,7 +32,7 @@ class LeaderboardProcessor:
         ...
 
     def update(self, session_time_tick: int) -> None:
-        total_laps = self.data_extractor.session.total_laps
+        total_laps = self.data_extractor.total_laps
         current_lap_number = self.data_extractor.get_current_lap_number(session_time_tick)
 
         if self.lap_counter["text"] != f"LAP {current_lap_number}/{total_laps}":
@@ -45,6 +48,11 @@ class LeaderboardProcessor:
             current_color = self.driver_abbreviations[index].textNode.getTextColor()
 
             color = dnf_color if driver.is_dnf else default_color
+
+            if driver.is_finished and self.checkered_flags[index]["text"] != "🮕":
+                self.checkered_flags[index]["text"] = "🮕"
+            elif not driver.is_finished and self.checkered_flags[index]["text"] != "":
+                self.checkered_flags[index]["text"] = ""
 
             if current_color != color:
                 self.driver_abbreviations[index]["fg"] = color

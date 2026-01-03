@@ -38,7 +38,7 @@ class Leaderboard(DirectObject):
         self.render2d = render2d
         self.task_manager = task_manager
         self.loader = loader
-        self.width = 215
+        self.width = 235
         self._height: float | None = None
         self.symbols_font = symbols_font
         self.text_font = text_font
@@ -52,6 +52,7 @@ class Leaderboard(DirectObject):
         self.f1_logo: OnscreenImage | None = None
         self.lap_counter: OnscreenText | None = None
         self.mode: str = "interval"
+        self.checkered_flags: list[OnscreenText] = []
         self.team_colors: list[DirectFrame] = []
         self.driver_abbreviations: list[OnscreenText] = []
         self.driver_times: list[OnscreenText] = []
@@ -135,9 +136,20 @@ class Leaderboard(DirectObject):
 
     def render_drivers(self) -> None:
         for index, driver in enumerate(self.drivers):
+            self.checkered_flags.append(
+                OnscreenText(
+                    parent=self.frame,
+                    pos=(15, -85 - (index * 23)),
+                    scale=self.width / 14,
+                    fg=(1, 1, 1, 0.8),
+                    font=self.symbols_font,
+                    text="",
+                )
+            )
+
             OnscreenText(
                 parent=self.frame,
-                pos=(20, -85 - (index * 23)),
+                pos=(40, -85 - (index * 23)),
                 scale=self.width / 14,
                 fg=(1, 1, 1, 0.8),
                 font=self.text_font,
@@ -149,14 +161,14 @@ class Leaderboard(DirectObject):
                     parent=self.frame,
                     frameColor=driver.team_color_obj,
                     frameSize=(0, 12, 0, 12),
-                    pos=Point3(40, 0, -87 - (index * 23))
+                    pos=Point3(60, 0, -87 - (index * 23))
                 )
             )
 
             self.driver_abbreviations.append(
                 OnscreenText(
                     parent=self.frame,
-                    pos=(80, -85 - (index * 23)),
+                    pos=(100, -85 - (index * 23)),
                     scale=self.width / 14,
                     fg=(1, 1, 1, 0.8),
                     font=self.text_font,
@@ -167,7 +179,7 @@ class Leaderboard(DirectObject):
             self.driver_times.append(
                  OnscreenText(
                     parent=self.frame,
-                    pos=(145, -85 - (index * 23)),
+                    pos=(165, -85 - (index * 23)),
                     scale=self.width / 14,
                     fg=(1, 1, 1, 0.8),
                     font=self.text_font,
@@ -178,7 +190,7 @@ class Leaderboard(DirectObject):
             self.driver_tires.append(
                 OnscreenText(
                     parent=self.frame,
-                    pos=(200, -85 - (index * 23)),
+                    pos=(220, -85 - (index * 23)),
                     scale=self.width / 14,
                     fg=(1, 0, 0, 0.8),
                     font=self.text_font,
@@ -194,6 +206,7 @@ class Leaderboard(DirectObject):
                 processor = IntervalLeaderboardProcessor(
                     self.lap_counter,
                     self.drivers,
+                    self.checkered_flags,
                     self.team_colors,
                     self.driver_abbreviations,
                     self.driver_times,
@@ -204,6 +217,7 @@ class Leaderboard(DirectObject):
                 processor = LeaderLeaderboardProcessor(
                     self.lap_counter,
                     self.drivers,
+                    self.checkered_flags,
                     self.team_colors,
                     self.driver_abbreviations,
                     self.driver_times,
@@ -214,6 +228,7 @@ class Leaderboard(DirectObject):
                 processor = PitsLeaderboardProcessor(
                     self.lap_counter,
                     self.drivers,
+                    self.checkered_flags,
                     self.team_colors,
                     self.driver_abbreviations,
                     self.driver_times,
@@ -224,6 +239,7 @@ class Leaderboard(DirectObject):
                 processor = TiresLeaderboardProcessor(
                     self.lap_counter,
                     self.drivers,
+                    self.checkered_flags,
                     self.team_colors,
                     self.driver_abbreviations,
                     self.driver_times,
