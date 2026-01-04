@@ -59,7 +59,7 @@ class PlaybackControls(DirectObject):
 
         self.orbiting_camera: bool = True
         self.playing: bool = False
-        self.playback_speed: float = 1.0
+        self.playback_speed: float = 0.3
 
     def render_frame(self) -> None:
         self.frame = DirectFrame(
@@ -133,16 +133,12 @@ class PlaybackControls(DirectObject):
 
     def change_playback_speed(self, playback_speed: str) -> None:
         match playback_speed:
+            case "x3":
+                self.playback_speed = 0.3
+            case "x5":
+                self.playback_speed = 0.5
             case "x10":
                 self.playback_speed = 1.0
-            case "x20":
-                self.playback_speed = 2.0
-            case "x30":
-                self.playback_speed = 3.0
-            case "x40":
-                self.playback_speed = 4.0
-            case "x50":
-                self.playback_speed = 5.0
 
     def render_playback_speed_button(self) -> None:
         self.playback_speed_button = BlackDropDown(
@@ -157,7 +153,7 @@ class PlaybackControls(DirectObject):
             text_pos=(23.5, (-self.height / 2) + 10),
             text_align=TextNode.ACenter,
             item_text_align=TextNode.ACenter,
-            items=["x10", "x20", "x30", "x40", "x50"],
+            items=["x3", "x5", "x10"],
             item_scale=1.0,
             initialitem=0,
             pos=Point3(self.width - 87, 0, -self.height / 2)
