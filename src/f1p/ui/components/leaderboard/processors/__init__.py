@@ -39,7 +39,7 @@ class LeaderboardProcessor:
             self.lap_counter["text"] = f"LAP {current_lap_number}/{total_laps}"
 
         for driver in self.drivers:
-            current_record = driver.pos_data[driver.pos_data["SessionTimeTick"] == session_time_tick].iloc[0]
+            current_record = driver.ticks[session_time_tick]
 
             index = current_record["PositionIndex"]
 

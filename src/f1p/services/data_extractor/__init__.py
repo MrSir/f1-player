@@ -254,10 +254,12 @@ class DataExtractorService:
         )
 
         combined_df["LapNumber"] = combined_df.groupby("DriverNumber")["LapNumber"].ffill()
+        combined_df["LapStartTimeMilliseconds"] = combined_df.groupby("DriverNumber")["LapStartTimeMilliseconds"].ffill()
+        combined_df["LapEndTimeMilliseconds"] = combined_df.groupby("DriverNumber")["LapEndTimeMilliseconds"].ffill()
 
         combined_df.loc[
             (combined_df["LapNumber"] == self.total_laps) &
-            (combined_df["SessionTimeMilliseconds"] > end_of_race),
+            (combined_df["SessionTimeMilliseconds"] > combined_df["LapEndTimeMilliseconds"]),
             "LapNumber"
         ] = self.total_laps + 1
 
@@ -276,6 +278,15 @@ class DataExtractorService:
 
         combined_df.loc[combined_df["SessionTimeMilliseconds"] >= end_of_race, "PositionIndex"] = pd.NA
         combined_df["PositionIndex"] = combined_df.groupby("DriverNumber")["PositionIndex"].ffill().astype("int64")
+
+        # combined_df = combined_df.sort_values(["SessionTimeTick", "LapNumber", "PositionIndex"], ascending=[True, False, True])
+        # combined_df["Sector1TimeToCarInFront"] = combined_df.groupby(["SessionTimeTick", "LapNumber"])["Sector1SessionTime"].diff().fillna(Timedelta(milliseconds=0))
+        # combined_df["Sector2TimeToCarInFront"] = combined_df.groupby(["SessionTimeTick", "LapNumber"])["Sector2SessionTime"].diff().fillna(Timedelta(milliseconds=0))
+        # combined_df["Sector3TimeToCarInFront"] = combined_df.groupby(["SessionTimeTick", "LapNumber"])["Sector3SessionTime"].diff().fillna(Timedelta(milliseconds=0))
+        #
+        # laps["Sector1TimeToLeader"] = laps.groupby("LapNumber")["Sector1TimeToCarInFront"].cumsum()
+        # laps["Sector2TimeToLeader"] = laps.groupby("LapNumber")["Sector2TimeToCarInFront"].cumsum()
+        # laps["Sector3TimeToLeader"] = laps.groupby("LapNumber")["Sector3TimeToCarInFront"].cumsum()
 
         self.processed_pos_data = combined_df
 

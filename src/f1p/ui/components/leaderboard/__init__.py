@@ -38,7 +38,7 @@ class Leaderboard(DirectObject):
         self.render2d = render2d
         self.task_manager = task_manager
         self.loader = loader
-        self.width = 235
+        self.width = 215
         self._height: float | None = None
         self.symbols_font = symbols_font
         self.text_font = text_font
@@ -82,7 +82,7 @@ class Leaderboard(DirectObject):
             parent=self.pixel2d,
             frameColor=(0.18, 0.18, 0.18, 0.8),
             frameSize=(0, self.width, 0, -self.height),
-            pos=Point3(10, 0, -50)
+            pos=Point3(20, 0, -50)
         )
 
     def render_f1_logo(self) -> None:
@@ -139,7 +139,7 @@ class Leaderboard(DirectObject):
             self.checkered_flags.append(
                 OnscreenText(
                     parent=self.frame,
-                    pos=(15, -85 - (index * 23)),
+                    pos=(-10, -85 - (index * 23)),
                     scale=self.width / 14,
                     fg=(1, 1, 1, 0.8),
                     font=self.symbols_font,
@@ -149,7 +149,7 @@ class Leaderboard(DirectObject):
 
             OnscreenText(
                 parent=self.frame,
-                pos=(40, -85 - (index * 23)),
+                pos=(20, -85 - (index * 23)),
                 scale=self.width / 14,
                 fg=(1, 1, 1, 0.8),
                 font=self.text_font,
@@ -161,14 +161,14 @@ class Leaderboard(DirectObject):
                     parent=self.frame,
                     frameColor=driver.team_color_obj,
                     frameSize=(0, 12, 0, 12),
-                    pos=Point3(60, 0, -87 - (index * 23))
+                    pos=Point3(40, 0, -87 - (index * 23))
                 )
             )
 
             self.driver_abbreviations.append(
                 OnscreenText(
                     parent=self.frame,
-                    pos=(100, -85 - (index * 23)),
+                    pos=(80, -85 - (index * 23)),
                     scale=self.width / 14,
                     fg=(1, 1, 1, 0.8),
                     font=self.text_font,
@@ -179,7 +179,7 @@ class Leaderboard(DirectObject):
             self.driver_times.append(
                  OnscreenText(
                     parent=self.frame,
-                    pos=(165, -85 - (index * 23)),
+                    pos=(145, -85 - (index * 23)),
                     scale=self.width / 14,
                     fg=(1, 1, 1, 0.8),
                     font=self.text_font,
@@ -190,7 +190,7 @@ class Leaderboard(DirectObject):
             self.driver_tires.append(
                 OnscreenText(
                     parent=self.frame,
-                    pos=(220, -85 - (index * 23)),
+                    pos=(200, -85 - (index * 23)),
                     scale=self.width / 14,
                     fg=(1, 0, 0, 0.8),
                     font=self.text_font,

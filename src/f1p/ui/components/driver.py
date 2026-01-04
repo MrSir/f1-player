@@ -40,6 +40,7 @@ class Driver(DirectObject):
         self.team_name = team_name
         self.team_color = team_color
         self.pos_data = pos_data
+        self.ticks = self.pos_data.set_index("SessionTimeTick").to_dict(orient='index')
         self.current_lap = current_lap
         self.current_lap_time = current_lap_time
         self.time_to_car_in_front = time_to_car_in_front
@@ -98,7 +99,7 @@ class Driver(DirectObject):
         )
 
     def update(self, session_time_tick: int) -> None:
-        current_record = self.pos_data[self.pos_data["SessionTimeTick"] == session_time_tick].iloc[0]
+        current_record = self.ticks[session_time_tick]
 
         self.is_dnf = current_record["IsDNF"]
         self.in_pit = current_record["InPit"]
@@ -117,4 +118,3 @@ class Driver(DirectObject):
 
         if (current_X, current_Y, current_Z) != (X, Y, Z):
             self.node_path.setPos(X, Y, Z)
-            # self.set_current_lap_time(session_time)
