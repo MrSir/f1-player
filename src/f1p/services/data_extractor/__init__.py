@@ -219,6 +219,10 @@ class DataExtractorService:
         pit_out_time_in_milliseconds = laps.loc[laps["PitOutTime"].notna(), "PitOutTime"].dt.total_seconds() * 1e3
         laps.loc[laps["PitOutTime"].notna(), "PitOutTimeMilliseconds"] = pit_out_time_in_milliseconds.astype("int64")
 
+        laps["LastLapTimeMilliseconds"] = laps.groupby("DriverNumber")["LapTimeMilliseconds"].shift(1)
+        laps["FastestLapTimeMillisecondsSoFar"] = laps.groupby("DriverNumber")["LastLapTimeMilliseconds"].cummin()
+
+
         # laps = laps.sort_values(["LapNumber", "Position"], ascending=[True, True])
         # laps["Sector1TimeToCarInFront"] = laps.groupby("LapNumber")["Sector1SessionTime"].diff().fillna(Timedelta(milliseconds=0))
         # laps["Sector2TimeToCarInFront"] = laps.groupby("LapNumber")["Sector2SessionTime"].diff().fillna(Timedelta(milliseconds=0))
@@ -279,6 +283,10 @@ class DataExtractorService:
         combined_df.loc[combined_df["SessionTimeMilliseconds"] >= end_of_race, "PositionIndex"] = pd.NA
         combined_df["PositionIndex"] = combined_df.groupby("DriverNumber")["PositionIndex"].ffill().astype("int64")
 
+        combined_df["FastestLapTimeMilliseconds"] = combined_df.sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False])["FastestLapTimeMillisecondsSoFar"].cummin()
+        combined_df.loc[combined_df["FastestLapTimeMillisecondsSoFar"] == combined_df["FastestLapTimeMilliseconds"], "HasFastestLap"] = True
+        combined_df.loc[combined_df["HasFastestLap"].isna(), "HasFastestLap"] = False
+        combined_df["HasFastestLap"] = combined_df.groupby("DriverNumber")["HasFastestLap"].ffill()
         # combined_df = combined_df.sort_values(["SessionTimeTick", "LapNumber", "PositionIndex"], ascending=[True, False, True])
         # combined_df["Sector1TimeToCarInFront"] = combined_df.groupby(["SessionTimeTick", "LapNumber"])["Sector1SessionTime"].diff().fillna(Timedelta(milliseconds=0))
         # combined_df["Sector2TimeToCarInFront"] = combined_df.groupby(["SessionTimeTick", "LapNumber"])["Sector2SessionTime"].diff().fillna(Timedelta(milliseconds=0))

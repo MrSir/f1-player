@@ -50,6 +50,7 @@ class Driver(DirectObject):
         self.in_pit: bool = False
         self.is_dnf: bool = False
         self.is_finished: bool = False
+        self.has_fastest_lap: bool = False
 
         self.accept("updateDrivers", self.update)
 
@@ -104,6 +105,7 @@ class Driver(DirectObject):
         self.is_dnf = current_record["IsDNF"]
         self.in_pit = current_record["InPit"]
         self.is_finished = current_record["IsFinished"]
+        self.has_fastest_lap = current_record["HasFastestLap"]
 
         precision = Decimal("0.001")
 

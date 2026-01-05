@@ -17,6 +17,7 @@ class LeaderboardProcessor:
         driver_abbreviations: list[OnscreenText],
         driver_times: list[OnscreenText],
         driver_tires: list[OnscreenText],
+        has_fastest_lap: list[OnscreenText],
         data_extractor: DataExtractorService,
     ):
         self.lap_counter = lap_counter
@@ -26,6 +27,7 @@ class LeaderboardProcessor:
         self.driver_abbreviations = driver_abbreviations
         self.driver_times = driver_times
         self.driver_tires = driver_tires
+        self.has_fastest_lap = has_fastest_lap
         self.data_extractor = data_extractor
 
     def update_driver(self, driver: Driver, current_record: Series, index: int) -> None:
@@ -62,6 +64,13 @@ class LeaderboardProcessor:
 
             if self.driver_abbreviations[index]["text"] != driver.abbreviation:
                 self.driver_abbreviations[index]["text"] = driver.abbreviation
+
+            if driver.has_fastest_lap:
+                if self.has_fastest_lap[index]["text"] != "⏱":
+                    self.has_fastest_lap[index]["text"] = "⏱"
+            else:
+                if self.has_fastest_lap[index]["text"] != "":
+                    self.has_fastest_lap[index]["text"] = ""
 
             self.update_driver(driver, current_record, index)
 

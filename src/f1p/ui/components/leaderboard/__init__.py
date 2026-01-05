@@ -57,6 +57,7 @@ class Leaderboard(DirectObject):
         self.driver_abbreviations: list[OnscreenText] = []
         self.driver_times: list[OnscreenText] = []
         self.driver_tires: list[OnscreenText] = []
+        self.has_fastest_lap: list[OnscreenText] = []
 
         self.drivers: list[Driver] = self.circuit_map.drivers
 
@@ -198,6 +199,19 @@ class Leaderboard(DirectObject):
                 )
             )
 
+            has_fastest_lap = OnscreenText(
+                parent=self.frame,
+                pos=(self.width + 10, -85 - (index * 23)),
+                scale=self.width / 14,
+                bg=(1, 0, 1, 0.6),
+                fg=(1, 1, 1, 0.8),
+                font=self.symbols_font,
+                text="",
+            )
+            has_fastest_lap.textNode.setCardAsMargin(0.1, 0.2, 0.1, 0.02)
+
+            self.has_fastest_lap.append(has_fastest_lap)
+
     def update(self, session_time_tick: int) -> None:
         processor: LeaderboardProcessor | None = None
 
@@ -211,6 +225,7 @@ class Leaderboard(DirectObject):
                     self.driver_abbreviations,
                     self.driver_times,
                     self.driver_tires,
+                    self.has_fastest_lap,
                     self.data_extractor,
                 )
             case "leader":
@@ -222,6 +237,7 @@ class Leaderboard(DirectObject):
                     self.driver_abbreviations,
                     self.driver_times,
                     self.driver_tires,
+                    self.has_fastest_lap,
                     self.data_extractor,
                 )
             case "pits":
@@ -233,6 +249,7 @@ class Leaderboard(DirectObject):
                     self.driver_abbreviations,
                     self.driver_times,
                     self.driver_tires,
+                    self.has_fastest_lap,
                     self.data_extractor,
                 )
             case "tires":
@@ -244,6 +261,7 @@ class Leaderboard(DirectObject):
                     self.driver_abbreviations,
                     self.driver_times,
                     self.driver_tires,
+                    self.has_fastest_lap,
                     self.data_extractor,
                 )
 
