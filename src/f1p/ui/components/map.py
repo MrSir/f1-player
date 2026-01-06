@@ -1,13 +1,10 @@
 import numpy as np
 from direct.showbase.DirectObject import DirectObject
-from fastf1.core import Telemetry
-from fastf1.mvapi import CircuitInfo
-from panda3d.core import LineSegs, NodePath, deg2Rad
+from panda3d.core import LineSegs, NodePath
 from pandas import DataFrame
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.driver import Driver
-from f1p.utils.geometry import rotate, scale, shift, find_center
 
 
 class Map(DirectObject):

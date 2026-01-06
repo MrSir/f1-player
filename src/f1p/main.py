@@ -27,7 +27,7 @@ class F1PlayerApp(ShowBase):
 
         self.setBackgroundColor(0.2, 0.2, 0.2, 1)
 
-        self.setFrameRateMeter(True)
+        # self.setFrameRateMeter(True)
         # PStatClient.connect()
 
         self.ui_components: list = []

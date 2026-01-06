@@ -1,23 +1,17 @@
-from datetime import timedelta
-
-import pandas as pd
 from direct.gui.DirectFrame import DirectFrame
-from direct.gui.DirectLabel import DirectLabel
 from direct.gui.OnscreenImage import OnscreenImage
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
 from direct.task.Task import TaskManager
 from fastf1.core import Laps
 from panda3d.core import StaticTextFont, Point3, Loader, TransparencyAttrib, TextNode
-from pandas import DataFrame, Timedelta
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.driver import Driver
 from f1p.ui.components.gui.drop_down import BlackDropDown
 from f1p.ui.components.leaderboard.processors import LeaderboardProcessor, IntervalLeaderboardProcessor, \
-    TiresLeaderboardProcessor, PitsLeaderboardProcessor, LeaderLeaderboardProcessor
+    TiresLeaderboardProcessor, LeaderLeaderboardProcessor
 from f1p.ui.components.map import Map
-from f1p.utils.performance import timeit
 
 
 class Leaderboard(DirectObject):
@@ -111,8 +105,6 @@ class Leaderboard(DirectObject):
                 self.mode = "interval"
             case "🕘":
                 self.mode = "leader"
-            case "🛠":
-                self.mode = "pits"
             case "⛁":
                 self.mode = "tires"
 
@@ -129,7 +121,7 @@ class Leaderboard(DirectObject):
             text_pos=(20, -5),
             text_align=TextNode.ACenter,
             item_text_align=TextNode.ACenter,
-            items=["🕒", "🕘", "🛠", "⛁"],
+            items=["🕒", "🕘", "⛁"],
             item_scale=1.0,
             initialitem=0,
             pos=Point3(self.width - 45, 0, -19),
@@ -230,18 +222,6 @@ class Leaderboard(DirectObject):
                 )
             case "leader":
                 processor = LeaderLeaderboardProcessor(
-                    self.lap_counter,
-                    self.drivers,
-                    self.checkered_flags,
-                    self.team_colors,
-                    self.driver_abbreviations,
-                    self.driver_times,
-                    self.driver_tires,
-                    self.has_fastest_lap,
-                    self.data_extractor,
-                )
-            case "pits":
-                processor = PitsLeaderboardProcessor(
                     self.lap_counter,
                     self.drivers,
                     self.checkered_flags,

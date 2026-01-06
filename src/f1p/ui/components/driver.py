@@ -1,12 +1,9 @@
-from datetime import timedelta
-from datetime import timedelta
 from decimal import Decimal
 
-import pandas as pd
 from direct.showbase.DirectObject import DirectObject
 from fastf1.core import Lap, Telemetry, Laps
 from panda3d.core import NodePath, LVecBase4f
-from pandas import Series, NaT, Timedelta
+from pandas import Series, Timedelta
 
 from f1p.services.procedural3d import SphereMaker
 from f1p.utils.color import hex_to_rgb_saturation

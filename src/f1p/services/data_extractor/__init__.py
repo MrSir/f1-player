@@ -12,7 +12,6 @@ from panda3d.core import deg2Rad, LVecBase4f
 from pandas import DataFrame, Timedelta
 
 from f1p.utils.geometry import find_center, resize_pos_data, center_pos_data
-from f1p.utils.performance import timeit
 
 
 class DataExtractorService:
@@ -147,7 +146,6 @@ class DataExtractorService:
 
         return df.min()
 
-    # @timeit
     def process_fastest_lap(self) -> Self:
         pos_data = self.fastest_lap.get_pos_data()
         resized_pos_data_df = resize_pos_data(self.map_rotation, pos_data)
@@ -158,7 +156,6 @@ class DataExtractorService:
 
         return self
 
-    # @timeit
     def combine_position_data(self) -> Self:
         drivers_pos_data = []
         for driver_number, pos_data in self.pos_data.items():
@@ -169,14 +166,12 @@ class DataExtractorService:
 
         return self
 
-    # @timeit
     def remove_records_before_session_start_time(self) -> Self:
         self.processed_pos_data = self.processed_pos_data[
             self.processed_pos_data["SessionTime"] >= self.session_start_time]
 
         return self
 
-    # @timeit
     def normalize_position_data(self) -> Self:
         df = self.processed_pos_data.copy()
 
@@ -185,7 +180,6 @@ class DataExtractorService:
 
         return self
 
-    # @timeit
     def add_session_time_in_milliseconds(self) -> Self:
         session_time_in_milliseconds = self.processed_pos_data["SessionTime"].dt.total_seconds() * 1e3
 
@@ -193,7 +187,6 @@ class DataExtractorService:
 
         return self
 
-    # @timeit
     def add_common_session_time(self) -> Self:
         df = self.processed_pos_data.copy()
 
@@ -203,12 +196,30 @@ class DataExtractorService:
 
         return self
 
-    # @timeit
     def process_laps(self) -> Self:
         laps = self.laps.copy()
 
+        laps.loc[laps["Sector1SessionTime"].isna(), "Sector1SessionTime"] = (
+            laps.loc[laps["Sector1SessionTime"].isna(), "LapStartTime"] + laps.loc[laps["Sector1SessionTime"].isna(), "Sector1Time"]
+        )
+        laps.loc[laps["Sector2SessionTime"].isna(), "Sector2SessionTime"] = (
+                laps.loc[laps["Sector2SessionTime"].isna(), "Sector1SessionTime"] + laps.loc[
+            laps["Sector2SessionTime"].isna(), "Sector2Time"]
+        )
+        laps.loc[laps["Sector3SessionTime"].isna(), "Sector3SessionTime"] = (
+                laps.loc[laps["Sector3SessionTime"].isna(), "Sector2SessionTime"] + laps.loc[
+            laps["Sector3SessionTime"].isna(), "Sector3Time"]
+        )
+
         lap_start_time_in_milliseconds = laps["LapStartTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
         laps["LapStartTimeMilliseconds"] = lap_start_time_in_milliseconds.astype("int64")
+        sector1_session_time_in_milliseconds = laps["Sector1SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
+        laps["Sector1SessionTimeMilliseconds"] = sector1_session_time_in_milliseconds.astype("int64")
+        sector2_session_time_in_milliseconds = laps["Sector2SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
+        laps["Sector2SessionTimeMilliseconds"] = sector2_session_time_in_milliseconds.astype("int64")
+        sector3_session_time_in_milliseconds = laps["Sector3SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
+        laps["Sector3SessionTimeMilliseconds"] = sector3_session_time_in_milliseconds.astype("int64")
+
         lap_time_in_milliseconds = laps["LapTime"].fillna(Timedelta(milliseconds=1)).dt.total_seconds() * 1e3
         laps["LapTimeMilliseconds"] = lap_time_in_milliseconds.astype("int64")
         laps["LapEndTimeMilliseconds"] = laps["LapStartTimeMilliseconds"] + laps["LapTimeMilliseconds"]
@@ -219,24 +230,17 @@ class DataExtractorService:
         pit_out_time_in_milliseconds = laps.loc[laps["PitOutTime"].notna(), "PitOutTime"].dt.total_seconds() * 1e3
         laps.loc[laps["PitOutTime"].notna(), "PitOutTimeMilliseconds"] = pit_out_time_in_milliseconds.astype("int64")
 
+        laps["S1DiffToCarAhead"] = laps.sort_values(by=["Sector1SessionTimeMilliseconds"], ascending=[True]).groupby("LapNumber")["Sector1SessionTimeMilliseconds"].diff()
+        laps["S2DiffToCarAhead"] = laps.sort_values(by=["Sector2SessionTimeMilliseconds"], ascending=[True]).groupby("LapNumber")["Sector2SessionTimeMilliseconds"].diff()
+        laps["S3DiffToCarAhead"] = laps.sort_values(by=["Sector3SessionTimeMilliseconds"], ascending=[True]).groupby("LapNumber")["Sector3SessionTimeMilliseconds"].diff()
+
         laps["LastLapTimeMilliseconds"] = laps.groupby("DriverNumber")["LapTimeMilliseconds"].shift(1)
         laps["FastestLapTimeMillisecondsSoFar"] = laps.groupby("DriverNumber")["LastLapTimeMilliseconds"].cummin()
-
-
-        # laps = laps.sort_values(["LapNumber", "Position"], ascending=[True, True])
-        # laps["Sector1TimeToCarInFront"] = laps.groupby("LapNumber")["Sector1SessionTime"].diff().fillna(Timedelta(milliseconds=0))
-        # laps["Sector2TimeToCarInFront"] = laps.groupby("LapNumber")["Sector2SessionTime"].diff().fillna(Timedelta(milliseconds=0))
-        # laps["Sector3TimeToCarInFront"] = laps.groupby("LapNumber")["Sector3SessionTime"].diff().fillna(Timedelta(milliseconds=0))
-        #
-        # laps["Sector1TimeToLeader"] = laps.groupby("LapNumber")["Sector1TimeToCarInFront"].cumsum()
-        # laps["Sector2TimeToLeader"] = laps.groupby("LapNumber")["Sector2TimeToCarInFront"].cumsum()
-        # laps["Sector3TimeToLeader"] = laps.groupby("LapNumber")["Sector3TimeToCarInFront"].cumsum()
 
         self._laps = laps
 
         return self
 
-    # @timeit
     def merge_pos_and_laps(self) -> Self:
         pos_data_df = self.processed_pos_data.copy()
         laps_df = self.laps.copy()
@@ -287,20 +291,33 @@ class DataExtractorService:
         combined_df.loc[combined_df["FastestLapTimeMillisecondsSoFar"] == combined_df["FastestLapTimeMilliseconds"], "HasFastestLap"] = True
         combined_df.loc[combined_df["HasFastestLap"].isna(), "HasFastestLap"] = False
         combined_df["HasFastestLap"] = combined_df.groupby("DriverNumber")["HasFastestLap"].ffill()
-        # combined_df = combined_df.sort_values(["SessionTimeTick", "LapNumber", "PositionIndex"], ascending=[True, False, True])
-        # combined_df["Sector1TimeToCarInFront"] = combined_df.groupby(["SessionTimeTick", "LapNumber"])["Sector1SessionTime"].diff().fillna(Timedelta(milliseconds=0))
-        # combined_df["Sector2TimeToCarInFront"] = combined_df.groupby(["SessionTimeTick", "LapNumber"])["Sector2SessionTime"].diff().fillna(Timedelta(milliseconds=0))
-        # combined_df["Sector3TimeToCarInFront"] = combined_df.groupby(["SessionTimeTick", "LapNumber"])["Sector3SessionTime"].diff().fillna(Timedelta(milliseconds=0))
-        #
-        # laps["Sector1TimeToLeader"] = laps.groupby("LapNumber")["Sector1TimeToCarInFront"].cumsum()
-        # laps["Sector2TimeToLeader"] = laps.groupby("LapNumber")["Sector2TimeToCarInFront"].cumsum()
-        # laps["Sector3TimeToLeader"] = laps.groupby("LapNumber")["Sector3TimeToCarInFront"].cumsum()
+
+        combined_df.loc[
+            (combined_df["SessionTimeMilliseconds"] >= combined_df["Sector1SessionTimeMilliseconds"]),
+            "DiffToCarInFront"
+        ] = combined_df["S1DiffToCarAhead"]
+        combined_df.loc[
+            (combined_df["SessionTimeMilliseconds"] >= combined_df["Sector2SessionTimeMilliseconds"]),
+            "DiffToCarInFront"
+        ] = combined_df["S2DiffToCarAhead"]
+        combined_df.loc[
+            (combined_df["SessionTimeMilliseconds"] >= combined_df["Sector3SessionTimeMilliseconds"]),
+            "DiffToCarInFront"
+        ] = combined_df["S3DiffToCarAhead"]
+        combined_df.loc[
+            (combined_df["PositionIndex"] == 0),
+            "DiffToCarInFront"
+        ] = 0
+        combined_df["DiffToCarInFront"] = combined_df.groupby("DriverNumber")["DiffToCarInFront"].ffill()
+        combined_df["DiffToCarInFront"] = round(combined_df["DiffToCarInFront"] / 1000, 3)
+
+        combined_df["DiffToLeader"] = combined_df .sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False]).groupby(["SessionTimeTick"])["DiffToCarInFront"].cumsum()
+        combined_df["DiffToLeader"] = round(combined_df["DiffToLeader"], 3)
 
         self.processed_pos_data = combined_df
 
         return self
 
-    # @timeit
     def add_in_pit_column(self) -> Self:
         df = self.processed_pos_data.copy()
 
@@ -324,7 +341,6 @@ class DataExtractorService:
 
         return self
 
-    # @timeit
     def process_tire_compound_columns(self) -> Self:
         df = self.processed_pos_data.copy()
 
@@ -362,15 +378,6 @@ class DataExtractorService:
             .merge_pos_and_laps()
             .add_in_pit_column()
             .process_tire_compound_columns()
-
-            # TODO
-            # - figure out time to car infront
-            # - figure out time to leader
         )
-
-
-
-        # print(self.processed_pos_data.dtypes)
-        # print(self.laps.dtypes)
 
         messenger.send("sessionSelected")
