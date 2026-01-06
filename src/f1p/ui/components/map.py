@@ -1,13 +1,10 @@
 import numpy as np
 from direct.showbase.DirectObject import DirectObject
-from fastf1.core import Telemetry
-from fastf1.mvapi import CircuitInfo
-from panda3d.core import LineSegs, NodePath, deg2Rad
+from panda3d.core import LineSegs, NodePath
 from pandas import DataFrame
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.driver import Driver
-from f1p.utils.geometry import rotate, scale, shift, find_center
 
 
 class Map(DirectObject):
@@ -26,38 +23,6 @@ class Map(DirectObject):
 
         self.accept("sessionSelected", self.select_session)
         self.accept("clearMaps", self.clear_out_maps)
-
-    @property
-    def circuit_info(self) -> CircuitInfo:
-        return self.data_extractor.circuit_info
-
-    @property
-    def map_rotation(self) -> float:
-        return deg2Rad(self.circuit_info.rotation)
-
-    @property
-    def fastest_lap_telemetry(self) -> Telemetry:
-        return self.data_extractor.fastest_lap.get_pos_data()
-
-    def transform_coordinates(self, coordinates_df: DataFrame) -> DataFrame:
-        new_coordinates_df = coordinates_df.copy()
-        coordinates_cols_only_df = new_coordinates_df[['X', 'Y', 'Z']]
-
-        rotated_coordinates_df = rotate(coordinates_cols_only_df, self.map_rotation)
-        scaled_coordinates_df = scale(rotated_coordinates_df, 1 / 600)
-
-        if self._map_center_coordinate is None:
-            self._map_center_coordinate = find_center(scaled_coordinates_df)
-
-        shifted_x_coordinates_df = shift(scaled_coordinates_df, direction="X", amount=-self._map_center_coordinate[0])
-        shifted_y_coordinates_df = shift(scaled_coordinates_df, direction="Y", amount=-self._map_center_coordinate[1])
-        shifted_z_coordinates_df = shift(scaled_coordinates_df, direction="Z", amount=-self._map_center_coordinate[2])
-
-        new_coordinates_df["X"] = shifted_x_coordinates_df["X"]
-        new_coordinates_df["Y"] = shifted_y_coordinates_df["Y"]
-        new_coordinates_df["Z"] = shifted_z_coordinates_df["Z"]
-
-        return new_coordinates_df
 
     def render_map(self, df: DataFrame) -> None:
         new_df = df.copy()
@@ -125,25 +90,18 @@ class Map(DirectObject):
         if self.outer_border_node_path is not None:
             self.outer_border_node_path.removeNode()
 
-    @property
-    def adjusted_pos_data(self) -> DataFrame:
-        if self._pos_data is None:
-            pos_data = self.data_extractor.session.pos_data
-
-            for _, driver_sr in self.data_extractor.session.results.iterrows():
-                transformed_pos_data = self.transform_coordinates(pos_data[driver_sr["DriverNumber"]])
-                pos_data[driver_sr["DriverNumber"]] = transformed_pos_data
-
-            self._pos_data = pos_data
-
-        return self._pos_data
-
     def initialize_drivers(self) -> None:
         for _, driver_sr in self.data_extractor.session.results.iterrows():
-            driver = Driver.from_df(self.parent, driver_sr, self.adjusted_pos_data[driver_sr["DriverNumber"]])
+            driver_laps = self.data_extractor.laps[self.data_extractor.laps["Driver"] == driver_sr["Abbreviation"]]
+
+            driver_pos_data = self.data_extractor.processed_pos_data[
+                self.data_extractor.processed_pos_data["DriverNumber"] == driver_sr["DriverNumber"]
+            ]
+
+            driver = Driver.from_df(self.parent, driver_sr, driver_pos_data, driver_laps)
 
             self.drivers.append(driver)
 
     def select_session(self) -> None:
-        self.render_map(self.transform_coordinates(self.fastest_lap_telemetry))
+        self.render_map(self.data_extractor.fastest_lap_telemetry)
         self.initialize_drivers()
