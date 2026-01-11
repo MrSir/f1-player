@@ -2,9 +2,8 @@ from direct.gui.DirectFrame import DirectFrame
 from direct.gui.OnscreenImage import OnscreenImage
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
-from direct.task.Task import TaskManager
 from fastf1.core import Laps
-from panda3d.core import StaticTextFont, Point3, Loader, TransparencyAttrib, TextNode
+from panda3d.core import StaticTextFont, Point3, TransparencyAttrib, TextNode
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.driver import Driver
@@ -18,9 +17,6 @@ class Leaderboard(DirectObject):
     def __init__(
         self,
         pixel2d,
-        render2d,
-        task_manager: TaskManager,
-        loader: Loader,
         symbols_font: StaticTextFont,
         text_font: StaticTextFont,
         circuit_map: Map,
@@ -29,9 +25,6 @@ class Leaderboard(DirectObject):
         super().__init__()
 
         self.pixel2d = pixel2d
-        self.render2d = render2d
-        self.task_manager = task_manager
-        self.loader = loader
         self.width = 215
         self._height: float | None = None
         self.symbols_font = symbols_font
@@ -75,7 +68,7 @@ class Leaderboard(DirectObject):
     def render_frame(self) -> None:
         self.frame = DirectFrame(
             parent=self.pixel2d,
-            frameColor=(0.18, 0.18, 0.18, 0.8),
+            frameColor=(0.20, 0.20, 0.20, 0.7),
             frameSize=(0, self.width, 0, -self.height),
             pos=Point3(20, 0, -50)
         )

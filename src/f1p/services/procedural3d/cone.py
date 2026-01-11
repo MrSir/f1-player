@@ -4,6 +4,8 @@
 # This module contains a class to generate cone primitives.
 
 from .base import *
+from math import pi, sin, cos
+import array
 
 
 class ConeMaker(ModelMaker):

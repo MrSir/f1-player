@@ -1,5 +1,3 @@
-import math
-from datetime import timedelta, datetime
 from math import sin, cos
 
 from direct.gui.DirectButton import DirectButton
@@ -8,10 +6,8 @@ from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.gui.DirectSlider import DirectSlider
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.MessengerGlobal import messenger
-from direct.showbase.ShowBaseGlobal import globalClock
 from direct.task.Task import TaskManager
 from panda3d.core import Point3, StaticTextFont, Camera, deg2Rad, TextNode
-from pandas import Timedelta
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.gui.button import BlackButton
@@ -73,11 +69,6 @@ class PlaybackControls(DirectObject):
         if not self.playing:
             return task.cont
 
-        # fps = globalClock.getAverageFrameRate()
-        # spf = 1 / fps
-        # current_value = self.timeline["value"]
-        # new_value = current_value + (spf * 1000 * self.playback_speed)
-
         current_value = self.timeline["value"]
         new_value = current_value + self.playback_speed
 
@@ -119,16 +110,16 @@ class PlaybackControls(DirectObject):
             value=1,
             range=(1, self.data_extractor.session_ticks),
             pageSize=1,
-            frameSize=(0, self.width - 121, -self.height / 2, self.height / 2),
+            frameSize=(0, self.width - 121, -(self.height - 3)/ 2, (self.height - 3)/ 2),
             frameColor=(0.15, 0.15, 0.15, 1),
-            thumb_frameSize=(0, 5, -self.height / 2, self.height / 2),
+            thumb_frameSize=(0, 5, -(self.height - 3) / 2, (self.height - 3) / 2),
             thumb_frameColor=(0.1, 0.1, 0.1, 1),
             command=self.update_components,
             text_font=self.text_font,
             text_scale=self.height,
             text_fg=(1, 1, 1, 1),
-            text_pos=(-2, (-self.height / 2) + 7),
-            pos=Point3(34, 0, -self.height / 2)
+            text_pos=(-2, (-(self.height - 3) / 2) + 7),
+            pos=Point3(34, 0, (-(self.height - 3) / 2) - 3)
         )
 
     def change_playback_speed(self, playback_speed: str) -> None:

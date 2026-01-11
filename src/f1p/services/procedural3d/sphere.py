@@ -4,6 +4,8 @@
 # This module contains a class to generate sphere primitives.
 
 from .base import *
+from math import pi, sin, cos, acos, sqrt
+import array
 
 
 class SphereMaker(ModelMaker):

@@ -4,7 +4,7 @@
 # This module contains a class to generate box primitives.
 
 from .base import *
-
+import array
 
 class BoxMaker(ModelMaker):
 
