@@ -1,7 +1,7 @@
 from typing import Self
 
 from direct.showbase.ShowBase import ShowBase
-from panda3d.core import WindowProperties, PStatClient
+from panda3d.core import WindowProperties
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.leaderboard import Leaderboard
@@ -9,6 +9,7 @@ from f1p.ui.components.map import Map
 from f1p.ui.components.menu import Menu
 from f1p.ui.components.origin import Origin
 from f1p.ui.components.playback import PlaybackControls
+from f1p.ui.components.track_status import TrackStatus
 
 
 class F1PlayerApp(ShowBase):
@@ -25,7 +26,7 @@ class F1PlayerApp(ShowBase):
         self.cam.setPos(0, -70, 40)
         self.cam.lookAt(0, 0, 0)
 
-        self.setBackgroundColor(0.2, 0.2, 0.2, 1)
+        self.setBackgroundColor(0.3, 0.3, 0.3, 1)
 
         # self.setFrameRateMeter(True)
         # PStatClient.connect()
@@ -60,31 +61,37 @@ class F1PlayerApp(ShowBase):
         circuit_map = Map(self.render, self.data_extractor)
         leaderboard = Leaderboard(
             self.pixel2d,
-            self.render2d,
-            self.taskMgr,
-            self.loader,
             self.symbols_font,
             self.text_font,
             circuit_map,
             self.data_extractor
         )
+        playback_controls = PlaybackControls(
+            self.pixel2d,
+            self.cam,
+            self.taskMgr,
+            self.height,
+            self.width,
+            30,
+            self.symbols_font,
+            self.text_font,
+            circuit_map,
+            leaderboard,
+            self.data_extractor
+        )
+        track_status = TrackStatus(
+            self.pixel2d,
+            self.symbols_font,
+            self.text_font,
+            playback_controls,
+            self.data_extractor,
+        )
 
         self.ui_components = [
             circuit_map,
             leaderboard,
-            PlaybackControls(
-                self.pixel2d,
-                self.cam,
-                self.taskMgr,
-                self.height,
-                self.width,
-                30,
-                self.symbols_font,
-                self.text_font,
-                circuit_map,
-                leaderboard,
-                self.data_extractor
-            ),
+            playback_controls,
+            track_status,
         ]
 
         return self

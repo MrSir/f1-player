@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import Self
+from typing import Self, Any
 
 import fastf1
 import pandas as pd
@@ -29,6 +29,7 @@ class DataExtractorService:
         self._session_end_time: Timedelta | None = None
         self._pos_data: dict[str, Telemetry] | None = None
         self._circuit_info: CircuitInfo | None = None
+        self._track_status: DataFrame | None = None
         self._total_laps: int | None = None
         self._laps: Laps | None = None
         self._fastest_lap: Lap | None = None
@@ -110,6 +111,13 @@ class DataExtractorService:
             self._circuit_info = self.session.get_circuit_info()
 
         return self._circuit_info
+
+    @property
+    def track_status(self) -> DataFrame:
+        if self._track_status is None:
+            self._track_status = self.session.track_status
+
+        return self._track_status
 
     @property
     def map_rotation(self) -> float:
