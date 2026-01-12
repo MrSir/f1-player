@@ -18,7 +18,7 @@ class TrackStatus(DirectObject):
         super().__init__()
 
         self.pixel2d = pixel2d
-        self.width = 215
+        self.width = playback_controls.width - 121
         self.height = 3
         self.symbols_font = symbols_font
         self.text_font = text_font
@@ -33,20 +33,21 @@ class TrackStatus(DirectObject):
         self.timeline_frame = DirectFrame(
             parent=self.pixel2d,
             frameColor=(0, 1, 0, 0.8),
-            frameSize=(0, self.playback_controls.width - 121, 0, -self.height),
-            pos=Point3(34, 0, self.playback_controls.height - self.playback_controls.window_height)
+            frameSize=(0, self.width, 0, -self.height),
+            pos=Point3(34, 0, self.playback_controls.height - self.playback_controls.window_height),
         )
+
+    def render_track_statuses(self) -> None:
+        ts_df = self.data_extractor.track_statuses(self.width)
+
+        for record in ts_df.itertuples():
+            DirectFrame(
+                parent=self.timeline_frame,
+                frameColor=record.Color,
+                frameSize=(0, record.Width, 0, -self.height),
+                pos=Point3(record.PixelStart, 0, 0),
+            )
 
     def render(self) -> None:
         self.render_timeline_frame()
-
-        df = self.data_extractor.processed_pos_data.copy()
-        df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(keep="first")
-        print(df)
-
-        print(self.data_extractor.session_start_time)
-        print(self.data_extractor.session_start_time_milliseconds)
-        print(self.data_extractor.session_end_time)
-        print(self.data_extractor.session_end_time_milliseconds)
-
-        print(self.data_extractor.track_status)
+        self.render_track_statuses()

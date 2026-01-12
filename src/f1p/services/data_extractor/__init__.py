@@ -154,6 +154,57 @@ class DataExtractorService:
 
         return df.min()
 
+    def track_statuses(self, width: int) -> DataFrame:
+        df = self.processed_pos_data.copy()
+        df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(keep="first").copy()
+
+        pixel_per_tick = width / self.session_ticks
+
+        df.loc[:,"Pixel"] = df.loc[:,"SessionTimeTick"] * pixel_per_tick
+
+        ts_df = self.track_status.copy()
+        ts_df = ts_df[ts_df["Time"] >= self.session_start_time]
+        ts_df = ts_df[ts_df["Time"] <= self.session_end_time]
+
+        ts_df["EndTime"] = ts_df["Time"].shift(-1).fillna(self.session_end_time)
+        ts_df = ts_df[ts_df["Message"] != "AllClear"]
+
+        for record in ts_df.itertuples():
+            ts_df.loc[ts_df["Time"] == record.Time, "SessionTimeTick"] = df.loc[
+                df["SessionTime"] <= record.Time, "SessionTimeTick"].max()
+            ts_df.loc[ts_df["Time"] == record.Time, "SessionTimeTickEnd"] = df.loc[
+                df["SessionTime"] <= record.EndTime, "SessionTimeTick"].max()
+
+        ts_df["SessionTimeTick"] = ts_df["SessionTimeTick"].astype("int64")
+        ts_df["SessionTimeTickEnd"] = ts_df["SessionTimeTickEnd"].astype("int64")
+
+        ts_df = ts_df.merge(df, on="SessionTimeTick", how="left")
+        ts_df = ts_df.rename(columns={"Pixel": "PixelStart"}).drop(columns="SessionTime")
+        ts_df = ts_df.merge(df, left_on="SessionTimeTickEnd", right_on="SessionTimeTick", how="left")
+        ts_df = ts_df.rename(columns={"Pixel": "PixelEnd"}).drop(columns=["SessionTime", "SessionTimeTick_y"])
+        ts_df = ts_df.drop(columns=["Time", "EndTime"]).reset_index()
+
+        ts_df["Width"] = ts_df["PixelEnd"] - ts_df["PixelStart"]
+        ts_df["Status"] = ts_df["Status"].astype("int64")
+
+        ts_colors_df = DataFrame(
+            data={
+                "Status": [1, 2, 4, 5, 6, 7],
+                "Color": [
+                    LVecBase4f(0, 1, 0, 0.8),
+                    LVecBase4f(1, 1, 0, 0.8),
+                    LVecBase4f(1, 1, 0, 0.8),
+                    LVecBase4f(1, 0, 0, 0.8),
+                    LVecBase4f(1, 0.64, 0, 0.8),
+                    LVecBase4f(1, 0.64, 0, 0.8),
+                ]
+            }
+        )
+
+        ts_df = ts_df.merge(ts_colors_df, on="Status", how="left")
+
+        return ts_df
+
     def process_fastest_lap(self) -> Self:
         pos_data = self.fastest_lap.get_pos_data()
         resized_pos_data_df = resize_pos_data(self.map_rotation, pos_data)
@@ -285,6 +336,7 @@ class DataExtractorService:
         combined_df["LapsCompletion"] = (combined_df["LapNumber"] - 1) + combined_df["LapPercentageCompletion"]
         combined_df["PositionIndex"] = combined_df.sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False]).groupby("SessionTimeTick").cumcount().add(1) - 1
 
+        # TODO handle yellow flags
         combined_df.loc[combined_df["Position"].notna(), "IsDNF"] = False
         combined_df.loc[combined_df["Position"].isna(), "IsDNF"] = True
 
