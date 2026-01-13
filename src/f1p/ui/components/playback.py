@@ -50,6 +50,8 @@ class PlaybackControls(DirectObject):
         self.frame: DirectFrame | None = None
         self.play_button: DirectButton | None = None
         self.timeline: DirectSlider | None = None
+        self.timeline_all_clear: DirectFrame | None = None
+        self.timeline_statuses: list[DirectFrame] = []
         self.playback_speed_button: DirectOptionMenu | None = None
         self.camera_button: DirectOptionMenu | None = None
 
@@ -105,6 +107,25 @@ class PlaybackControls(DirectObject):
         messenger.send("updateLeaderboard", sentArgs=[session_time_tick])
 
     def render_timeline(self) -> None:
+        self.timeline_all_clear = DirectFrame(
+            parent=self.frame,
+            frameColor=(0, 1, 0, 0.8),
+            frameSize=(0, self.width - 121, 0, -3),
+            pos=Point3(34, 0, -3),
+        )
+
+        ts_df = self.data_extractor.track_statuses(self.width - 121)
+
+        for record in ts_df.itertuples():
+            self.timeline_statuses.append(
+                DirectFrame(
+                    parent=self.timeline_all_clear,
+                    frameColor=record.Color,
+                    frameSize=(0, record.Width, 0, -3),
+                    pos=Point3(record.PixelStart, 0, 0),
+                )
+            )
+
         self.timeline = DirectSlider(
             parent=self.frame,
             value=1,

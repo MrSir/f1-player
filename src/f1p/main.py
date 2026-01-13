@@ -9,7 +9,6 @@ from f1p.ui.components.map import Map
 from f1p.ui.components.menu import Menu
 from f1p.ui.components.origin import Origin
 from f1p.ui.components.playback import PlaybackControls
-from f1p.ui.components.track_status import TrackStatus
 
 
 class F1PlayerApp(ShowBase):
@@ -66,6 +65,7 @@ class F1PlayerApp(ShowBase):
             circuit_map,
             self.data_extractor
         )
+
         playback_controls = PlaybackControls(
             self.pixel2d,
             self.cam,
@@ -79,19 +79,11 @@ class F1PlayerApp(ShowBase):
             leaderboard,
             self.data_extractor
         )
-        track_status = TrackStatus(
-            self.pixel2d,
-            self.symbols_font,
-            self.text_font,
-            playback_controls,
-            self.data_extractor,
-        )
 
         self.ui_components = [
             circuit_map,
             leaderboard,
             playback_controls,
-            track_status,
         ]
 
         return self
