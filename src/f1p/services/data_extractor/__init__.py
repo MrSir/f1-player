@@ -9,7 +9,7 @@ from fastf1.core import Session, Lap, Laps, Telemetry
 from fastf1.events import EventSchedule, Event
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import deg2Rad, LVecBase4f
-from pandas import DataFrame, Timedelta
+from pandas import DataFrame, Timedelta, Series
 
 from f1p.utils.geometry import find_center, resize_pos_data, center_pos_data
 
@@ -30,6 +30,9 @@ class DataExtractorService:
         self._pos_data: dict[str, Telemetry] | None = None
         self._circuit_info: CircuitInfo | None = None
         self._track_status: DataFrame | None = None
+        self._track_status_colors: DataFrame | None = None
+        self._all_clear_track_status_color: LVecBase4f | None = None
+        self._track_statuses: DataFrame | None = None
         self._total_laps: int | None = None
         self._laps: Laps | None = None
         self._fastest_lap: Lap | None = None
@@ -120,6 +123,33 @@ class DataExtractorService:
         return self._track_status
 
     @property
+    def track_status_colors(self) -> DataFrame:
+        if self._track_status_colors is None:
+            self._track_status_colors = DataFrame(
+                data={
+                    "Status": [1, 2, 4, 5, 6, 7],
+                    "Color": [
+                        LVecBase4f(0, 1, 0, 0.8),
+                        LVecBase4f(1, 1, 0, 0.8),
+                        LVecBase4f(1, 1, 0, 0.8),
+                        LVecBase4f(1, 0, 0, 0.8),
+                        LVecBase4f(1, 0.64, 0, 0.8),
+                        LVecBase4f(1, 0.64, 0, 0.8),
+                    ]
+                }
+            )
+
+        return self._track_status_colors
+
+    @property
+    def all_clear_track_status_color(self) -> LVecBase4f:
+        if self._all_clear_track_status_color is None:
+            ts_colors_df = self.track_status_colors
+            self._all_clear_track_status_color = ts_colors_df.loc[ts_colors_df["Status"] == 1, "Color"].iloc[0]
+
+        return self._all_clear_track_status_color
+
+    @property
     def map_rotation(self) -> float:
         return deg2Rad(self.circuit_info.rotation)
 
@@ -154,7 +184,7 @@ class DataExtractorService:
 
         return df.min()
 
-    def track_statuses(self, width: int) -> DataFrame:
+    def process_track_statuses(self, width: int) -> None:
         df = self.processed_pos_data.copy()
         df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(keep="first").copy()
 
@@ -167,7 +197,7 @@ class DataExtractorService:
         ts_df = ts_df[ts_df["Time"] <= self.session_end_time]
 
         ts_df["EndTime"] = ts_df["Time"].shift(-1).fillna(self.session_end_time)
-        ts_df = ts_df[ts_df["Message"] != "AllClear"]
+        # ts_df = ts_df[ts_df["Message"] != "AllClear"]
 
         for record in ts_df.itertuples():
             ts_df.loc[ts_df["Time"] == record.Time, "SessionTimeTick"] = df.loc[
@@ -180,30 +210,32 @@ class DataExtractorService:
 
         ts_df = ts_df.merge(df, on="SessionTimeTick", how="left")
         ts_df = ts_df.rename(columns={"Pixel": "PixelStart"}).drop(columns="SessionTime")
-        ts_df = ts_df.merge(df, left_on="SessionTimeTickEnd", right_on="SessionTimeTick", how="left")
+        ts_df = ts_df.merge(df, left_on="SessionTimeTickEnd", right_on="SessionTimeTick", how="left").rename(columns={"SessionTimeTick_x": "SessionTimeTick"})
         ts_df = ts_df.rename(columns={"Pixel": "PixelEnd"}).drop(columns=["SessionTime", "SessionTimeTick_y"])
         ts_df = ts_df.drop(columns=["Time", "EndTime"]).reset_index()
 
         ts_df["Width"] = ts_df["PixelEnd"] - ts_df["PixelStart"]
         ts_df["Status"] = ts_df["Status"].astype("int64")
 
-        ts_colors_df = DataFrame(
-            data={
-                "Status": [1, 2, 4, 5, 6, 7],
-                "Color": [
-                    LVecBase4f(0, 1, 0, 0.8),
-                    LVecBase4f(1, 1, 0, 0.8),
-                    LVecBase4f(1, 1, 0, 0.8),
-                    LVecBase4f(1, 0, 0, 0.8),
-                    LVecBase4f(1, 0.64, 0, 0.8),
-                    LVecBase4f(1, 0.64, 0, 0.8),
-                ]
-            }
-        )
+        self._track_statuses = ts_df.merge(self.track_status_colors, on="Status", how="left")
 
-        ts_df = ts_df.merge(ts_colors_df, on="Status", how="left")
+    @property
+    def track_statuses(self) -> DataFrame:
+        if self._track_statuses is None:
+            raise ValueError("Track statuses not processed.")
 
-        return ts_df
+        return self._track_statuses
+
+    def get_current_track_status(self, session_time_tick: int) -> Series | None:
+        ts_df = self.track_statuses
+
+        ts_df = ts_df[ts_df["SessionTimeTick"] <= session_time_tick]
+        ts_df = ts_df[ts_df["SessionTimeTickEnd"] >= session_time_tick]
+
+        if ts_df.empty:
+            return None
+
+        return ts_df.iloc[0]
 
     def process_fastest_lap(self) -> Self:
         pos_data = self.fastest_lap.get_pos_data()

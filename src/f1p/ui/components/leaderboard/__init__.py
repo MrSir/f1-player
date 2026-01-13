@@ -36,6 +36,9 @@ class Leaderboard(DirectObject):
         self.accept("updateLeaderboard", self.update)
 
         self.frame: DirectFrame | None = None
+        self.track_status_frame_top: DirectFrame | None = None
+        self.track_status_frame_left: DirectFrame | None = None
+        self.track_status_frame_bottom: DirectFrame | None = None
         self.f1_logo: OnscreenImage | None = None
         self.lap_counter: OnscreenText | None = None
         self.mode: str = "interval"
@@ -71,6 +74,21 @@ class Leaderboard(DirectObject):
             frameColor=(0.20, 0.20, 0.20, 0.7),
             frameSize=(0, self.width, 0, -self.height),
             pos=Point3(20, 0, -50)
+        )
+
+    def render_track_status_frame(self) -> None:
+        self.track_status_frame_top = DirectFrame(
+            parent=self.frame,
+            frameColor=self.data_extractor.all_clear_track_status_color,
+            frameSize=(0, self.width - 5, 0, -1),
+            pos=Point3(2, 0, -2)
+        )
+
+        self.track_status_frame_left = DirectFrame(
+            parent=self.frame,
+            frameColor=self.data_extractor.all_clear_track_status_color,
+            frameSize=(0, 1, 0, self.width - 5),
+            pos=Point3(2, 0, -self.width + 3)
         )
 
     def render_f1_logo(self) -> None:
@@ -204,6 +222,8 @@ class Leaderboard(DirectObject):
             case "interval":
                 processor = IntervalLeaderboardProcessor(
                     self.lap_counter,
+                    self.track_status_frame_top,
+                    self.track_status_frame_left,
                     self.drivers,
                     self.checkered_flags,
                     self.team_colors,
@@ -245,6 +265,7 @@ class Leaderboard(DirectObject):
 
     def render(self) -> None:
         self.render_frame()
+        self.render_track_status_frame()
         self.render_f1_logo()
         self.render_lap_counter()
         self.render_mode_selector()

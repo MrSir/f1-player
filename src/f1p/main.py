@@ -57,15 +57,6 @@ class F1PlayerApp(ShowBase):
         return self
 
     def register_ui_components(self) -> Self:
-        circuit_map = Map(self.render, self.data_extractor)
-        leaderboard = Leaderboard(
-            self.pixel2d,
-            self.symbols_font,
-            self.text_font,
-            circuit_map,
-            self.data_extractor
-        )
-
         playback_controls = PlaybackControls(
             self.pixel2d,
             self.cam,
@@ -75,15 +66,23 @@ class F1PlayerApp(ShowBase):
             30,
             self.symbols_font,
             self.text_font,
+            self.data_extractor
+        )
+
+        circuit_map = Map(self.render, self.data_extractor)
+
+        leaderboard = Leaderboard(
+            self.pixel2d,
+            self.symbols_font,
+            self.text_font,
             circuit_map,
-            leaderboard,
             self.data_extractor
         )
 
         self.ui_components = [
+            playback_controls,
             circuit_map,
             leaderboard,
-            playback_controls,
         ]
 
         return self
