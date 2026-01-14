@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import Self, Any
+from typing import Self
 
 import fastf1
 import pandas as pd
@@ -31,7 +31,7 @@ class DataExtractorService:
         self._circuit_info: CircuitInfo | None = None
         self._track_status: DataFrame | None = None
         self._track_status_colors: DataFrame | None = None
-        self._all_clear_track_status_color: LVecBase4f | None = None
+        self._green_flag_track_status: DataFrame | None = None
         self._track_statuses: DataFrame | None = None
         self._total_laps: int | None = None
         self._laps: Laps | None = None
@@ -128,6 +128,14 @@ class DataExtractorService:
             self._track_status_colors = DataFrame(
                 data={
                     "Status": [1, 2, 4, 5, 6, 7],
+                    "Label": [
+                        "Green Flag",
+                        "Yellow Flag",
+                        "Safety Car",
+                        "Red Flag",
+                        "VSC Deployed",
+                        "VSC Ending",
+                    ],
                     "Color": [
                         LVecBase4f(0, 1, 0, 0.8),
                         LVecBase4f(1, 1, 0, 0.8),
@@ -135,6 +143,14 @@ class DataExtractorService:
                         LVecBase4f(1, 0, 0, 0.8),
                         LVecBase4f(1, 0.64, 0, 0.8),
                         LVecBase4f(1, 0.64, 0, 0.8),
+                    ],
+                    "TextColor": [
+                        LVecBase4f(0, 0, 0, 0.8),
+                        LVecBase4f(0, 0, 0, 0.8),
+                        LVecBase4f(0, 0, 0, 0.8),
+                        LVecBase4f(1, 1, 1, 0.8),
+                        LVecBase4f(0, 0, 0, 0.8),
+                        LVecBase4f(0, 0, 0, 0.8),
                     ]
                 }
             )
@@ -142,12 +158,24 @@ class DataExtractorService:
         return self._track_status_colors
 
     @property
-    def all_clear_track_status_color(self) -> LVecBase4f:
-        if self._all_clear_track_status_color is None:
+    def green_flag_track_status(self) -> DataFrame:
+        if self._green_flag_track_status is None:
             ts_colors_df = self.track_status_colors
-            self._all_clear_track_status_color = ts_colors_df.loc[ts_colors_df["Status"] == 1, "Color"].iloc[0]
+            self._green_flag_track_status = ts_colors_df[ts_colors_df["Status"] == 1]
 
-        return self._all_clear_track_status_color
+        return self._green_flag_track_status
+
+    @property
+    def green_flag_track_status_label(self) -> str:
+        return self.green_flag_track_status["Label"].iloc[0]
+
+    @property
+    def green_flag_track_status_color(self) -> LVecBase4f:
+        return self.green_flag_track_status["Color"].iloc[0]
+
+    @property
+    def green_flag_track_status_text_color(self) -> LVecBase4f:
+        return self.green_flag_track_status["TextColor"].iloc[0]
 
     @property
     def map_rotation(self) -> float:
@@ -197,7 +225,6 @@ class DataExtractorService:
         ts_df = ts_df[ts_df["Time"] <= self.session_end_time]
 
         ts_df["EndTime"] = ts_df["Time"].shift(-1).fillna(self.session_end_time)
-        # ts_df = ts_df[ts_df["Message"] != "AllClear"]
 
         for record in ts_df.itertuples():
             ts_df.loc[ts_df["Time"] == record.Time, "SessionTimeTick"] = df.loc[
@@ -349,7 +376,6 @@ class DataExtractorService:
         combined_df = (
             pos_data_df.merge(laps_df, on=["DriverNumber", "LapNumber"], how="left")
             .rename(columns={"Time_x": "Time", "Time_y": "Time_Lap"})
-            # .drop(columns="Time_y")
         )
 
         combined_df["LapNumber"] = combined_df.groupby("DriverNumber")["LapNumber"].ffill()
@@ -368,7 +394,6 @@ class DataExtractorService:
         combined_df["LapsCompletion"] = (combined_df["LapNumber"] - 1) + combined_df["LapPercentageCompletion"]
         combined_df["PositionIndex"] = combined_df.sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False]).groupby("SessionTimeTick").cumcount().add(1) - 1
 
-        # TODO handle yellow flags
         combined_df.loc[combined_df["Position"].notna(), "IsDNF"] = False
         combined_df.loc[combined_df["Position"].isna(), "IsDNF"] = True
 
