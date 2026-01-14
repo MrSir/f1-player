@@ -5,7 +5,7 @@
 # boxes, spheres and cylinders.
 
 from .box import BoxMaker
-from .cylinder import CylinderMaker
 from .cone import ConeMaker
+from .cylinder import CylinderMaker
 from .sphere import SphereMaker
 from .torus import TorusMaker

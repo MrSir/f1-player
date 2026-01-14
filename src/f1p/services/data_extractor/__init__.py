@@ -9,7 +9,7 @@ from fastf1.core import Session, Lap, Laps, Telemetry
 from fastf1.events import EventSchedule, Event
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import deg2Rad, LVecBase4f
-from pandas import DataFrame, Timedelta
+from pandas import DataFrame, Timedelta, Series
 
 from f1p.utils.geometry import find_center, resize_pos_data, center_pos_data
 
@@ -29,6 +29,10 @@ class DataExtractorService:
         self._session_end_time: Timedelta | None = None
         self._pos_data: dict[str, Telemetry] | None = None
         self._circuit_info: CircuitInfo | None = None
+        self._track_status: DataFrame | None = None
+        self._track_status_colors: DataFrame | None = None
+        self._green_flag_track_status: DataFrame | None = None
+        self._track_statuses: DataFrame | None = None
         self._total_laps: int | None = None
         self._laps: Laps | None = None
         self._fastest_lap: Lap | None = None
@@ -112,6 +116,68 @@ class DataExtractorService:
         return self._circuit_info
 
     @property
+    def track_status(self) -> DataFrame:
+        if self._track_status is None:
+            self._track_status = self.session.track_status
+
+        return self._track_status
+
+    @property
+    def track_status_colors(self) -> DataFrame:
+        if self._track_status_colors is None:
+            self._track_status_colors = DataFrame(
+                data={
+                    "Status": [1, 2, 4, 5, 6, 7],
+                    "Label": [
+                        "Green Flag",
+                        "Yellow Flag",
+                        "Safety Car",
+                        "Red Flag",
+                        "VSC Deployed",
+                        "VSC Ending",
+                    ],
+                    "Color": [
+                        LVecBase4f(0, 1, 0, 0.8),
+                        LVecBase4f(1, 1, 0, 0.8),
+                        LVecBase4f(1, 1, 0, 0.8),
+                        LVecBase4f(1, 0, 0, 0.8),
+                        LVecBase4f(1, 0.64, 0, 0.8),
+                        LVecBase4f(1, 0.64, 0, 0.8),
+                    ],
+                    "TextColor": [
+                        LVecBase4f(0, 0, 0, 0.8),
+                        LVecBase4f(0, 0, 0, 0.8),
+                        LVecBase4f(0, 0, 0, 0.8),
+                        LVecBase4f(1, 1, 1, 0.8),
+                        LVecBase4f(0, 0, 0, 0.8),
+                        LVecBase4f(0, 0, 0, 0.8),
+                    ]
+                }
+            )
+
+        return self._track_status_colors
+
+    @property
+    def green_flag_track_status(self) -> DataFrame:
+        if self._green_flag_track_status is None:
+            ts_colors_df = self.track_status_colors
+            self._green_flag_track_status = ts_colors_df[ts_colors_df["Status"] == 1]
+
+        return self._green_flag_track_status
+
+    @property
+    def green_flag_track_status_label(self) -> str:
+        return self.green_flag_track_status["Label"].iloc[0]
+
+    @property
+    def green_flag_track_status_color(self) -> LVecBase4f:
+        return self.green_flag_track_status["Color"].iloc[0]
+
+    @property
+    def green_flag_track_status_text_color(self) -> LVecBase4f:
+        return self.green_flag_track_status["TextColor"].iloc[0]
+
+    @property
     def map_rotation(self) -> float:
         return deg2Rad(self.circuit_info.rotation)
 
@@ -145,6 +211,58 @@ class DataExtractorService:
         df = df.groupby("DriverNumber")["SessionTimeTick"].count()
 
         return df.min()
+
+    def process_track_statuses(self, width: int) -> None:
+        df = self.processed_pos_data.copy()
+        df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(keep="first").copy()
+
+        pixel_per_tick = width / self.session_ticks
+
+        df.loc[:,"Pixel"] = df.loc[:,"SessionTimeTick"] * pixel_per_tick
+
+        ts_df = self.track_status.copy()
+        ts_df = ts_df[ts_df["Time"] >= self.session_start_time]
+        ts_df = ts_df[ts_df["Time"] <= self.session_end_time]
+
+        ts_df["EndTime"] = ts_df["Time"].shift(-1).fillna(self.session_end_time)
+
+        for record in ts_df.itertuples():
+            ts_df.loc[ts_df["Time"] == record.Time, "SessionTimeTick"] = df.loc[
+                df["SessionTime"] <= record.Time, "SessionTimeTick"].max()
+            ts_df.loc[ts_df["Time"] == record.Time, "SessionTimeTickEnd"] = df.loc[
+                df["SessionTime"] <= record.EndTime, "SessionTimeTick"].max()
+
+        ts_df["SessionTimeTick"] = ts_df["SessionTimeTick"].astype("int64")
+        ts_df["SessionTimeTickEnd"] = ts_df["SessionTimeTickEnd"].astype("int64")
+
+        ts_df = ts_df.merge(df, on="SessionTimeTick", how="left")
+        ts_df = ts_df.rename(columns={"Pixel": "PixelStart"}).drop(columns="SessionTime")
+        ts_df = ts_df.merge(df, left_on="SessionTimeTickEnd", right_on="SessionTimeTick", how="left").rename(columns={"SessionTimeTick_x": "SessionTimeTick"})
+        ts_df = ts_df.rename(columns={"Pixel": "PixelEnd"}).drop(columns=["SessionTime", "SessionTimeTick_y"])
+        ts_df = ts_df.drop(columns=["Time", "EndTime"]).reset_index()
+
+        ts_df["Width"] = ts_df["PixelEnd"] - ts_df["PixelStart"]
+        ts_df["Status"] = ts_df["Status"].astype("int64")
+
+        self._track_statuses = ts_df.merge(self.track_status_colors, on="Status", how="left")
+
+    @property
+    def track_statuses(self) -> DataFrame:
+        if self._track_statuses is None:
+            raise ValueError("Track statuses not processed.")
+
+        return self._track_statuses
+
+    def get_current_track_status(self, session_time_tick: int) -> Series | None:
+        ts_df = self.track_statuses
+
+        ts_df = ts_df[ts_df["SessionTimeTick"] <= session_time_tick]
+        ts_df = ts_df[ts_df["SessionTimeTickEnd"] >= session_time_tick]
+
+        if ts_df.empty:
+            return None
+
+        return ts_df.iloc[0]
 
     def process_fastest_lap(self) -> Self:
         pos_data = self.fastest_lap.get_pos_data()
@@ -258,7 +376,6 @@ class DataExtractorService:
         combined_df = (
             pos_data_df.merge(laps_df, on=["DriverNumber", "LapNumber"], how="left")
             .rename(columns={"Time_x": "Time", "Time_y": "Time_Lap"})
-            # .drop(columns="Time_y")
         )
 
         combined_df["LapNumber"] = combined_df.groupby("DriverNumber")["LapNumber"].ffill()

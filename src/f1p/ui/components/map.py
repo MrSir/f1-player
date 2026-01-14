@@ -35,7 +35,7 @@ class Map(DirectObject):
         dy = np.gradient(track_y)
 
         norm = np.sqrt(dx ** 2 + dy ** 2)
-        norm[norm == 0] = 1.0
+        norm[norm == 0] = 10
         dx /= norm
         dy /= norm
 

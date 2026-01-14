@@ -1,7 +1,7 @@
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.OnscreenText import OnscreenText
-from panda3d.core import LVecBase4f, StaticTextFont
-from pandas import DataFrame, Series
+from panda3d.core import LVecBase4f
+from pandas import Series
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.driver import Driver
@@ -11,6 +11,10 @@ class LeaderboardProcessor:
     def __init__(
         self,
         lap_counter: OnscreenText,
+        track_status_frame_top: DirectFrame,
+        track_status_frame_left: DirectFrame,
+        track_status_frame: DirectFrame,
+        track_status: OnscreenText,
         drivers: list[Driver],
         checkered_flags: list[OnscreenText],
         team_colors: list[OnscreenText],
@@ -21,6 +25,10 @@ class LeaderboardProcessor:
         data_extractor: DataExtractorService,
     ):
         self.lap_counter = lap_counter
+        self.track_status_frame_top = track_status_frame_top
+        self.track_status_frame_left = track_status_frame_left
+        self.track_status_frame = track_status_frame
+        self.track_status = track_status
         self.drivers = drivers
         self.checkered_flags = checkered_flags
         self.team_colors = team_colors
@@ -39,6 +47,45 @@ class LeaderboardProcessor:
 
         if self.lap_counter["text"] != f"LAP {current_lap_number}/{total_laps}":
             self.lap_counter["text"] = f"LAP {current_lap_number}/{total_laps}"
+
+        track_status = self.data_extractor.get_current_track_status(session_time_tick)
+        gree_flag_color = self.data_extractor.green_flag_track_status_color
+        gree_flag_text_color = self.data_extractor.green_flag_track_status_text_color
+        gree_flag_label = self.data_extractor.green_flag_track_status_label
+
+        if track_status is None:
+            if self.track_status_frame_top["frameColor"] != gree_flag_color:
+                self.track_status_frame_top["frameColor"] = gree_flag_color
+
+            if self.track_status_frame_left["frameColor"] != gree_flag_color:
+                self.track_status_frame_left["frameColor"] = gree_flag_color
+
+            if self.track_status_frame["frameColor"] != gree_flag_color:
+                self.track_status_frame["frameColor"] = gree_flag_color
+
+            if self.track_status.textNode.getTextColor() != gree_flag_text_color:
+                self.track_status["fg"] = gree_flag_text_color
+
+            if self.track_status["text"] != gree_flag_label:
+                self.track_status["text"] = gree_flag_label
+        else:
+            color = track_status["Color"]
+            text_color = track_status["TextColor"]
+            label = track_status["Label"]
+            if self.track_status_frame_top["frameColor"] != color:
+                self.track_status_frame_top["frameColor"] = color
+
+            if self.track_status_frame_left["frameColor"] != color:
+                self.track_status_frame_left["frameColor"] = color
+
+            if self.track_status_frame["frameColor"] != color:
+                self.track_status_frame["frameColor"] = color
+
+            if self.track_status.textNode.getTextColor() != text_color:
+                self.track_status["fg"] = text_color
+
+            if self.track_status["text"] != label:
+                self.track_status["text"] = label
 
         for driver in self.drivers:
             current_record = driver.ticks[session_time_tick]
@@ -173,6 +220,7 @@ class LeaderLeaderboardProcessor(IntervalLeaderboardProcessor):
 
         if self.driver_times[index]["text"] != f"+{current_record['DiffToLeader']}":
             self.driver_times[index]["text"] = f"+{current_record['DiffToLeader']}"
+
 
 class TiresLeaderboardProcessor(IntervalLeaderboardProcessor):
     def update_times(self, driver: Driver, current_record: Series, index: int) -> None:

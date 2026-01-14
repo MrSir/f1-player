@@ -1,5 +1,3 @@
-import math
-from datetime import timedelta, datetime
 from math import sin, cos
 
 from direct.gui.DirectButton import DirectButton
@@ -8,10 +6,8 @@ from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.gui.DirectSlider import DirectSlider
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.MessengerGlobal import messenger
-from direct.showbase.ShowBaseGlobal import globalClock
 from direct.task.Task import TaskManager
 from panda3d.core import Point3, StaticTextFont, Camera, deg2Rad, TextNode
-from pandas import Timedelta
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.gui.button import BlackButton
@@ -31,8 +27,6 @@ class PlaybackControls(DirectObject):
         height: int,
         symbols_font: StaticTextFont,
         text_font: StaticTextFont,
-        circuit_map: Map,
-        leaderboard: Leaderboard,
         data_extractor: DataExtractorService
     ):
         super().__init__()
@@ -45,8 +39,6 @@ class PlaybackControls(DirectObject):
         self.height = height
         self.symbols_font = symbols_font
         self.text_font = text_font
-        self.circuit_map = circuit_map
-        self.leaderboard = leaderboard
         self.data_extractor = data_extractor
 
         self.accept("sessionSelected", self.render)
@@ -54,6 +46,8 @@ class PlaybackControls(DirectObject):
         self.frame: DirectFrame | None = None
         self.play_button: DirectButton | None = None
         self.timeline: DirectSlider | None = None
+        self.timeline_all_clear: DirectFrame | None = None
+        self.timeline_statuses: list[DirectFrame] = []
         self.playback_speed_button: DirectOptionMenu | None = None
         self.camera_button: DirectOptionMenu | None = None
 
@@ -72,11 +66,6 @@ class PlaybackControls(DirectObject):
     def move_timeline(self, task):
         if not self.playing:
             return task.cont
-
-        # fps = globalClock.getAverageFrameRate()
-        # spf = 1 / fps
-        # current_value = self.timeline["value"]
-        # new_value = current_value + (spf * 1000 * self.playback_speed)
 
         current_value = self.timeline["value"]
         new_value = current_value + self.playback_speed
@@ -114,12 +103,32 @@ class PlaybackControls(DirectObject):
         messenger.send("updateLeaderboard", sentArgs=[session_time_tick])
 
     def render_timeline(self) -> None:
+        self.timeline_all_clear = DirectFrame(
+            parent=self.frame,
+            frameColor=(0, 1, 0, 0.8),
+            frameSize=(0, self.width - 121, 0, -3),
+            pos=Point3(34, 0, -3),
+        )
+
+        self.data_extractor.process_track_statuses(self.width - 121)
+
+        for record in self.data_extractor.track_statuses.itertuples():
+            if record.Status != 1:
+                self.timeline_statuses.append(
+                    DirectFrame(
+                        parent=self.timeline_all_clear,
+                        frameColor=record.Color,
+                        frameSize=(0, record.Width, 0, -3),
+                        pos=Point3(record.PixelStart, 0, 0),
+                    )
+                )
+
         self.timeline = DirectSlider(
             parent=self.frame,
             value=1,
             range=(1, self.data_extractor.session_ticks),
             pageSize=1,
-            frameSize=(0, self.width - 121, -self.height / 2, self.height / 2),
+            frameSize=(0, self.width - 121, -self.height/ 2, self.height/ 2),
             frameColor=(0.15, 0.15, 0.15, 1),
             thumb_frameSize=(0, 5, -self.height / 2, self.height / 2),
             thumb_frameColor=(0.1, 0.1, 0.1, 1),

@@ -2,9 +2,8 @@ from direct.gui.DirectFrame import DirectFrame
 from direct.gui.OnscreenImage import OnscreenImage
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
-from direct.task.Task import TaskManager
 from fastf1.core import Laps
-from panda3d.core import StaticTextFont, Point3, Loader, TransparencyAttrib, TextNode
+from panda3d.core import StaticTextFont, Point3, TransparencyAttrib, TextNode
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.driver import Driver
@@ -18,9 +17,6 @@ class Leaderboard(DirectObject):
     def __init__(
         self,
         pixel2d,
-        render2d,
-        task_manager: TaskManager,
-        loader: Loader,
         symbols_font: StaticTextFont,
         text_font: StaticTextFont,
         circuit_map: Map,
@@ -29,9 +25,6 @@ class Leaderboard(DirectObject):
         super().__init__()
 
         self.pixel2d = pixel2d
-        self.render2d = render2d
-        self.task_manager = task_manager
-        self.loader = loader
         self.width = 215
         self._height: float | None = None
         self.symbols_font = symbols_font
@@ -43,6 +36,11 @@ class Leaderboard(DirectObject):
         self.accept("updateLeaderboard", self.update)
 
         self.frame: DirectFrame | None = None
+        self.track_status_frame_top: DirectFrame | None = None
+        self.track_status_frame_left: DirectFrame | None = None
+        self.track_status_frame_bottom: DirectFrame | None = None
+        self.track_status_frame: DirectFrame | None = None
+        self.track_status: OnscreenText | None = None
         self.f1_logo: OnscreenImage | None = None
         self.lap_counter: OnscreenText | None = None
         self.mode: str = "interval"
@@ -61,7 +59,7 @@ class Leaderboard(DirectObject):
     @property
     def height(self) -> float:
         if self._height is None:
-            self._height = 25 + 50 + (len(self.circuit_map.drivers) * 23)
+            self._height = 130 + (len(self.circuit_map.drivers) * 23)
 
         return self._height
 
@@ -75,28 +73,67 @@ class Leaderboard(DirectObject):
     def render_frame(self) -> None:
         self.frame = DirectFrame(
             parent=self.pixel2d,
-            frameColor=(0.18, 0.18, 0.18, 0.8),
+            frameColor=(0.20, 0.20, 0.20, 0.7),
             frameSize=(0, self.width, 0, -self.height),
             pos=Point3(20, 0, -50)
+        )
+
+    def render_track_status_frame(self) -> None:
+        self.track_status_frame_top = DirectFrame(
+            parent=self.frame,
+            frameColor=self.data_extractor.green_flag_track_status_color,
+            frameSize=(0, self.width - 5, 0, -1),
+            pos=Point3(2, 0, -2)
+        )
+
+        self.track_status_frame_left = DirectFrame(
+            parent=self.frame,
+            frameColor=self.data_extractor.green_flag_track_status_color,
+            frameSize=(0, 1, 0, self.width - 5),
+            pos=Point3(2, 0, -self.width + 3)
         )
 
     def render_f1_logo(self) -> None:
         self.f1_logo = OnscreenImage(
             image='./src/f1p/ui/images/f1_logo.png',
-            pos=Point3(self.width / 2, 0, -25),
+            pos=Point3(self.width / 2, 0, -27),
             scale=self.width / 4,
             parent=self.frame,
         )
         self.f1_logo.setTransparency(TransparencyAttrib.MAlpha)
 
     def render_lap_counter(self) -> None:
-        self.lap_counter = OnscreenText(
+        lap_counter_background = DirectFrame(
             parent=self.frame,
-            pos=(self.width / 2, -65),
+            frameColor=(0.1, 0.1, 0.1, 0.7),
+            frameSize=(0, self.width, 0, 40),
+            pos=Point3(0, 0, -90)
+        )
+
+        self.lap_counter = OnscreenText(
+            parent=lap_counter_background,
+            pos=(self.width / 2, 14),
             scale=self.width / 10,
             fg=(1, 1, 1, 0.8),
             font=self.text_font,
             text=f'LAP 1/{self.total_laps}',
+        )
+
+    def render_track_status(self) -> None:
+        self.track_status_frame = DirectFrame(
+            parent=self.frame,
+            frameColor=self.data_extractor.green_flag_track_status_color,
+            frameSize=(0, self.width - 2, 0, 30),
+            pos=Point3(2, 0, -120)
+        )
+
+        self.track_status = OnscreenText(
+            parent=self.track_status_frame,
+            pos=(self.width / 2, 9),
+            scale=self.width / 11,
+            fg=self.data_extractor.green_flag_track_status_text_color,
+            font=self.text_font,
+            text=self.data_extractor.green_flag_track_status_label,
         )
 
     def switch_mode(self, mode: str) -> None:
@@ -124,15 +161,17 @@ class Leaderboard(DirectObject):
             items=["🕒", "🕘", "⛁"],
             item_scale=1.0,
             initialitem=0,
-            pos=Point3(self.width - 45, 0, -19),
+            pos=Point3(self.width - 45, 0, -22),
         ),
 
     def render_drivers(self) -> None:
+        offset_from_top = 140
+
         for index, driver in enumerate(self.drivers):
             self.checkered_flags.append(
                 OnscreenText(
                     parent=self.frame,
-                    pos=(-10, -85 - (index * 23)),
+                    pos=(-10, -offset_from_top - (index * 23)),
                     scale=self.width / 14,
                     fg=(1, 1, 1, 0.8),
                     font=self.symbols_font,
@@ -142,7 +181,7 @@ class Leaderboard(DirectObject):
 
             OnscreenText(
                 parent=self.frame,
-                pos=(20, -85 - (index * 23)),
+                pos=(20, -offset_from_top - (index * 23)),
                 scale=self.width / 14,
                 fg=(1, 1, 1, 0.8),
                 font=self.text_font,
@@ -154,14 +193,14 @@ class Leaderboard(DirectObject):
                     parent=self.frame,
                     frameColor=driver.team_color_obj,
                     frameSize=(0, 12, 0, 12),
-                    pos=Point3(40, 0, -87 - (index * 23))
+                    pos=Point3(40, 0, -offset_from_top - 2 - (index * 23))
                 )
             )
 
             self.driver_abbreviations.append(
                 OnscreenText(
                     parent=self.frame,
-                    pos=(80, -85 - (index * 23)),
+                    pos=(80, -offset_from_top - (index * 23)),
                     scale=self.width / 14,
                     fg=(1, 1, 1, 0.8),
                     font=self.text_font,
@@ -172,7 +211,7 @@ class Leaderboard(DirectObject):
             self.driver_times.append(
                  OnscreenText(
                     parent=self.frame,
-                    pos=(145, -85 - (index * 23)),
+                    pos=(145, -offset_from_top - (index * 23)),
                     scale=self.width / 14,
                     fg=(1, 1, 1, 0.8),
                     font=self.text_font,
@@ -183,7 +222,7 @@ class Leaderboard(DirectObject):
             self.driver_tires.append(
                 OnscreenText(
                     parent=self.frame,
-                    pos=(200, -85 - (index * 23)),
+                    pos=(200, -offset_from_top - (index * 23)),
                     scale=self.width / 14,
                     fg=(1, 0, 0, 0.8),
                     font=self.text_font,
@@ -193,7 +232,7 @@ class Leaderboard(DirectObject):
 
             has_fastest_lap = OnscreenText(
                 parent=self.frame,
-                pos=(self.width + 10, -85 - (index * 23)),
+                pos=(self.width + 10, -offset_from_top - (index * 23)),
                 scale=self.width / 14,
                 bg=(1, 0, 1, 0.6),
                 fg=(1, 1, 1, 0.8),
@@ -211,6 +250,10 @@ class Leaderboard(DirectObject):
             case "interval":
                 processor = IntervalLeaderboardProcessor(
                     self.lap_counter,
+                    self.track_status_frame_top,
+                    self.track_status_frame_left,
+                    self.track_status_frame,
+                    self.track_status,
                     self.drivers,
                     self.checkered_flags,
                     self.team_colors,
@@ -223,6 +266,10 @@ class Leaderboard(DirectObject):
             case "leader":
                 processor = LeaderLeaderboardProcessor(
                     self.lap_counter,
+                    self.track_status_frame_top,
+                    self.track_status_frame_left,
+                    self.track_status_frame,
+                    self.track_status,
                     self.drivers,
                     self.checkered_flags,
                     self.team_colors,
@@ -235,6 +282,10 @@ class Leaderboard(DirectObject):
             case "tires":
                 processor = TiresLeaderboardProcessor(
                     self.lap_counter,
+                    self.track_status_frame_top,
+                    self.track_status_frame_left,
+                    self.track_status_frame,
+                    self.track_status,
                     self.drivers,
                     self.checkered_flags,
                     self.team_colors,
@@ -254,5 +305,7 @@ class Leaderboard(DirectObject):
         self.render_frame()
         self.render_f1_logo()
         self.render_lap_counter()
+        self.render_track_status_frame()
+        self.render_track_status()
         self.render_mode_selector()
         self.render_drivers()

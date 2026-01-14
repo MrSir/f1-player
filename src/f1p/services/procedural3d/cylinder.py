@@ -4,6 +4,8 @@
 # This module contains a class to generate cylinder primitives.
 
 from .base import *
+from math import pi, sin, cos
+import array
 
 
 class CylinderMaker(ModelMaker):
