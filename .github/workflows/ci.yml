@@ -25,7 +25,7 @@ jobs:
           poetry install
       - name: Run tests with coverage
         run: |
-          poetry run pytest ./tests --cov=f1p --cov-report=xml:coverage.xml --cov-report=term
+          poetry run pytest ./tests --cov=./src --cov-report=xml:coverage.xml --cov-report=term
       - name: Upload coverage reports to GitHub
         uses: actions/upload-artifact@v5
         with:
