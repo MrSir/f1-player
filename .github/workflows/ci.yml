@@ -63,7 +63,9 @@ jobs:
           path: .venv/
 
       - name: Run tests with coverage
-        run: poetry run pytest ./tests --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=./src  | tee pytest-coverage.txt
+        run: | 
+          source .venv/bin/activate
+          poetry run pytest ./tests --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=./src  | tee pytest-coverage.txt
 
       - name: Pytest Coverage Comment
         uses: MishaKav/pytest-coverage-comment@v1.2.0
