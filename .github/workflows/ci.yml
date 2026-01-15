@@ -27,7 +27,7 @@ jobs:
         run: |
           poetry run pytest ./tests --cov=f1p --cov-report=xml:coverage.xml --cov-report=term
       - name: Upload coverage reports to GitHub
-        uses: [actions/upload-artifact](github.com)@v4
+        uses: actions/upload-artifact@v5
         with:
           name: code-coverage-report
           path: coverage.xml
