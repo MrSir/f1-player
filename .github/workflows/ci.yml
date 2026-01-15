@@ -25,14 +25,15 @@ jobs:
           poetry install
       - name: Run tests with coverage
         run: |
-          poetry run pytest ./tests --cov=./src --cov-report=xml:coverage.xml --cov-report=term
+          poetry run pytest ./tests --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=./src  | tee pytest-coverage.txt
       - name: Upload coverage reports to GitHub
         uses: actions/upload-artifact@v5
         with:
           name: code-coverage-report
-          path: coverage.xml
+          path: pytest.xml
       - name: Pytest Coverage Comment
         uses: MishaKav/pytest-coverage-comment@v1.2.0
         with:
-          pytest-coverage-path: coverage.xml
+          pytest-coverage-path: ./pytest-coverage.txt
+          junitxml-path: ./pytest.xml
           github-token: ${{ secrets.GITHUB_TOKEN }}
