@@ -32,11 +32,6 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Verify .venv
-        run: |
-          ls -la .venv
-          poetry env info
-
       - name: Upload virtual environment as artifact
         uses: actions/upload-artifact@v6
         with:
@@ -57,6 +52,9 @@ jobs:
         with:
           name: python-venv
           path: .venv/
+
+      - name: Verify .venv
+        run: ls -la .venv
 
       - name: Run tests with coverage
         run: |
