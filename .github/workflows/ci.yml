@@ -40,7 +40,7 @@ jobs:
       - name: Upload virtual environment as artifact
         uses: actions/upload-artifact@v5
         with:
-          name: poetry-venv
+          name: python-venv
           path: .venv/
           retention-days: 1
 
@@ -53,8 +53,8 @@ jobs:
       - name: Download virtual environment artifact
         uses: actions/download-artifact@v5
         with:
-          name: poetry-venv
-          path: /home/runner/work/f1-player/f1-player/.venv/
+          name: python-venv
+          path: .venv/
 
       - name: Run tests with coverage
         run: |
