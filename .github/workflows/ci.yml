@@ -33,7 +33,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: poetry-venv
-          path: .venv/
+          path: /home/runner/work/f1-player/f1-player/.venv
           retention-days: 1
 
   test:
@@ -46,7 +46,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: poetry-venv
-          path: .venv/
+          path: /home/runner/work/f1-player/f1-player/.venv/
 
       - name: Run tests with coverage
         run: |
