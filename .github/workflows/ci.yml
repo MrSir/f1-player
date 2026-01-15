@@ -47,25 +47,27 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Upgrade PIP
+        run: python -m pip install --upgrade pip
+
+      - name: Install Poetry
+        run: pip install poetry
+
       - name: Download virtual environment artifact
         uses: actions/download-artifact@v7
         with:
           name: python-venv
           path: .venv/
 
-      - name: Verify .venv
-        run: ls -la .venv
-
       - name: Run tests with coverage
         run: |
           source .venv/bin/activate
           poetry run pytest ./tests --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=./src  | tee pytest-coverage.txt
-
-      - name: Upload coverage reports to GitHub
-        uses: actions/upload-artifact@v5
-        with:
-          name: code-coverage-report
-          path: pytest.xml
 
       - name: Pytest Coverage Comment
         uses: MishaKav/pytest-coverage-comment@v1.2.0
