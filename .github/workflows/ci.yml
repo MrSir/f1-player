@@ -1,4 +1,4 @@
-name: Python CI
+name: Unit Tests
 
 on:
   push:
@@ -31,3 +31,8 @@ jobs:
         with:
           name: code-coverage-report
           path: coverage.xml
+      - name: Pytest Coverage Comment
+        uses: [ MishaKav/pytest-coverage-comment ](https://github.com/marketplace/actions/pytest-coverage-comment)@main
+          with:
+            pytest-coverage-path: coverage.xml
+            github-token: ${{ secrets.GITHUB_TOKEN }}
