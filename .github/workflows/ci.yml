@@ -22,18 +22,27 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.14'
+          cache: "poetry"
+
+      - name: Upgrade PIP
+        run:   python -m pip install --upgrade pip
+
+      - name: Install Poetry
+        run: pip install poetry
 
       - name: Install dependencies
+        run: poetry install
+
+      - name: Verify .venv
         run: |
-          python -m pip install --upgrade pip
-          pip install poetry
-          poetry install
+          ls -la .venv
+          poetry env info
 
       - name: Upload virtual environment as artifact
         uses: actions/upload-artifact@v5
         with:
           name: poetry-venv
-          path: /home/runner/work/f1-player/f1-player/.venv
+          path: .venv/
           retention-days: 1
 
   test:
