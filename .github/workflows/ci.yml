@@ -33,7 +33,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: poetry-venv
-          path: .venv
+          path: ./.venv
 
   test:
     runs-on: ubuntu-latest
@@ -45,7 +45,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: poetry-venv
-          path: .venv
+          path: ./.venv
 
       - name: Run tests with coverage
         run: |
