@@ -38,10 +38,12 @@ jobs:
           poetry env info
 
       - name: Upload virtual environment as artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: python-venv
           path: .venv/
+          if-no-files-found: error
+          include-hidden-files: true
           retention-days: 1
 
   test:
