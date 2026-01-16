@@ -59,6 +59,7 @@ jobs:
 
       - name: Run tests with coverage
         run: | 
+          chmod 755 -r .venv/
           . .venv/bin/activate
           pytest ./tests --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=./src  | tee pytest-coverage.txt
 
