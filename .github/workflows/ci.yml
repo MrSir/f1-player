@@ -51,6 +51,11 @@ jobs:
         with:
           python-version: '3.14'
 
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v4
+        with:
+          poetry-version: 2.2.1
+
       - name: Download virtual environment artifact
         uses: actions/download-artifact@v7
         with:
@@ -61,8 +66,7 @@ jobs:
         run: | 
           ls -la ./.venv
           chmod -R 755 ./.venv/
-          . .venv/bin/activate
-          pytest ./tests --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=./src  | tee pytest-coverage.txt
+          poetry run pytest ./tests --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=./src  | tee pytest-coverage.txt
 
       - name: Pytest Coverage Comment
         uses: MishaKav/pytest-coverage-comment@v1.2.0
