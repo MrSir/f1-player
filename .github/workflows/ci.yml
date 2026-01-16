@@ -29,16 +29,23 @@ jobs:
           poetry-version: 2.2.1
 
       - name: Install dependencies
-        run: poetry install --no-root
+        run: poetry install
 
-      - name: Upload virtual environment as artifact
-        uses: actions/upload-artifact@v6
+      - name: Cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache/save@v5
         with:
-          name: poetry-venv
-          path: .venv/
-          if-no-files-found: error
-          include-hidden-files: true
-          retention-days: 1
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+#      - name: Upload virtual environment as artifact
+#        uses: actions/upload-artifact@v6
+#        with:
+#          name: poetry-venv
+#          path: .venv/
+#          if-no-files-found: error
+#          include-hidden-files: true
+#          retention-days: 1
 
   test:
     runs-on: ubuntu-latest
@@ -56,15 +63,25 @@ jobs:
         with:
           poetry-version: 2.2.1
 
-      - name: Download virtual environment artifact
-        uses: actions/download-artifact@v7
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache/restore@v5
         with:
-          name: poetry-venv
-          path: .venv/
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+
+#      - name: Download virtual environment artifact
+#        uses: actions/download-artifact@v7
+#        with:
+#          name: poetry-venv
+#          path: .venv/
 
       - name: Run tests with coverage
         run: | 
-          chmod -R 755 ./.venv/
           source ./.venv/bin/activate
           poetry run pytest ./tests --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=./src  | tee pytest-coverage.txt
 
