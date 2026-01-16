@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "F1 Player"
-version = "0.0.1"
+version = "0.0.4"
 description = "A tool for watching F1 races from a data perspective."
 authors = [
     "Mitko Toshev <mr.sir88@gmail.com>"
@@ -9,15 +9,15 @@ readme = "README.md"
 packages = [{include = "f1p", from = "src"}]
 
 [tool.poetry.dependencies]
-python = ">=3.13,<4.0"
+python = ">=3.14,<4.0"
 fastf1 = "^3.7.0"
 panda3d = "^1.10.15"
 pandas-stubs = "^2.3.3.251219"
 
-
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.12.8"
 pytest = "8.4.1"
+coverage = "^7.13.1"
 pytest-mock = "3.14.1"
 pytest-cov = "6.2.1"
 pytest-asyncio = "1.1.0"
@@ -30,13 +30,24 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-f1p = "f1p.main:app"
+f1p = "f1p:app"
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+omit = [
+    "tests/*",
+    "src/procedural3d",
+]
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py314"
 line-length = 120
 src = ["src", "tests"]
 preview = true
+exclude = [
+    "src/procedural3d"
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "ARG", "A", "COM", "C4", "PIE", "T20", "PT"]

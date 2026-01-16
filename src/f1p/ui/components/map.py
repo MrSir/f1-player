@@ -34,7 +34,7 @@ class Map(DirectObject):
         dx = np.gradient(track_x)
         dy = np.gradient(track_y)
 
-        norm = np.sqrt(dx ** 2 + dy ** 2)
+        norm = np.sqrt(dx**2 + dy**2)
         norm[norm == 0] = 10
         dx /= norm
         dy /= norm
@@ -49,14 +49,14 @@ class Map(DirectObject):
         inner_df = new_df.copy()
         inner_df["X"] = x_inner
         inner_df["Y"] = y_inner
-        inner_track = inner_df.loc[:, ('X', 'Y', 'Z')].to_numpy()
+        inner_track = inner_df.loc[:, ("X", "Y", "Z")].to_numpy()
         self.inner_border_node_path = self.draw_track(inner_track, (0.9, 0.9, 0.9, 1))
         self.inner_border_node_path.reparentTo(self.parent)
 
         outer_df = new_df.copy()
         outer_df["X"] = x_outer
         outer_df["Y"] = y_outer
-        outer_track = outer_df.loc[:, ('X', 'Y', 'Z')].to_numpy()
+        outer_track = outer_df.loc[:, ("X", "Y", "Z")].to_numpy()
         self.outer_border_node_path = self.draw_track(outer_track, (0.9, 0.9, 0.9, 1))
         self.outer_border_node_path.reparentTo(self.parent)
 

@@ -12,6 +12,7 @@ class ConventionalSessionIdentifiers(Enum):
     def all_values() -> list[str]:
         return [member.value for member in ConventionalSessionIdentifiers]
 
+
 class SprintQualifyingSessionIdentifiers(Enum):
     FREE_PRACTICE_1 = "Practice 1"
     SPRINT_QUALIFYING = "Sprint Qualifying"

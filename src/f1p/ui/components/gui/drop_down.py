@@ -1,7 +1,7 @@
 from direct.gui.DirectFrame import DirectFrame
-from direct.gui.DirectGuiGlobals import RAISED, B1RELEASE, WITHIN, WITHOUT
+from direct.gui.DirectGuiGlobals import B1RELEASE, RAISED, WITHIN, WITHOUT
 from direct.gui.DirectOptionMenu import DirectOptionMenu
-from panda3d.core import StaticTextFont, NodePath, TextNode
+from panda3d.core import NodePath, StaticTextFont, TextNode
 
 from f1p.ui.components.gui.button import BlackButton
 
@@ -15,7 +15,6 @@ class BlackDropDown(DirectOptionMenu):
         font: StaticTextFont | None = None,
         font_scale: float = 1.0,
         popup_menu_below: bool = True,
-
         scale: float = 1.0,
         item_scale: float = 1.0,
         frameColor: tuple[float, float, float, float] = (0.15, 0.15, 0.15, 1),
@@ -25,9 +24,7 @@ class BlackDropDown(DirectOptionMenu):
         pressEffect: int = 1,
         text_fg: tuple[float, float, float, float] = (1, 1, 1, 1),
         text_pos: tuple[float, float] = (0, 0),
-
         items: list[str] | None = None,
-
         **kwargs,
     ):
         self.width = width
@@ -94,11 +91,11 @@ class BlackDropDown(DirectOptionMenu):
         Create new popup menu to reflect specified set of items
         """
         # Remove old component if it exits
-        if self.popupMenu != None:
-            self.destroycomponent('popupMenu')
+        if self.popupMenu is not None:
+            self.destroycomponent("popupMenu")
         # Create new component
         self.popupMenu = self.createcomponent(
-            'popupMenu',
+            "popupMenu",
             (),
             None,
             DirectFrame,
@@ -107,19 +104,19 @@ class BlackDropDown(DirectOptionMenu):
             relief=RAISED,
         )
         # Make sure it is on top of all the other gui widgets
-        self.popupMenu.setBin('gui-popup', 0)
+        self.popupMenu.setBin("gui-popup", 0)
         self.highlightedIndex = None
-        if not self['items']:
+        if not self["items"]:
             return
         # Create a new component for each item
         # Find the maximum extents of all items
         itemIndex = 0
         self.minX = self.maxX = self.minZ = self.maxZ = None
-        for item in self['items']:
+        for item in self["items"]:
             c = self.createcomponent(
-                'item%d' % itemIndex,
+                "item%d" % itemIndex,
                 (),
-                'item',
+                "item",
                 BlackButton,
                 (self.popupMenu,),
                 text=item,
@@ -133,7 +130,7 @@ class BlackDropDown(DirectOptionMenu):
                 relief=RAISED,
                 borderWidth=self.item_border_width,
                 pressEffect=self.item_press_effect,
-                command=lambda i=itemIndex: self.set(i)
+                command=lambda i=itemIndex: self.set(i),
             )
             bounds = c.getBounds()
 
@@ -159,32 +156,31 @@ class BlackDropDown(DirectOptionMenu):
         self.maxHeight = self.maxZ - self.minZ
         # Adjust frame size for each item and bind actions to mouse events
         for i in range(itemIndex):
-            item = self.component('item%d' % i)
+            item = self.component("item%d" % i)
             # So entire extent of item's slot on popup is reactive to mouse
-            item['frameSize'] = self.item_frame_size
+            item["frameSize"] = self.item_frame_size
             # Move it to its correct position on the popup
             item.setPos(0, 0, (i * (-self.height * self.item_scale)))
             item.bind(B1RELEASE, self.hidePopupMenu)
             # Highlight background when mouse is in item
-            item.bind(WITHIN, lambda x, i=i, item=item: self._highlightItem(item, i))
+            item.bind(WITHIN, lambda _, index=i, the_item=item: self._highlightItem(the_item, index))
             # Restore specified color upon exiting
-            fc = item['frameColor']
-            item.bind(WITHOUT, lambda x, item=item, fc=fc: self._unhighlightItem(item, fc))
+            fc = item["frameColor"]
+            item.bind(WITHOUT, lambda _, the_item=item, frame_color=fc: self._unhighlightItem(the_item, frame_color))
         # Set popup menu frame size to encompass all items
-        f = self.component('popupMenu')
-        f['frameSize'] = (0, self.width, -self.maxHeight * itemIndex, 0)
+        f = self.component("popupMenu")
+        f["frameSize"] = (0, self.width, -self.maxHeight * itemIndex, 0)
 
         # Determine what initial item to display and set text accordingly
-        if self['initialitem']:
-            self.set(self['initialitem'], fCommand=0)
+        if self["initialitem"]:
+            self.set(self["initialitem"], fCommand=0)
         else:
             # No initial item specified, just use first item
             self.set(0, fCommand=0)
 
         # Position popup Marker to the right of the button
         pm = self.popupMarker
-        pmw = (pm.getWidth() * pm.getScale()[0] +
-               2 * self['popupMarkerBorder'][0])
+        pmw = pm.getWidth() * pm.getScale()[0] + 2 * self["popupMarkerBorder"][0]
         if self.initFrameSize:
             # Use specified frame size
             bounds = list(self.initFrameSize)
@@ -201,7 +197,7 @@ class BlackDropDown(DirectOptionMenu):
         # Adjust popup menu button to fit all items (or use user specified
         # frame size
         bounds[1] += pmw
-        self['frameSize'] = (bounds[0], bounds[1], bounds[2], bounds[3])
+        self["frameSize"] = (bounds[0], bounds[1], bounds[2], bounds[3])
         # Set initial state
         self.hidePopupMenu()
 
@@ -216,14 +212,14 @@ class BlackDropDown(DirectOptionMenu):
         self.popupMenu.setZ(z_coordinate)
 
     def _highlightItem(self, item, index):
-        self._prevItemTextScale = item['text_scale']
-        item['frameColor'] = self.highlight_color
-        item['frameSize'] = self.item_frame_size
-        item['text_scale'] = (self.item_text_scale, self.item_text_scale)  # OVERRODE THE INSANITY THAT WAS THIS LINE
+        self._prevItemTextScale = item["text_scale"]
+        item["frameColor"] = self.highlight_color
+        item["frameSize"] = self.item_frame_size
+        item["text_scale"] = (self.item_text_scale, self.item_text_scale)  # OVERRODE THE INSANITY THAT WAS THIS LINE
         self.highlightedIndex = index
 
     def _unhighlightItem(self, item, frameColor):
-        item['frameColor'] = frameColor
-        item['frameSize'] = self.item_frame_size
-        item['text_scale'] = self._prevItemTextScale
+        item["frameColor"] = frameColor
+        item["frameSize"] = self.item_frame_size
+        item["text_scale"] = self._prevItemTextScale
         self.highlightedIndex = None

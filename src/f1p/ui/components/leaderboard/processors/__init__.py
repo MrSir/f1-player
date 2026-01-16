@@ -38,8 +38,7 @@ class LeaderboardProcessor:
         self.has_fastest_lap = has_fastest_lap
         self.data_extractor = data_extractor
 
-    def update_driver(self, driver: Driver, current_record: Series, index: int) -> None:
-        ...
+    def update_driver(self, driver: Driver, current_record: Series, index: int) -> None: ...
 
     def update(self, session_time_tick: int) -> None:
         total_laps = self.data_extractor.total_laps

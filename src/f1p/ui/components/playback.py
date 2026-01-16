@@ -1,4 +1,4 @@
-from math import sin, cos
+from math import cos, sin
 
 from direct.gui.DirectButton import DirectButton
 from direct.gui.DirectFrame import DirectFrame
@@ -7,13 +7,11 @@ from direct.gui.DirectSlider import DirectSlider
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.MessengerGlobal import messenger
 from direct.task.Task import TaskManager
-from panda3d.core import Point3, StaticTextFont, Camera, deg2Rad, TextNode
+from panda3d.core import Camera, Point3, StaticTextFont, TextNode, deg2Rad
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.gui.button import BlackButton
 from f1p.ui.components.gui.drop_down import BlackDropDown
-from f1p.ui.components.leaderboard import Leaderboard
-from f1p.ui.components.map import Map
 
 
 class PlaybackControls(DirectObject):
@@ -27,7 +25,7 @@ class PlaybackControls(DirectObject):
         height: int,
         symbols_font: StaticTextFont,
         text_font: StaticTextFont,
-        data_extractor: DataExtractorService
+        data_extractor: DataExtractorService,
     ):
         super().__init__()
 
@@ -60,7 +58,7 @@ class PlaybackControls(DirectObject):
             parent=self.pixel2d,
             frameColor=(0.18, 0.18, 0.18, 1),
             frameSize=(0, self.width, 0, -self.height),
-            pos=Point3(0, 0, self.height - self.window_height)
+            pos=Point3(0, 0, self.height - self.window_height),
         )
 
     def move_timeline(self, task):
@@ -94,7 +92,7 @@ class PlaybackControls(DirectObject):
             text_scale=self.height - 5,
             text_align=TextNode.ACenter,
             text_pos=(-2, (-self.height / 2) + 7),
-            pos=Point3(17, 0, -self.height / 2)
+            pos=Point3(17, 0, -self.height / 2),
         )
 
     def update_components(self) -> None:
@@ -120,7 +118,7 @@ class PlaybackControls(DirectObject):
                         frameColor=record.Color,
                         frameSize=(0, record.Width, 0, -3),
                         pos=Point3(record.PixelStart, 0, 0),
-                    )
+                    ),
                 )
 
         self.timeline = DirectSlider(
@@ -128,7 +126,7 @@ class PlaybackControls(DirectObject):
             value=1,
             range=(1, self.data_extractor.session_ticks),
             pageSize=1,
-            frameSize=(0, self.width - 121, -self.height/ 2, self.height/ 2),
+            frameSize=(0, self.width - 121, -self.height / 2, self.height / 2),
             frameColor=(0.15, 0.15, 0.15, 1),
             thumb_frameSize=(0, 5, -self.height / 2, self.height / 2),
             thumb_frameColor=(0.1, 0.1, 0.1, 1),
@@ -137,7 +135,7 @@ class PlaybackControls(DirectObject):
             text_scale=self.height,
             text_fg=(1, 1, 1, 1),
             text_pos=(-2, (-self.height / 2) + 7),
-            pos=Point3(34, 0, -self.height / 2)
+            pos=Point3(34, 0, -self.height / 2),
         )
 
     def change_playback_speed(self, playback_speed: str) -> None:
@@ -165,7 +163,7 @@ class PlaybackControls(DirectObject):
             items=["x3", "x5", "x10"],
             item_scale=1.0,
             initialitem=0,
-            pos=Point3(self.width - 87, 0, -self.height / 2)
+            pos=Point3(self.width - 87, 0, -self.height / 2),
         )
 
     def move_camera(self, task):
@@ -213,7 +211,7 @@ class PlaybackControls(DirectObject):
             items=["🌎", "🗺"],
             item_scale=1.0,
             initialitem=0,
-            pos=Point3(self.width - 40, 0, -self.height / 2)
+            pos=Point3(self.width - 40, 0, -self.height / 2),
         )
 
     def render(self):
