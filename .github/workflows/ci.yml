@@ -150,3 +150,4 @@ jobs:
           pytest-coverage-path: ./pytest-coverage.txt
           junitxml-path: ./pytest.xml
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          create-new-comment: true
