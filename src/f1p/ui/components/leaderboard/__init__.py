@@ -3,13 +3,17 @@ from direct.gui.OnscreenImage import OnscreenImage
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
 from fastf1.core import Laps
-from panda3d.core import StaticTextFont, Point3, TransparencyAttrib, TextNode
+from panda3d.core import Point3, StaticTextFont, TextNode, TransparencyAttrib
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.driver import Driver
 from f1p.ui.components.gui.drop_down import BlackDropDown
-from f1p.ui.components.leaderboard.processors import LeaderboardProcessor, IntervalLeaderboardProcessor, \
-    TiresLeaderboardProcessor, LeaderLeaderboardProcessor
+from f1p.ui.components.leaderboard.processors import (
+    IntervalLeaderboardProcessor,
+    LeaderboardProcessor,
+    LeaderLeaderboardProcessor,
+    TiresLeaderboardProcessor,
+)
 from f1p.ui.components.map import Map
 
 
@@ -20,7 +24,7 @@ class Leaderboard(DirectObject):
         symbols_font: StaticTextFont,
         text_font: StaticTextFont,
         circuit_map: Map,
-        data_extractor: DataExtractorService
+        data_extractor: DataExtractorService,
     ):
         super().__init__()
 
@@ -75,7 +79,7 @@ class Leaderboard(DirectObject):
             parent=self.pixel2d,
             frameColor=(0.20, 0.20, 0.20, 0.7),
             frameSize=(0, self.width, 0, -self.height),
-            pos=Point3(20, 0, -50)
+            pos=Point3(20, 0, -50),
         )
 
     def render_track_status_frame(self) -> None:
@@ -83,19 +87,19 @@ class Leaderboard(DirectObject):
             parent=self.frame,
             frameColor=self.data_extractor.green_flag_track_status_color,
             frameSize=(0, self.width - 5, 0, -1),
-            pos=Point3(2, 0, -2)
+            pos=Point3(2, 0, -2),
         )
 
         self.track_status_frame_left = DirectFrame(
             parent=self.frame,
             frameColor=self.data_extractor.green_flag_track_status_color,
             frameSize=(0, 1, 0, self.width - 5),
-            pos=Point3(2, 0, -self.width + 3)
+            pos=Point3(2, 0, -self.width + 3),
         )
 
     def render_f1_logo(self) -> None:
         self.f1_logo = OnscreenImage(
-            image='./src/f1p/ui/images/f1_logo.png',
+            image="./src/f1p/ui/images/f1_logo.png",
             pos=Point3(self.width / 2, 0, -27),
             scale=self.width / 4,
             parent=self.frame,
@@ -107,7 +111,7 @@ class Leaderboard(DirectObject):
             parent=self.frame,
             frameColor=(0.1, 0.1, 0.1, 0.7),
             frameSize=(0, self.width, 0, 40),
-            pos=Point3(0, 0, -90)
+            pos=Point3(0, 0, -90),
         )
 
         self.lap_counter = OnscreenText(
@@ -116,7 +120,7 @@ class Leaderboard(DirectObject):
             scale=self.width / 10,
             fg=(1, 1, 1, 0.8),
             font=self.text_font,
-            text=f'LAP 1/{self.total_laps}',
+            text=f"LAP 1/{self.total_laps}",
         )
 
     def render_track_status(self) -> None:
@@ -124,7 +128,7 @@ class Leaderboard(DirectObject):
             parent=self.frame,
             frameColor=self.data_extractor.green_flag_track_status_color,
             frameSize=(0, self.width - 2, 0, 30),
-            pos=Point3(2, 0, -120)
+            pos=Point3(2, 0, -120),
         )
 
         self.track_status = OnscreenText(
@@ -146,23 +150,25 @@ class Leaderboard(DirectObject):
                 self.mode = "tires"
 
     def render_mode_selector(self) -> None:
-        BlackDropDown(
-            parent=self.frame,
-            width=40,
-            height=30,
-            font=self.symbols_font,
-            font_scale=20,
-            popup_menu_below=True,
-            command=self.switch_mode,
-            text="leaderboard",
-            text_pos=(20, -5),
-            text_align=TextNode.ACenter,
-            item_text_align=TextNode.ACenter,
-            items=["🕒", "🕘", "⛁"],
-            item_scale=1.0,
-            initialitem=0,
-            pos=Point3(self.width - 45, 0, -22),
-        ),
+        (
+            BlackDropDown(
+                parent=self.frame,
+                width=40,
+                height=30,
+                font=self.symbols_font,
+                font_scale=20,
+                popup_menu_below=True,
+                command=self.switch_mode,
+                text="leaderboard",
+                text_pos=(20, -5),
+                text_align=TextNode.ACenter,
+                item_text_align=TextNode.ACenter,
+                items=["🕒", "🕘", "⛁"],
+                item_scale=1.0,
+                initialitem=0,
+                pos=Point3(self.width - 45, 0, -22),
+            ),
+        )
 
     def render_drivers(self) -> None:
         offset_from_top = 140
@@ -176,7 +182,7 @@ class Leaderboard(DirectObject):
                     fg=(1, 1, 1, 0.8),
                     font=self.symbols_font,
                     text="",
-                )
+                ),
             )
 
             OnscreenText(
@@ -193,8 +199,8 @@ class Leaderboard(DirectObject):
                     parent=self.frame,
                     frameColor=driver.team_color_obj,
                     frameSize=(0, 12, 0, 12),
-                    pos=Point3(40, 0, -offset_from_top - 2 - (index * 23))
-                )
+                    pos=Point3(40, 0, -offset_from_top - 2 - (index * 23)),
+                ),
             )
 
             self.driver_abbreviations.append(
@@ -205,18 +211,18 @@ class Leaderboard(DirectObject):
                     fg=(1, 1, 1, 0.8),
                     font=self.text_font,
                     text=driver.abbreviation,
-                )
+                ),
             )
 
             self.driver_times.append(
-                 OnscreenText(
+                OnscreenText(
                     parent=self.frame,
                     pos=(145, -offset_from_top - (index * 23)),
                     scale=self.width / 14,
                     fg=(1, 1, 1, 0.8),
                     font=self.text_font,
                     text="NO TIME",
-                )
+                ),
             )
 
             self.driver_tires.append(
@@ -227,7 +233,7 @@ class Leaderboard(DirectObject):
                     fg=(1, 0, 0, 0.8),
                     font=self.text_font,
                     text="S",
-                )
+                ),
             )
 
             has_fastest_lap = OnscreenText(

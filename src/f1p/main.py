@@ -66,7 +66,7 @@ class F1PlayerApp(ShowBase):
             30,
             self.symbols_font,
             self.text_font,
-            self.data_extractor
+            self.data_extractor,
         )
 
         circuit_map = Map(self.render, self.data_extractor)
@@ -76,7 +76,7 @@ class F1PlayerApp(ShowBase):
             self.symbols_font,
             self.text_font,
             circuit_map,
-            self.data_extractor
+            self.data_extractor,
         )
 
         self.ui_components = [
@@ -90,9 +90,4 @@ class F1PlayerApp(ShowBase):
 
 app = F1PlayerApp()
 app.disableMouse()  # disable camera controls
-(
-    app.configure_window()
-    .draw_menu()
-    .register_ui_components()
-    .run()
-)
+(app.configure_window().draw_menu().register_ui_components().run())

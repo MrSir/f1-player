@@ -6,12 +6,19 @@ from direct.showbase.MessengerGlobal import messenger
 from panda3d.core import Point3, StaticTextFont
 
 from f1p.services.data_extractor import DataExtractorService
-from f1p.services.data_extractor.enums import SprintQualifyingSessionIdentifiers, ConventionalSessionIdentifiers
+from f1p.services.data_extractor.enums import ConventionalSessionIdentifiers, SprintQualifyingSessionIdentifiers
 from f1p.ui.components.gui.drop_down import BlackDropDown
 
 
 class Menu:
-    def __init__(self, pixel2d, width: int, height: int, text_font: StaticTextFont, data_extractor: DataExtractorService):
+    def __init__(
+        self,
+        pixel2d,
+        width: int,
+        height: int,
+        text_font: StaticTextFont,
+        data_extractor: DataExtractorService,
+    ):
         self.pixel2d = pixel2d
         self.width = width
         self.height = height
@@ -62,7 +69,7 @@ class Menu:
             items=["Year"] + [str(year) for year in range(2018, self.current_year + 1)],
             item_scale=0.7,
             initialitem=0,
-            pos=Point3(0, 0, -self.height / 2)
+            pos=Point3(0, 0, -self.height / 2),
         )
 
         self.year_menu["command"] = self.select_year
@@ -77,7 +84,7 @@ class Menu:
             self.data_extractor.event_name = event_name
 
             event = self.data_extractor.event
-            match event['EventFormat']:
+            match event["EventFormat"]:
                 case "sprint_qualifying":
                     self.session_menu["items"] = ["Session"] + SprintQualifyingSessionIdentifiers.all_values()
                 case "conventional":
@@ -96,7 +103,7 @@ class Menu:
             items=["Event"],
             item_scale=0.7,
             initialitem=0,
-            pos=Point3(76, 0, -self.height / 2)
+            pos=Point3(76, 0, -self.height / 2),
         )
 
     def select_session(self, session_id: str) -> None:
@@ -121,7 +128,7 @@ class Menu:
             items=["Session"],
             item_scale=0.7,
             initialitem=0,
-            pos=Point3(606, 0, -self.height / 2)
+            pos=Point3(606, 0, -self.height / 2),
         )
 
     def render(self):

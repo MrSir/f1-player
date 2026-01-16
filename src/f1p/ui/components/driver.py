@@ -1,8 +1,8 @@
 from decimal import Decimal
 
 from direct.showbase.DirectObject import DirectObject
-from fastf1.core import Lap, Telemetry, Laps
-from panda3d.core import NodePath, LVecBase4f
+from fastf1.core import Lap, Laps, Telemetry
+from panda3d.core import LVecBase4f, NodePath
 from pandas import Series, Timedelta
 
 from f1p.services.procedural3d import SphereMaker
@@ -37,7 +37,7 @@ class Driver(DirectObject):
         self.team_name = team_name
         self.team_color = team_color
         self.pos_data = pos_data
-        self.ticks = self.pos_data.set_index("SessionTimeTick").to_dict(orient='index')
+        self.ticks = self.pos_data.set_index("SessionTimeTick").to_dict(orient="index")
         self.current_lap = current_lap
         self.current_lap_time = current_lap_time
         self.time_to_car_in_front = time_to_car_in_front
