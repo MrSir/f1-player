@@ -142,7 +142,7 @@ jobs:
         run: | 
           source ./.venv/bin/activate
           set -o pipefail
-          poetry run pytest ./tests --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=./src  | tee pytest-coverage.txt
+          poetry run pytest ./tests --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=f1p  | tee pytest-coverage.txt
 
       - name: Pytest Coverage Comment
         uses: MishaKav/pytest-coverage-comment@v1.2.0
