@@ -30,7 +30,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-f1p = "f1p.main:app"
+f1p = "f1p:app"
 
 [tool.coverage.run]
 branch = true
