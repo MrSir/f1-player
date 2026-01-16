@@ -5,8 +5,8 @@ from fastf1.core import Lap, Laps, Telemetry
 from panda3d.core import LVecBase4f, NodePath
 from pandas import Series, Timedelta
 
-from procedural3d import SphereMaker
 from f1p.utils.color import hex_to_rgb_saturation
+from procedural3d import SphereMaker
 
 
 class Driver(DirectObject):
