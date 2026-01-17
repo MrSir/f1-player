@@ -1,4 +1,5 @@
 from math import cos, sin
+from typing import Any
 
 from direct.gui.DirectButton import DirectButton
 from direct.gui.DirectFrame import DirectFrame
@@ -6,7 +7,7 @@ from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.gui.DirectSlider import DirectSlider
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.MessengerGlobal import messenger
-from direct.task.Task import TaskManager
+from direct.task.Task import TaskManager, Task
 from panda3d.core import Camera, Point3, StaticTextFont, TextNode, deg2Rad
 
 from f1p.services.data_extractor import DataExtractorService
@@ -39,7 +40,7 @@ class PlaybackControls(DirectObject):
         self.text_font = text_font
         self.data_extractor = data_extractor
 
-        self.accept("sessionSelected", self.render)
+        self.accept("sessionSelected", self.render_task)
 
         self.frame: DirectFrame | None = None
         self.play_button: DirectButton | None = None
@@ -214,7 +215,10 @@ class PlaybackControls(DirectObject):
             pos=Point3(self.width - 40, 0, -self.height / 2),
         )
 
-    def render(self):
+    def render_task(self) -> None:
+        self.task_manager.add(self.render, "renderPlayback")
+
+    def render(self, task: Task) -> Any:
         self.task_manager.add(self.move_camera, "move_camera")
         self.task_manager.add(self.move_timeline, "move_timeline")
         self.render_frame()
@@ -222,3 +226,5 @@ class PlaybackControls(DirectObject):
         self.render_timeline()
         self.render_playback_speed_button()
         self.render_camera_button()
+
+        return task.done

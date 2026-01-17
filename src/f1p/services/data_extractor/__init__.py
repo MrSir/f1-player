@@ -1,26 +1,44 @@
 import math
 from pathlib import Path
-from typing import Self
+from typing import Self, Any
 
 import fastf1
 import pandas as pd
-from direct.showbase.MessengerGlobal import messenger
+from direct.gui.DirectFrame import DirectFrame
+from direct.gui.DirectWaitBar import DirectWaitBar
+from direct.gui.OnscreenText import OnscreenText
+from direct.showbase.DirectObject import DirectObject
+from direct.task.Task import TaskManager, Task
 from fastf1.core import Lap, Laps, Session, Telemetry
 from fastf1.events import Event, EventSchedule
 from fastf1.mvapi import CircuitInfo
-from panda3d.core import LVecBase4f, deg2Rad
+from panda3d.core import LVecBase4f, deg2Rad, NodePath, Point3, StaticTextFont
 from pandas import DataFrame, Series, Timedelta
 
 from f1p.utils.geometry import center_pos_data, find_center, resize_pos_data
+from f1p.utils.performance import timeit
 
 
-class DataExtractorService:
+class DataExtractorService(DirectObject):
     year: int
     event_name: str
     session_id: str
     cache_path: Path = Path(__file__).parent.parent.parent.parent.parent / ".fastf1-cache"
 
-    def __init__(self):
+    def __init__(
+        self,
+        parent: NodePath,
+        task_manager: TaskManager,
+        window_width: int,
+        window_height: int,
+        text_font: StaticTextFont,
+    ):
+        self.parent = parent
+        self.task_manager = task_manager
+        self.window_width = window_width
+        self.window_height = window_height
+        self.text_font = text_font
+
         self._event_schedule: EventSchedule | None = None
         self._event: Event | None = None
         self._session: Session | None = None
@@ -39,7 +57,14 @@ class DataExtractorService:
         self.fastest_lap_telemetry: DataFrame | None = None
         self.map_center_coordinate: tuple[float, float, float] | None = None
 
+        self.loading_frame: DirectFrame | None = None
+        self.loading_text: OnscreenText | None = None
+        self.progress_text: OnscreenText | None = None
+        self.wait_bar: DirectWaitBar | None = None
+
         self.processed_pos_data: DataFrame | None = None
+
+        self.accept("loadData", self.load_data)
 
         if not self.cache_path.exists():
             self.cache_path.mkdir(parents=True)
@@ -270,7 +295,9 @@ class DataExtractorService:
 
         return ts_df.iloc[0]
 
+    @timeit
     def process_fastest_lap(self) -> Self:
+        self.update_loading(9, "Processing Fastest Lap")
         pos_data = self.fastest_lap.get_pos_data()
         resized_pos_data_df = resize_pos_data(self.map_rotation, pos_data)
 
@@ -280,7 +307,9 @@ class DataExtractorService:
 
         return self
 
+    @timeit
     def combine_position_data(self) -> Self:
+        self.update_loading(11, "Combining Position Data")
         drivers_pos_data = []
         for driver_number, pos_data in self.pos_data.items():
             pos_data["DriverNumber"] = driver_number
@@ -290,14 +319,18 @@ class DataExtractorService:
 
         return self
 
+    @timeit
     def remove_records_before_session_start_time(self) -> Self:
+        self.update_loading(12, "Removing Pre Start Data")
         self.processed_pos_data = self.processed_pos_data[
             self.processed_pos_data["SessionTime"] >= self.session_start_time
-        ]
+            ]
 
         return self
 
+    @timeit
     def normalize_position_data(self) -> Self:
+        self.update_loading(13, "Normalize Position Data")
         df = self.processed_pos_data.copy()
 
         resized_pos_data_df = resize_pos_data(self.map_rotation, df)
@@ -305,14 +338,18 @@ class DataExtractorService:
 
         return self
 
+    @timeit
     def add_session_time_in_milliseconds(self) -> Self:
+        self.update_loading(14, "Convert Time to Milliseconds")
         session_time_in_milliseconds = self.processed_pos_data["SessionTime"].dt.total_seconds() * 1e3
 
         self.processed_pos_data["SessionTimeMilliseconds"] = session_time_in_milliseconds.astype("int64")
 
         return self
 
-    def add_common_session_time(self) -> Self:
+    @timeit
+    def add_session_time_tick(self) -> Self:
+        self.update_loading(15, "Adding Session Time Tick")
         df = self.processed_pos_data.copy()
 
         df["SessionTimeTick"] = df.groupby("DriverNumber").cumcount().add(1)
@@ -321,34 +358,36 @@ class DataExtractorService:
 
         return self
 
+    @timeit
     def process_laps(self) -> Self:
+        self.update_loading(16, "Processing Lap Data")
         laps = self.laps.copy()
 
         laps.loc[laps["Sector1SessionTime"].isna(), "Sector1SessionTime"] = (
-            laps.loc[laps["Sector1SessionTime"].isna(), "LapStartTime"]
-            + laps.loc[laps["Sector1SessionTime"].isna(), "Sector1Time"]
+                laps.loc[laps["Sector1SessionTime"].isna(), "LapStartTime"]
+                + laps.loc[laps["Sector1SessionTime"].isna(), "Sector1Time"]
         )
         laps.loc[laps["Sector2SessionTime"].isna(), "Sector2SessionTime"] = (
-            laps.loc[laps["Sector2SessionTime"].isna(), "Sector1SessionTime"]
-            + laps.loc[laps["Sector2SessionTime"].isna(), "Sector2Time"]
+                laps.loc[laps["Sector2SessionTime"].isna(), "Sector1SessionTime"]
+                + laps.loc[laps["Sector2SessionTime"].isna(), "Sector2Time"]
         )
         laps.loc[laps["Sector3SessionTime"].isna(), "Sector3SessionTime"] = (
-            laps.loc[laps["Sector3SessionTime"].isna(), "Sector2SessionTime"]
-            + laps.loc[laps["Sector3SessionTime"].isna(), "Sector3Time"]
+                laps.loc[laps["Sector3SessionTime"].isna(), "Sector2SessionTime"]
+                + laps.loc[laps["Sector3SessionTime"].isna(), "Sector3Time"]
         )
 
         lap_start_time_in_milliseconds = laps["LapStartTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
         laps["LapStartTimeMilliseconds"] = lap_start_time_in_milliseconds.astype("int64")
         sector1_session_time_in_milliseconds = (
-            laps["Sector1SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
+                laps["Sector1SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
         )
         laps["Sector1SessionTimeMilliseconds"] = sector1_session_time_in_milliseconds.astype("int64")
         sector2_session_time_in_milliseconds = (
-            laps["Sector2SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
+                laps["Sector2SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
         )
         laps["Sector2SessionTimeMilliseconds"] = sector2_session_time_in_milliseconds.astype("int64")
         sector3_session_time_in_milliseconds = (
-            laps["Sector3SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
+                laps["Sector3SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
         )
         laps["Sector3SessionTimeMilliseconds"] = sector3_session_time_in_milliseconds.astype("int64")
 
@@ -385,113 +424,162 @@ class DataExtractorService:
 
         return self
 
+    @timeit
     def merge_pos_and_laps(self) -> Self:
-        pos_data_df = self.processed_pos_data.copy()
+        self.update_loading(17, "Merging Pos and Lap Data")
+
+        df = self.processed_pos_data.copy()
         laps_df = self.laps.copy()
 
-        end_of_race = laps_df.loc[laps_df["LapNumber"] == self.total_laps, "LapEndTimeMilliseconds"].min()
-
+        # TODO this is the slow crap we need to fix
+        #      find a way to put the lap number for each driver based on SessionTime
         for lap in laps_df.itertuples():
-            pos_data_df.loc[
-                (pos_data_df["DriverNumber"] == lap.DriverNumber)
-                & (pos_data_df["SessionTimeMilliseconds"] >= lap.LapStartTimeMilliseconds)
-                & (pos_data_df["SessionTimeMilliseconds"] < lap.LapEndTimeMilliseconds),
+            df.loc[
+                (df["DriverNumber"] == lap.DriverNumber)
+                & (df["SessionTimeMilliseconds"] >= lap.LapStartTimeMilliseconds)
+                & (df["SessionTimeMilliseconds"] < lap.LapEndTimeMilliseconds),
                 "LapNumber",
             ] = lap.LapNumber
 
-        combined_df = pos_data_df.merge(laps_df, on=["DriverNumber", "LapNumber"], how="left").rename(
+        combined_df = df.merge(laps_df, on=["DriverNumber", "LapNumber"], how="left").rename(
             columns={"Time_x": "Time", "Time_y": "Time_Lap"},
         )
-
         combined_df["LapNumber"] = combined_df.groupby("DriverNumber")["LapNumber"].ffill()
-        combined_df["LapStartTimeMilliseconds"] = combined_df.groupby("DriverNumber")[
-            "LapStartTimeMilliseconds"
-        ].ffill()
-        combined_df["LapEndTimeMilliseconds"] = combined_df.groupby("DriverNumber")["LapEndTimeMilliseconds"].ffill()
-
-        combined_df.loc[
-            (combined_df["LapNumber"] == self.total_laps)
-            & (combined_df["SessionTimeMilliseconds"] > combined_df["LapEndTimeMilliseconds"]),
-            "LapNumber",
-        ] = self.total_laps + 1
-
-        combined_df["ElapsedTimeSinceStartOfLapMilliseconds"] = (
-            combined_df["SessionTimeMilliseconds"] - combined_df["LapStartTimeMilliseconds"]
-        )
-        combined_df["LapPercentageCompletion"] = (
-            combined_df["ElapsedTimeSinceStartOfLapMilliseconds"] / combined_df["LapTimeMilliseconds"]
-        )
-        combined_df["LapPercentageCompletion"] = combined_df["LapPercentageCompletion"].fillna(0)
-        combined_df["LapsCompletion"] = (combined_df["LapNumber"] - 1) + combined_df["LapPercentageCompletion"]
-        combined_df["PositionIndex"] = (
-            combined_df.sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False])
-            .groupby("SessionTimeTick")
-            .cumcount()
-            .add(1)
-            - 1
-        )
-
-        combined_df.loc[combined_df["Position"].notna(), "IsDNF"] = False
-        combined_df.loc[combined_df["Position"].isna(), "IsDNF"] = True
-
-        combined_df.loc[combined_df["LapsCompletion"] == self.total_laps, "IsFinished"] = True
-        combined_df.loc[combined_df["IsFinished"].isna(), "IsFinished"] = False
-        combined_df.loc[combined_df["IsFinished"], "IsDNF"] = False
-
-        combined_df.loc[combined_df["SessionTimeMilliseconds"] >= end_of_race, "PositionIndex"] = pd.NA
-        combined_df["PositionIndex"] = combined_df.groupby("DriverNumber")["PositionIndex"].ffill().astype("int64")
-
-        combined_df["FastestLapTimeMilliseconds"] = combined_df.sort_values(
-            by=["SessionTimeTick", "LapsCompletion"],
-            ascending=[True, False],
-        )["FastestLapTimeMillisecondsSoFar"].cummin()
-        combined_df.loc[
-            combined_df["FastestLapTimeMillisecondsSoFar"] == combined_df["FastestLapTimeMilliseconds"],
-            "HasFastestLap",
-        ] = True
-        combined_df.loc[combined_df["HasFastestLap"].isna(), "HasFastestLap"] = False
-        combined_df["HasFastestLap"] = combined_df.groupby("DriverNumber")["HasFastestLap"].ffill()
-
-        combined_df.loc[
-            (combined_df["SessionTimeMilliseconds"] >= combined_df["Sector1SessionTimeMilliseconds"]),
-            "DiffToCarInFront",
-        ] = combined_df["S1DiffToCarAhead"]
-        combined_df.loc[
-            (combined_df["SessionTimeMilliseconds"] >= combined_df["Sector2SessionTimeMilliseconds"]),
-            "DiffToCarInFront",
-        ] = combined_df["S2DiffToCarAhead"]
-        combined_df.loc[
-            (combined_df["SessionTimeMilliseconds"] >= combined_df["Sector3SessionTimeMilliseconds"]),
-            "DiffToCarInFront",
-        ] = combined_df["S3DiffToCarAhead"]
-        combined_df.loc[
-            (combined_df["PositionIndex"] == 0),
-            "DiffToCarInFront",
-        ] = 0
-        combined_df["DiffToCarInFront"] = combined_df.groupby("DriverNumber")["DiffToCarInFront"].ffill()
-        combined_df["DiffToCarInFront"] = round(combined_df["DiffToCarInFront"] / 1000, 3)
-
-        combined_df["DiffToLeader"] = (
-            combined_df.sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False])
-            .groupby(["SessionTimeTick"])["DiffToCarInFront"]
-            .cumsum()
-        )
-        combined_df["DiffToLeader"] = round(combined_df["DiffToLeader"], 3)
 
         self.processed_pos_data = combined_df
 
         return self
 
-    def add_in_pit_column(self) -> Self:
+    @timeit
+    def compute_lap_completion(self) -> Self:
+        df = self.processed_pos_data.copy()
+
+        df["LapStartTimeMilliseconds"] = df.groupby("DriverNumber")["LapStartTimeMilliseconds"].ffill()
+        df["LapEndTimeMilliseconds"] = df.groupby("DriverNumber")["LapEndTimeMilliseconds"].ffill()
+
+        df.loc[
+            (df["LapNumber"] == self.total_laps)
+            & (df["SessionTimeMilliseconds"] > df["LapEndTimeMilliseconds"]),
+            "LapNumber",
+        ] = self.total_laps + 1
+
+        df["ElapsedTimeSinceStartOfLapMilliseconds"] = df["SessionTimeMilliseconds"] - df["LapStartTimeMilliseconds"]
+        df["LapPercentageCompletion"] = df["ElapsedTimeSinceStartOfLapMilliseconds"] / df["LapTimeMilliseconds"]
+        df["LapPercentageCompletion"] = df["LapPercentageCompletion"].fillna(0)
+        df["LapsCompletion"] = (df["LapNumber"] - 1) + df["LapPercentageCompletion"]
+
+        self.processed_pos_data = df
+
+        return self
+
+    @timeit
+    def compute_is_dnf(self) -> Self:
+        df = self.processed_pos_data.copy()
+
+        df.loc[df["Position"].notna(), "IsDNF"] = False
+        df.loc[df["Position"].isna(), "IsDNF"] = True
+
+        self.processed_pos_data = df
+
+        return self
+
+    @timeit
+    def compute_is_finished(self) -> Self:
+        df = self.processed_pos_data.copy()
+        df.loc[df["LapsCompletion"] == self.total_laps, "IsFinished"] = True
+        df.loc[df["IsFinished"].isna(), "IsFinished"] = False
+        df.loc[df["IsFinished"], "IsDNF"] = False
+
+        self.processed_pos_data = df
+
+        return self
+
+    @timeit
+    def compute_position_index(self) -> Self:
+        df = self.processed_pos_data.copy()
+        laps_df = self.laps.copy()
+        end_of_race = laps_df.loc[laps_df["LapNumber"] == self.total_laps, "LapEndTimeMilliseconds"].min()
+
+        df["PositionIndex"] = (
+            df.sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False])
+            .groupby("SessionTimeTick")
+            .cumcount()
+            .add(1)
+            - 1
+        )
+        df.loc[df["SessionTimeMilliseconds"] >= end_of_race, "PositionIndex"] = pd.NA
+        df["PositionIndex"] = df.groupby("DriverNumber")["PositionIndex"].ffill().astype("int64")
+
+        self.processed_pos_data = df
+
+        return self
+
+    @timeit
+    def compute_fastest_lap(self) -> Self:
+        df = self.processed_pos_data.copy()
+
+        df["FastestLapTimeMilliseconds"] = df.sort_values(
+            by=["SessionTimeTick", "LapsCompletion"],
+            ascending=[True, False],
+        )["FastestLapTimeMillisecondsSoFar"].cummin()
+        df.loc[df["FastestLapTimeMillisecondsSoFar"] == df["FastestLapTimeMilliseconds"], "HasFastestLap"] = True
+        df.loc[df["HasFastestLap"].isna(), "HasFastestLap"] = False
+        df["HasFastestLap"] = df.groupby("DriverNumber")["HasFastestLap"].ffill()
+
+        self.processed_pos_data = df
+
+        return self
+
+    @timeit
+    def compute_diff_to_car_in_front(self) -> Self:
+        df = self.processed_pos_data.copy()
+        df.loc[
+            (df["SessionTimeMilliseconds"] >= df["Sector1SessionTimeMilliseconds"]),
+            "DiffToCarInFront",
+        ] = df["S1DiffToCarAhead"]
+        df.loc[
+            (df["SessionTimeMilliseconds"] >= df["Sector2SessionTimeMilliseconds"]),
+            "DiffToCarInFront",
+        ] = df["S2DiffToCarAhead"]
+        df.loc[
+            (df["SessionTimeMilliseconds"] >= df["Sector3SessionTimeMilliseconds"]),
+            "DiffToCarInFront",
+        ] = df["S3DiffToCarAhead"]
+        df.loc[df["PositionIndex"] == 0, "DiffToCarInFront"] = 0
+        df["DiffToCarInFront"] = df.groupby("DriverNumber")["DiffToCarInFront"].ffill()
+        df["DiffToCarInFront"] = round(df["DiffToCarInFront"] / 1000, 3)
+
+        self.processed_pos_data = df
+
+        return self
+
+    @timeit
+    def compute_diff_to_leader(self) -> Self:
+        df = self.processed_pos_data.copy()
+        df["DiffToLeader"] = (
+            df.sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False])
+            .groupby(["SessionTimeTick"])["DiffToCarInFront"]
+            .cumsum()
+        )
+        df["DiffToLeader"] = round(df["DiffToLeader"], 3)
+
+        self.processed_pos_data = df
+
+        return self
+
+    @timeit
+    def compute_in_pit(self) -> Self:
+        self.update_loading(98, "Computing In Pit Times")
         df = self.processed_pos_data.copy()
 
         df.loc[
             (
-                (df["PitInTimeMilliseconds"].notna() & (df["PitInTimeMilliseconds"] <= df["SessionTimeMilliseconds"]))
-                | (
-                    df["PitOutTimeMilliseconds"].notna()
-                    & (df["PitOutTimeMilliseconds"] >= df["SessionTimeMilliseconds"])
-                )
+                    (df["PitInTimeMilliseconds"].notna() & (
+                            df["PitInTimeMilliseconds"] <= df["SessionTimeMilliseconds"]))
+                    | (
+                            df["PitOutTimeMilliseconds"].notna()
+                            & (df["PitOutTimeMilliseconds"] >= df["SessionTimeMilliseconds"])
+                    )
             ),
             "InPit",
         ] = True
@@ -502,7 +590,9 @@ class DataExtractorService:
 
         return self
 
-    def process_tire_compound_columns(self) -> Self:
+    @timeit
+    def compute_tire_compound(self) -> Self:
+        self.update_loading(99, "Processing Tire Compounds")
         df = self.processed_pos_data.copy()
 
         df["Compound"] = df["Compound"].str[0].astype("string")
@@ -525,7 +615,61 @@ class DataExtractorService:
 
         return self
 
-    def extract(self):
+    def render_wait_bar(self) -> None:
+        width = 400
+        height = 200
+        self.loading_frame = DirectFrame(
+            parent=self.parent,
+            frameColor=(0.20, 0.20, 0.20, 0.7),
+            frameSize=(0, width, 0, -height),
+            pos=Point3((self.window_width / 2) - (width / 2), 0, -((self.window_height / 2) - (height / 2))),
+        )
+
+        self.loading_text = OnscreenText(
+            parent=self.loading_frame,
+            pos=(width / 2, -(height / 2) + 20),
+            scale=width / 10,
+            fg=(1, 1, 1, 0.8),
+            font=self.text_font,
+            text=f"Loading",
+        )
+
+        self.progress_text = OnscreenText(
+            parent=self.loading_frame,
+            pos=(width / 2, -(height / 2) - 30),
+            scale=width / 15,
+            fg=(1, 1, 1, 0.8),
+            font=self.text_font,
+            text=f"",
+        )
+
+        self.wait_bar = DirectWaitBar(
+            parent=self.loading_frame,
+            text="WaitBar",
+            value=0,
+            range=100,
+            barColor=(0, 1, 0, 0.7),
+            frameSize=(0, width - 20, 0, -10),
+            pos=Point3(10, 0, -(height - 20)),
+        )
+
+    def update_loading(self, value: int, text: str) -> None:
+        self.progress_text["text"] = text
+        self.wait_bar["value"] = value
+
+    def delete_loading(self) -> None:
+        self.progress_text.destroy()
+        self.wait_bar.destroy()
+        self.loading_text.destroy()
+        self.loading_frame.destroy()
+
+    def load_data(self) -> None:
+        self.render_wait_bar()
+        self.task_manager.add(self.extract, "extractData", taskChain="loadingData")
+
+    @timeit
+    def extract(self, task: Task) -> Any:
+        self.update_loading(0, "Session Data")
         self.session.load()
 
         (
@@ -534,11 +678,21 @@ class DataExtractorService:
             .remove_records_before_session_start_time()
             .normalize_position_data()
             .add_session_time_in_milliseconds()
-            .add_common_session_time()
+            .add_session_time_tick()
             .process_laps()
             .merge_pos_and_laps()
-            .add_in_pit_column()
-            .process_tire_compound_columns()
+            .compute_lap_completion()
+            .compute_is_dnf()
+            .compute_is_finished()
+            .compute_position_index()
+            .compute_fastest_lap()
+            .compute_diff_to_car_in_front()
+            .compute_diff_to_leader()
+            .compute_in_pit()
+            .compute_tire_compound()
         )
 
-        messenger.send("sessionSelected")
+        self.update_loading(100, "Finished")
+        self.delete_loading()
+        # messenger.send("sessionSelected")
+        return task.done

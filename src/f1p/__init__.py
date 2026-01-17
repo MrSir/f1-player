@@ -27,7 +27,9 @@ class F1PlayerApp(ShowBase):
 
         self.setBackgroundColor(0.3, 0.3, 0.3, 1)
 
-        # self.setFrameRateMeter(True)
+        self.taskMgr.setupTaskChain("loadingData", numThreads=1)
+
+        self.setFrameRateMeter(True)
         # PStatClient.connect()
 
         self.ui_components: list = []
@@ -39,7 +41,7 @@ class F1PlayerApp(ShowBase):
     @property
     def data_extractor(self) -> DataExtractorService:
         if self._data_extractor is None:
-            self._data_extractor = DataExtractorService()
+            self._data_extractor = DataExtractorService(self.pixel2d, self.taskMgr, self.width, self.height, self.text_font)
 
         return self._data_extractor
 
@@ -51,7 +53,7 @@ class F1PlayerApp(ShowBase):
         return self
 
     def draw_menu(self) -> Self:
-        menu = Menu(self.pixel2d, self.width, 40, self.text_font, self.data_extractor)
+        menu = Menu(self.pixel2d, self.taskMgr, self.messenger, self.width, 40, self.text_font, self.data_extractor)
         menu.render()
 
         return self
@@ -69,10 +71,11 @@ class F1PlayerApp(ShowBase):
             self.data_extractor,
         )
 
-        circuit_map = Map(self.render, self.data_extractor)
+        circuit_map = Map(self.render, self.taskMgr, self.data_extractor)
 
         leaderboard = Leaderboard(
             self.pixel2d,
+            self.taskMgr,
             self.symbols_font,
             self.text_font,
             circuit_map,

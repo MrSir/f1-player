@@ -1,5 +1,8 @@
+from typing import Any
+
 import numpy as np
 from direct.showbase.DirectObject import DirectObject
+from direct.task.Task import TaskManager, Task
 from panda3d.core import LineSegs, NodePath
 from pandas import DataFrame
 
@@ -8,10 +11,11 @@ from f1p.ui.components.driver import Driver
 
 
 class Map(DirectObject):
-    def __init__(self, parent: NodePath, data_extractor: DataExtractorService):
+    def __init__(self, parent: NodePath, task_manager: TaskManager, data_extractor: DataExtractorService):
         super().__init__()
 
         self.parent = parent
+        self.task_manager = task_manager
         self.data_extractor = data_extractor
 
         self.inner_border_node_path: NodePath | None = None
@@ -21,8 +25,8 @@ class Map(DirectObject):
         self._pos_data: DataFrame | None = None
         self._map_center_coordinate: list[float] | None = None
 
-        self.accept("sessionSelected", self.select_session)
-        self.accept("clearMaps", self.clear_out_maps)
+        self.accept("sessionSelected", self.render_task)
+        # self.accept("clearMaps", self.clear_out_maps)
 
     def render_map(self, df: DataFrame) -> None:
         new_df = df.copy()
@@ -102,6 +106,11 @@ class Map(DirectObject):
 
             self.drivers.append(driver)
 
-    def select_session(self) -> None:
+    def render_task(self) -> None:
+        self.task_manager.add(self.render, "renderMap")
+
+    def render(self, task: Task) -> Any:
         self.render_map(self.data_extractor.fastest_lap_telemetry)
         self.initialize_drivers()
+
+        return task.done
