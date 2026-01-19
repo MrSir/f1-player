@@ -8,6 +8,7 @@ from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectWaitBar import DirectWaitBar
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
+from direct.showbase.MessengerGlobal import messenger
 from direct.task.Task import TaskManager, Task
 from fastf1.core import Lap, Laps, Session, Telemetry
 from fastf1.events import Event, EventSchedule
@@ -59,7 +60,6 @@ class DataExtractorService(DirectObject):
 
         self.loading_frame: DirectFrame | None = None
         self.loading_text: OnscreenText | None = None
-        self.progress_text: OnscreenText | None = None
         self.wait_bar: DirectWaitBar | None = None
 
         self.processed_pos_data: DataFrame | None = None
@@ -295,9 +295,7 @@ class DataExtractorService(DirectObject):
 
         return ts_df.iloc[0]
 
-    @timeit
     def process_fastest_lap(self) -> Self:
-        self.update_loading(9, "Processing Fastest Lap")
         pos_data = self.fastest_lap.get_pos_data()
         resized_pos_data_df = resize_pos_data(self.map_rotation, pos_data)
 
@@ -305,11 +303,11 @@ class DataExtractorService(DirectObject):
 
         self.fastest_lap_telemetry = center_pos_data(self.map_center_coordinate, resized_pos_data_df)
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def combine_position_data(self) -> Self:
-        self.update_loading(11, "Combining Position Data")
         drivers_pos_data = []
         for driver_number, pos_data in self.pos_data.items():
             pos_data["DriverNumber"] = driver_number
@@ -317,50 +315,50 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = pd.concat(drivers_pos_data, ignore_index=True)
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def remove_records_before_session_start_time(self) -> Self:
-        self.update_loading(12, "Removing Pre Start Data")
         self.processed_pos_data = self.processed_pos_data[
             self.processed_pos_data["SessionTime"] >= self.session_start_time
-            ]
+        ]
+
+        self.update_loading(5)
 
         return self
 
-    @timeit
     def normalize_position_data(self) -> Self:
-        self.update_loading(13, "Normalize Position Data")
         df = self.processed_pos_data.copy()
 
         resized_pos_data_df = resize_pos_data(self.map_rotation, df)
         self.processed_pos_data = center_pos_data(self.map_center_coordinate, resized_pos_data_df)
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def add_session_time_in_milliseconds(self) -> Self:
-        self.update_loading(14, "Convert Time to Milliseconds")
         session_time_in_milliseconds = self.processed_pos_data["SessionTime"].dt.total_seconds() * 1e3
 
         self.processed_pos_data["SessionTimeMilliseconds"] = session_time_in_milliseconds.astype("int64")
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def add_session_time_tick(self) -> Self:
-        self.update_loading(15, "Adding Session Time Tick")
         df = self.processed_pos_data.copy()
 
         df["SessionTimeTick"] = df.groupby("DriverNumber").cumcount().add(1)
 
         self.processed_pos_data = df
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def process_laps(self) -> Self:
-        self.update_loading(16, "Processing Lap Data")
         laps = self.laps.copy()
 
         laps.loc[laps["Sector1SessionTime"].isna(), "Sector1SessionTime"] = (
@@ -422,35 +420,49 @@ class DataExtractorService(DirectObject):
 
         self._laps = laps
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def merge_pos_and_laps(self) -> Self:
-        self.update_loading(17, "Merging Pos and Lap Data")
-
         df = self.processed_pos_data.copy()
+        ts_df = df[["SessionTimeTick", "SessionTimeMilliseconds"]].drop_duplicates(keep="first").copy()
         laps_df = self.laps.copy()
 
-        # TODO this is the slow crap we need to fix
-        #      find a way to put the lap number for each driver based on SessionTime
-        for lap in laps_df.itertuples():
-            df.loc[
-                (df["DriverNumber"] == lap.DriverNumber)
-                & (df["SessionTimeMilliseconds"] >= lap.LapStartTimeMilliseconds)
-                & (df["SessionTimeMilliseconds"] < lap.LapEndTimeMilliseconds),
-                "LapNumber",
-            ] = lap.LapNumber
+        for record in laps_df.itertuples():
+            laps_df.loc[
+                (laps_df["LapNumber"] == record.LapNumber)
+                & (laps_df["DriverNumber"] == record.DriverNumber),
+                "SessionTimeTickStart"
+            ] = ts_df.loc[ts_df["SessionTimeMilliseconds"] <= record.LapStartTimeMilliseconds, "SessionTimeTick"].max()
 
-        combined_df = df.merge(laps_df, on=["DriverNumber", "LapNumber"], how="left").rename(
+        laps_df["SessionTimeTickStart"] = laps_df["SessionTimeTickStart"].fillna(1).astype("int64")
+
+        lap_n_tick_df = laps_df[["DriverNumber", "LapNumber", "SessionTimeTickStart"]]
+
+        # Merge once to get he LapNumber and fill it for all SessionTimeTicks
+        combined_df = df.merge(
+            lap_n_tick_df,
+            left_on=["DriverNumber", "SessionTimeTick"],
+            right_on=["DriverNumber", "SessionTimeTickStart"],
+            how="left"
+        )
+        combined_df = combined_df.drop(columns=["SessionTimeTickStart"])
+        combined_df["LapNumber"] = combined_df.groupby("DriverNumber")["LapNumber"].ffill()
+
+        # Merge second time with full laps_df to get full data per SessionTimeTick
+        combined_df = combined_df.merge(laps_df, on=["DriverNumber", "LapNumber"], how="left")
+        combined_df = combined_df.rename(
             columns={"Time_x": "Time", "Time_y": "Time_Lap"},
         )
-        combined_df["LapNumber"] = combined_df.groupby("DriverNumber")["LapNumber"].ffill()
+        combined_df = combined_df.drop(columns=["SessionTimeTickStart"])
 
         self.processed_pos_data = combined_df
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def compute_lap_completion(self) -> Self:
         df = self.processed_pos_data.copy()
 
@@ -470,9 +482,10 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def compute_is_dnf(self) -> Self:
         df = self.processed_pos_data.copy()
 
@@ -481,9 +494,10 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def compute_is_finished(self) -> Self:
         df = self.processed_pos_data.copy()
         df.loc[df["LapsCompletion"] == self.total_laps, "IsFinished"] = True
@@ -492,9 +506,10 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def compute_position_index(self) -> Self:
         df = self.processed_pos_data.copy()
         laps_df = self.laps.copy()
@@ -512,9 +527,10 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def compute_fastest_lap(self) -> Self:
         df = self.processed_pos_data.copy()
 
@@ -528,9 +544,10 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def compute_diff_to_car_in_front(self) -> Self:
         df = self.processed_pos_data.copy()
         df.loc[
@@ -551,9 +568,10 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def compute_diff_to_leader(self) -> Self:
         df = self.processed_pos_data.copy()
         df["DiffToLeader"] = (
@@ -565,11 +583,11 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def compute_in_pit(self) -> Self:
-        self.update_loading(98, "Computing In Pit Times")
         df = self.processed_pos_data.copy()
 
         df.loc[
@@ -588,11 +606,11 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
+        self.update_loading(5)
+
         return self
 
-    @timeit
     def compute_tire_compound(self) -> Self:
-        self.update_loading(99, "Processing Tire Compounds")
         df = self.processed_pos_data.copy()
 
         df["Compound"] = df["Compound"].str[0].astype("string")
@@ -613,6 +631,8 @@ class DataExtractorService(DirectObject):
             columns=["SCompoundColor", "MCompoundColor", "HCompoundColor", "ICompoundColor", "WCompoundColor"],
         )
 
+        self.update_loading(5)
+
         return self
 
     def render_wait_bar(self) -> None:
@@ -627,20 +647,11 @@ class DataExtractorService(DirectObject):
 
         self.loading_text = OnscreenText(
             parent=self.loading_frame,
-            pos=(width / 2, -(height / 2) + 20),
+            pos=(width / 2, -(height / 2)),
             scale=width / 10,
             fg=(1, 1, 1, 0.8),
             font=self.text_font,
-            text=f"Loading",
-        )
-
-        self.progress_text = OnscreenText(
-            parent=self.loading_frame,
-            pos=(width / 2, -(height / 2) - 30),
-            scale=width / 15,
-            fg=(1, 1, 1, 0.8),
-            font=self.text_font,
-            text=f"",
+            text=f"Loading ...",
         )
 
         self.wait_bar = DirectWaitBar(
@@ -653,12 +664,10 @@ class DataExtractorService(DirectObject):
             pos=Point3(10, 0, -(height - 20)),
         )
 
-    def update_loading(self, value: int, text: str) -> None:
-        self.progress_text["text"] = text
-        self.wait_bar["value"] = value
+    def update_loading(self, value: int) -> None:
+        self.wait_bar["value"] += value
 
     def delete_loading(self) -> None:
-        self.progress_text.destroy()
         self.wait_bar.destroy()
         self.loading_text.destroy()
         self.loading_frame.destroy()
@@ -667,10 +676,9 @@ class DataExtractorService(DirectObject):
         self.render_wait_bar()
         self.task_manager.add(self.extract, "extractData", taskChain="loadingData")
 
-    @timeit
     def extract(self, task: Task) -> Any:
-        self.update_loading(0, "Session Data")
         self.session.load()
+        self.update_loading(10)
 
         (
             self.process_fastest_lap()
@@ -692,7 +700,7 @@ class DataExtractorService(DirectObject):
             .compute_tire_compound()
         )
 
-        self.update_loading(100, "Finished")
         self.delete_loading()
-        # messenger.send("sessionSelected")
+        messenger.send("sessionSelected")
+
         return task.done
