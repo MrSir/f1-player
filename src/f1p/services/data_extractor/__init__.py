@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Self, Any
 
 import fastf1
+import numpy as np
 import pandas as pd
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectWaitBar import DirectWaitBar
@@ -17,7 +18,6 @@ from panda3d.core import LVecBase4f, deg2Rad, NodePath, Point3, StaticTextFont
 from pandas import DataFrame, Series, Timedelta
 
 from f1p.utils.geometry import center_pos_data, find_center, resize_pos_data
-from f1p.utils.performance import timeit
 
 
 class DataExtractorService(DirectObject):
@@ -389,7 +389,7 @@ class DataExtractorService(DirectObject):
         )
         laps["Sector3SessionTimeMilliseconds"] = sector3_session_time_in_milliseconds.astype("int64")
 
-        lap_time_in_milliseconds = laps["LapTime"].fillna(Timedelta(milliseconds=1)).dt.total_seconds() * 1e3
+        lap_time_in_milliseconds = laps["LapTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
         laps["LapTimeMilliseconds"] = lap_time_in_milliseconds.astype("int64")
         laps["LapEndTimeMilliseconds"] = laps["LapStartTimeMilliseconds"] + laps["LapTimeMilliseconds"]
 
@@ -433,29 +433,29 @@ class DataExtractorService(DirectObject):
             laps_df.loc[
                 (laps_df["LapNumber"] == record.LapNumber)
                 & (laps_df["DriverNumber"] == record.DriverNumber),
-                "SessionTimeTickStart"
+                "SessionTimeTick"
             ] = ts_df.loc[ts_df["SessionTimeMilliseconds"] <= record.LapStartTimeMilliseconds, "SessionTimeTick"].max()
 
-        laps_df["SessionTimeTickStart"] = laps_df["SessionTimeTickStart"].fillna(1).astype("int64")
+        laps_df.loc[laps_df["LapNumber"] == 1.0, "SessionTimeTick"] = 1
+        laps_df = laps_df.dropna(subset=["SessionTimeTick"])
+        laps_df["SessionTimeTick"] = laps_df["SessionTimeTick"].astype("int64")
 
-        lap_n_tick_df = laps_df[["DriverNumber", "LapNumber", "SessionTimeTickStart"]]
+        lap_n_tick_df = laps_df[["DriverNumber", "LapNumber", "SessionTimeTick"]]
 
         # Merge once to get he LapNumber and fill it for all SessionTimeTicks
-        combined_df = df.merge(
-            lap_n_tick_df,
-            left_on=["DriverNumber", "SessionTimeTick"],
-            right_on=["DriverNumber", "SessionTimeTickStart"],
-            how="left"
-        )
-        combined_df = combined_df.drop(columns=["SessionTimeTickStart"])
+        combined_df = df.merge(lap_n_tick_df, on=["DriverNumber", "SessionTimeTick"], how="left")
         combined_df["LapNumber"] = combined_df.groupby("DriverNumber")["LapNumber"].ffill()
 
         # Merge second time with full laps_df to get full data per SessionTimeTick
         combined_df = combined_df.merge(laps_df, on=["DriverNumber", "LapNumber"], how="left")
         combined_df = combined_df.rename(
-            columns={"Time_x": "Time", "Time_y": "Time_Lap"},
+            columns={
+                "Time_x": "Time",
+                "Time_y": "TimeLap",
+                "SessionTimeTick_x": "SessionTimeTick",
+            },
         )
-        combined_df = combined_df.drop(columns=["SessionTimeTickStart"])
+        combined_df = combined_df.drop(columns=["SessionTimeTick_y"])
 
         self.processed_pos_data = combined_df
 
@@ -477,7 +477,8 @@ class DataExtractorService(DirectObject):
 
         df["ElapsedTimeSinceStartOfLapMilliseconds"] = df["SessionTimeMilliseconds"] - df["LapStartTimeMilliseconds"]
         df["LapPercentageCompletion"] = df["ElapsedTimeSinceStartOfLapMilliseconds"] / df["LapTimeMilliseconds"]
-        df["LapPercentageCompletion"] = df["LapPercentageCompletion"].fillna(0)
+        df["LapPercentageCompletion"] = df["LapPercentageCompletion"].replace([np.inf, -np.inf], 0)
+        df.loc[df["LapNumber"] > self.total_laps, "LapPercentageCompletion"] = 0
         df["LapsCompletion"] = (df["LapNumber"] - 1) + df["LapPercentageCompletion"]
 
         self.processed_pos_data = df
