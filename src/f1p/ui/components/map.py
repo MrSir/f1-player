@@ -2,7 +2,7 @@ from typing import Any
 
 import numpy as np
 from direct.showbase.DirectObject import DirectObject
-from direct.task.Task import TaskManager, Task
+from direct.task.Task import Task, TaskManager
 from panda3d.core import LineSegs, NodePath
 from pandas import DataFrame
 

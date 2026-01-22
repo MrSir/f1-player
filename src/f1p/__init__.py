@@ -1,7 +1,7 @@
 from typing import Self
 
 from direct.showbase.ShowBase import ShowBase
-from panda3d.core import WindowProperties, PStatClient
+from panda3d.core import PStatClient, WindowProperties
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.leaderboard import Leaderboard
@@ -50,7 +50,13 @@ class F1PlayerApp(ShowBase):
     @property
     def data_extractor(self) -> DataExtractorService:
         if self._data_extractor is None:
-            self._data_extractor = DataExtractorService(self.pixel2d, self.taskMgr, self.width, self.height, self.text_font)
+            self._data_extractor = DataExtractorService(
+                self.pixel2d,
+                self.taskMgr,
+                self.width,
+                self.height,
+                self.text_font,
+            )
 
         return self._data_extractor
 

@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import Self, Any
+from typing import Any, Self
 
 import fastf1
 import numpy as np
@@ -10,11 +10,11 @@ from direct.gui.DirectWaitBar import DirectWaitBar
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.MessengerGlobal import messenger
-from direct.task.Task import TaskManager, Task
+from direct.task.Task import Task, TaskManager
 from fastf1.core import Lap, Laps, Session, Telemetry
 from fastf1.events import Event, EventSchedule
 from fastf1.mvapi import CircuitInfo
-from panda3d.core import LVecBase4f, deg2Rad, NodePath, Point3, StaticTextFont
+from panda3d.core import LVecBase4f, NodePath, Point3, StaticTextFont, deg2Rad
 from pandas import DataFrame, Series, Timedelta
 
 from f1p.utils.geometry import center_pos_data, find_center, resize_pos_data
@@ -362,30 +362,30 @@ class DataExtractorService(DirectObject):
         laps = self.laps.copy()
 
         laps.loc[laps["Sector1SessionTime"].isna(), "Sector1SessionTime"] = (
-                laps.loc[laps["Sector1SessionTime"].isna(), "LapStartTime"]
-                + laps.loc[laps["Sector1SessionTime"].isna(), "Sector1Time"]
+            laps.loc[laps["Sector1SessionTime"].isna(), "LapStartTime"]
+            + laps.loc[laps["Sector1SessionTime"].isna(), "Sector1Time"]
         )
         laps.loc[laps["Sector2SessionTime"].isna(), "Sector2SessionTime"] = (
-                laps.loc[laps["Sector2SessionTime"].isna(), "Sector1SessionTime"]
-                + laps.loc[laps["Sector2SessionTime"].isna(), "Sector2Time"]
+            laps.loc[laps["Sector2SessionTime"].isna(), "Sector1SessionTime"]
+            + laps.loc[laps["Sector2SessionTime"].isna(), "Sector2Time"]
         )
         laps.loc[laps["Sector3SessionTime"].isna(), "Sector3SessionTime"] = (
-                laps.loc[laps["Sector3SessionTime"].isna(), "Sector2SessionTime"]
-                + laps.loc[laps["Sector3SessionTime"].isna(), "Sector3Time"]
+            laps.loc[laps["Sector3SessionTime"].isna(), "Sector2SessionTime"]
+            + laps.loc[laps["Sector3SessionTime"].isna(), "Sector3Time"]
         )
 
         lap_start_time_in_milliseconds = laps["LapStartTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
         laps["LapStartTimeMilliseconds"] = lap_start_time_in_milliseconds.astype("int64")
         sector1_session_time_in_milliseconds = (
-                laps["Sector1SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
+            laps["Sector1SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
         )
         laps["Sector1SessionTimeMilliseconds"] = sector1_session_time_in_milliseconds.astype("int64")
         sector2_session_time_in_milliseconds = (
-                laps["Sector2SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
+            laps["Sector2SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
         )
         laps["Sector2SessionTimeMilliseconds"] = sector2_session_time_in_milliseconds.astype("int64")
         sector3_session_time_in_milliseconds = (
-                laps["Sector3SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
+            laps["Sector3SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
         )
         laps["Sector3SessionTimeMilliseconds"] = sector3_session_time_in_milliseconds.astype("int64")
 
@@ -431,9 +431,8 @@ class DataExtractorService(DirectObject):
 
         for record in laps_df.itertuples():
             laps_df.loc[
-                (laps_df["LapNumber"] == record.LapNumber)
-                & (laps_df["DriverNumber"] == record.DriverNumber),
-                "SessionTimeTick"
+                (laps_df["LapNumber"] == record.LapNumber) & (laps_df["DriverNumber"] == record.DriverNumber),
+                "SessionTimeTick",
             ] = ts_df.loc[ts_df["SessionTimeMilliseconds"] <= record.LapStartTimeMilliseconds, "SessionTimeTick"].max()
 
         laps_df.loc[laps_df["LapNumber"] == 1.0, "SessionTimeTick"] = 1
@@ -470,8 +469,7 @@ class DataExtractorService(DirectObject):
         df["LapEndTimeMilliseconds"] = df.groupby("DriverNumber")["LapEndTimeMilliseconds"].ffill()
 
         df.loc[
-            (df["LapNumber"] == self.total_laps)
-            & (df["SessionTimeMilliseconds"] > df["LapEndTimeMilliseconds"]),
+            (df["LapNumber"] == self.total_laps) & (df["SessionTimeMilliseconds"] > df["LapEndTimeMilliseconds"]),
             "LapNumber",
         ] = self.total_laps + 1
 
@@ -593,12 +591,11 @@ class DataExtractorService(DirectObject):
 
         df.loc[
             (
-                    (df["PitInTimeMilliseconds"].notna() & (
-                            df["PitInTimeMilliseconds"] <= df["SessionTimeMilliseconds"]))
-                    | (
-                            df["PitOutTimeMilliseconds"].notna()
-                            & (df["PitOutTimeMilliseconds"] >= df["SessionTimeMilliseconds"])
-                    )
+                (df["PitInTimeMilliseconds"].notna() & (df["PitInTimeMilliseconds"] <= df["SessionTimeMilliseconds"]))
+                | (
+                    df["PitOutTimeMilliseconds"].notna()
+                    & (df["PitOutTimeMilliseconds"] >= df["SessionTimeMilliseconds"])
+                )
             ),
             "InPit",
         ] = True
@@ -652,7 +649,7 @@ class DataExtractorService(DirectObject):
             scale=width / 10,
             fg=(1, 1, 1, 0.8),
             font=self.text_font,
-            text=f"Loading ...",
+            text="Loading ...",
         )
 
         self.wait_bar = DirectWaitBar(

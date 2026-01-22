@@ -7,7 +7,7 @@ from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.gui.DirectSlider import DirectSlider
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.MessengerGlobal import messenger
-from direct.task.Task import TaskManager, Task
+from direct.task.Task import Task, TaskManager
 from panda3d.core import Camera, Point3, StaticTextFont, TextNode, deg2Rad
 
 from f1p.services.data_extractor import DataExtractorService
