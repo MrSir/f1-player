@@ -1,7 +1,10 @@
+from typing import Any
+
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.OnscreenImage import OnscreenImage
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
+from direct.task.Task import Task, TaskManager
 from fastf1.core import Laps
 from panda3d.core import Point3, StaticTextFont, TextNode, TransparencyAttrib
 
@@ -21,6 +24,7 @@ class Leaderboard(DirectObject):
     def __init__(
         self,
         pixel2d,
+        task_manager: TaskManager,
         symbols_font: StaticTextFont,
         text_font: StaticTextFont,
         circuit_map: Map,
@@ -29,6 +33,7 @@ class Leaderboard(DirectObject):
         super().__init__()
 
         self.pixel2d = pixel2d
+        self.task_manager = task_manager
         self.width = 215
         self._height: float | None = None
         self.symbols_font = symbols_font
@@ -36,7 +41,7 @@ class Leaderboard(DirectObject):
         self.circuit_map = circuit_map
         self.data_extractor = data_extractor
 
-        self.accept("sessionSelected", self.render)
+        self.accept("sessionSelected", self.render_task)
         self.accept("updateLeaderboard", self.update)
 
         self.frame: DirectFrame | None = None
@@ -307,7 +312,10 @@ class Leaderboard(DirectObject):
 
         processor.update(session_time_tick)
 
-    def render(self) -> None:
+    def render_task(self) -> None:
+        self.task_manager.add(self.render, "renderLeaderboard")
+
+    def render(self, task: Task) -> Any:
         self.render_frame()
         self.render_f1_logo()
         self.render_lap_counter()
@@ -315,3 +323,5 @@ class Leaderboard(DirectObject):
         self.render_track_status()
         self.render_mode_selector()
         self.render_drivers()
+
+        return task.done

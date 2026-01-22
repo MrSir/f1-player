@@ -2,7 +2,9 @@ import datetime
 
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectOptionMenu import DirectOptionMenu
+from direct.showbase.Messenger import Messenger
 from direct.showbase.MessengerGlobal import messenger
+from direct.task.Task import TaskManager
 from panda3d.core import Point3, StaticTextFont
 
 from f1p.services.data_extractor import DataExtractorService
@@ -14,12 +16,16 @@ class Menu:
     def __init__(
         self,
         pixel2d,
+        task_manager: TaskManager,
+        messenger: Messenger,
         width: int,
         height: int,
         text_font: StaticTextFont,
         data_extractor: DataExtractorService,
     ):
         self.pixel2d = pixel2d
+        self.task_manager = task_manager
+        self.messenger = messenger
         self.width = width
         self.height = height
         self.text_font = text_font
@@ -111,9 +117,12 @@ class Menu:
             self.data_extractor._session = None
             self.data_extractor._fastest_lap = None
             self.data_extractor._circuit_info = None
-            messenger.send("clearMaps")
+            self.messenger.send("clearMaps")
             self.data_extractor.session_id = session_id
-            self.data_extractor.extract()
+
+            self.messenger.send("loadData")
+
+            # self.data_extractor.extract()
 
     def render_session_menu(self) -> None:
         self.session_menu = BlackDropDown(

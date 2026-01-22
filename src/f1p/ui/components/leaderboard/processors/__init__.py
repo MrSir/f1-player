@@ -157,8 +157,8 @@ class IntervalLeaderboardProcessor(LeaderboardProcessor):
         if current_color != default_color:
             self.driver_times[index]["fg"] = default_color
 
-        if self.driver_times[index]["text"] != f"+{current_record['DiffToCarInFront']}":
-            self.driver_times[index]["text"] = f"+{current_record['DiffToCarInFront']}"
+        if self.driver_times[index]["text"] != f"+{current_record['DiffToCarInFront']:.3f}":
+            self.driver_times[index]["text"] = f"+{current_record['DiffToCarInFront']:.3f}"
 
     def update_tire_compound(self, driver: Driver, current_record: Series, index: int) -> None:
         if driver.is_dnf:
@@ -217,8 +217,8 @@ class LeaderLeaderboardProcessor(IntervalLeaderboardProcessor):
         if current_color != default_color:
             self.driver_times[index]["fg"] = default_color
 
-        if self.driver_times[index]["text"] != f"+{current_record['DiffToLeader']}":
-            self.driver_times[index]["text"] = f"+{current_record['DiffToLeader']}"
+        if self.driver_times[index]["text"] != f"+{current_record['DiffToLeader']:.3f}":
+            self.driver_times[index]["text"] = f"+{current_record['DiffToLeader']:.3f}"
 
 
 class TiresLeaderboardProcessor(IntervalLeaderboardProcessor):
