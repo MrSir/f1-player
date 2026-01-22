@@ -9,6 +9,7 @@ from f1p.ui.components.map import Map
 from f1p.ui.components.menu import Menu
 from f1p.ui.components.origin import Origin
 from f1p.ui.components.playback import PlaybackControls
+from f1p.ui.components.weather import WeatherBoard
 
 
 class F1PlayerApp(ShowBase):
@@ -98,10 +99,20 @@ class F1PlayerApp(ShowBase):
             self.data_extractor,
         )
 
+        weather_board = WeatherBoard(
+            self.pixel2d,
+            self.taskMgr,
+            self.symbols_font,
+            self.text_font,
+            self.width,
+            self.data_extractor,
+        )
+
         self.ui_components = [
             playback_controls,
             circuit_map,
             leaderboard,
+            weather_board
         ]
 
         return self
