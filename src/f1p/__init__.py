@@ -1,7 +1,7 @@
 from typing import Self
 
 from direct.showbase.ShowBase import ShowBase
-from panda3d.core import WindowProperties
+from panda3d.core import WindowProperties, PStatClient
 
 from f1p.services.data_extractor import DataExtractorService
 from f1p.ui.components.leaderboard import Leaderboard
@@ -12,7 +12,14 @@ from f1p.ui.components.playback import PlaybackControls
 
 
 class F1PlayerApp(ShowBase):
-    def __init__(self, width: int = 800, height: int = 800, draw_origin: bool = False):
+    def __init__(
+        self,
+        width: int = 800,
+        height: int = 800,
+        draw_origin: bool = False,
+        show_frame_rate: bool = False,
+        pstat_debug: bool = False,
+    ):
         super().__init__(self)
 
         self.symbols_font = self.loader.loadFont("./src/f1p/ui/fonts/NotoSansSymbols2-Regular.ttf")
@@ -29,14 +36,16 @@ class F1PlayerApp(ShowBase):
 
         self.taskMgr.setupTaskChain("loadingData", numThreads=1)
 
-        self.setFrameRateMeter(True)
-        # PStatClient.connect()
-
         self.ui_components: list = []
 
         if draw_origin:
             origin = Origin(self.render)
             origin.render()
+
+        self.setFrameRateMeter(show_frame_rate)
+
+        if pstat_debug:
+            PStatClient.connect()
 
     @property
     def data_extractor(self) -> DataExtractorService:
@@ -48,6 +57,7 @@ class F1PlayerApp(ShowBase):
     def configure_window(self) -> Self:
         props = WindowProperties()
         props.setSize(self.width, self.height)
+        props.setFixedSize(True)
         self.win.requestProperties(props)
 
         return self
