@@ -3,7 +3,7 @@ from direct.gui.OnscreenText import OnscreenText
 from panda3d.core import LVecBase4f
 from pandas import Series
 
-from f1p.services.data_extractor import DataExtractorService
+from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.components.driver import Driver
 
 

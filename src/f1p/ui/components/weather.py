@@ -6,7 +6,7 @@ from direct.showbase.DirectObject import DirectObject
 from direct.task.Task import TaskManager, Task
 from panda3d.core import StaticTextFont, Point3, TextNode
 
-from f1p import DataExtractorService
+from f1p.services.data_extractor.service import DataExtractorService
 
 
 class WeatherBoard(DirectObject):
