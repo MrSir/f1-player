@@ -10,7 +10,7 @@ from direct.showbase.MessengerGlobal import messenger
 from direct.task.Task import Task, TaskManager
 from panda3d.core import Camera, Point3, StaticTextFont, TextNode, deg2Rad
 
-from f1p.services.data_extractor import DataExtractorService
+from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.components.gui.button import BlackButton
 from f1p.ui.components.gui.drop_down import BlackDropDown
 
@@ -100,6 +100,7 @@ class PlaybackControls(DirectObject):
         session_time_tick = int(self.timeline["value"])
         messenger.send("updateDrivers", sentArgs=[session_time_tick])
         messenger.send("updateLeaderboard", sentArgs=[session_time_tick])
+        messenger.send("updateWeather", sentArgs=[session_time_tick])
 
     def render_timeline(self) -> None:
         self.timeline_all_clear = DirectFrame(

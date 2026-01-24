@@ -6,7 +6,7 @@ from direct.task.Task import Task, TaskManager
 from panda3d.core import LineSegs, NodePath
 from pandas import DataFrame
 
-from f1p.services.data_extractor import DataExtractorService
+from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.components.driver import Driver
 
 

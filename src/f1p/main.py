@@ -1,4 +1,4 @@
-from f1p import F1PlayerApp
+from f1p.app import F1PlayerApp
 
 app = F1PlayerApp()
 app.disableMouse()  # disable camera controls
