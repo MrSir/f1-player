@@ -92,12 +92,12 @@ class WeatherBoard(DirectObject):
     def render_weather(self) -> None:
         self.weather_symbol = OnscreenText(
             parent=self.frame,
-            pos=(5, -62),
-            scale=self.width / 8,
+            pos=(5, -64),
+            scale=self.width / 7,
             fg=(0.8, 1, 0, 0.7),
             font=self.symbols_font,
             align=TextNode.A_left,
-            text="🌦",
+            text="🌣",
         )
 
         self.weather_text = OnscreenText(
@@ -107,7 +107,7 @@ class WeatherBoard(DirectObject):
             fg=(0.8, 1, 0, 0.7),
             font=self.text_font,
             align=TextNode.A_left,
-            text="RAIN",
+            text="WEATHER",
         )
 
         self.temperature_C = OnscreenText(
@@ -117,7 +117,7 @@ class WeatherBoard(DirectObject):
             fg=(1, 1, 1, 0.8),
             font=self.text_font,
             align=TextNode.A_left,
-            text="24.5°C",
+            text="00.0°C",
         )
 
         self.temperature_F = OnscreenText(
@@ -127,7 +127,7 @@ class WeatherBoard(DirectObject):
             fg=(0.5, 0.5, 0.5, 1),
             font=self.text_font,
             align=TextNode.A_left,
-            text="159.5°F",
+            text="00.0°F",
         )
 
     def render_track_temperature(self) -> None:
@@ -158,7 +158,7 @@ class WeatherBoard(DirectObject):
             fg=(1, 1, 1, 0.8),
             font=self.text_font,
             align=TextNode.A_left,
-            text="99.5°C",
+            text="00.0°C",
         )
 
         self.track_temp_F = OnscreenText(
@@ -168,7 +168,7 @@ class WeatherBoard(DirectObject):
             fg=(0.5, 0.5, 0.5, 1),
             font=self.text_font,
             align=TextNode.A_left,
-            text="124.5°F",
+            text="00.0°F",
         )
 
     def render_humidity(self) -> None:
@@ -199,7 +199,7 @@ class WeatherBoard(DirectObject):
             fg=(1, 1, 1, 0.8),
             font=self.text_font,
             align=TextNode.A_left,
-            text="54%",
+            text="00.0%",
         )
 
     def render_pressure(self) -> None:
@@ -220,7 +220,7 @@ class WeatherBoard(DirectObject):
             fg=(1, 1, 1, 0.8),
             font=self.text_font,
             align=TextNode.A_left,
-            text="101.325 kPa",
+            text="000.00 kPa",
         )
 
     def render_wind(self) -> None:
@@ -251,7 +251,7 @@ class WeatherBoard(DirectObject):
             fg=(1, 1, 1, 0.8),
             font=self.text_font,
             align=TextNode.A_left,
-            text="5.7 km/h",
+            text="00.0 km/h",
         )
 
         self.wind_direction_text = OnscreenText(
@@ -261,7 +261,7 @@ class WeatherBoard(DirectObject):
             fg=(1, 1, 1, 0.8),
             font=self.text_font,
             align=TextNode.A_left,
-            text="NORTH EAST",
+            text="Pending...",
         )
 
     def render_weather_board(self) -> None:
