@@ -112,7 +112,7 @@ class F1PlayerApp(ShowBase):
             playback_controls,
             circuit_map,
             leaderboard,
-            weather_board
+            weather_board,
         ]
 
         return self
