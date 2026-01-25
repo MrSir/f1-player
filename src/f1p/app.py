@@ -1,7 +1,8 @@
 from typing import Self
 
 from direct.showbase.ShowBase import ShowBase
-from panda3d.core import PStatClient, WindowProperties
+from direct.task import Task
+from panda3d.core import PStatClient, WindowProperties, Camera
 
 from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.components.leaderboard.component import Leaderboard
@@ -30,12 +31,21 @@ class F1PlayerApp(ShowBase):
         self.height = height
 
         self._data_extractor: DataExtractorService | None = None
-        self.cam.setPos(0, -70, 40)
-        self.cam.lookAt(0, 0, 0)
+
+        self.default_camera: Camera = self.cam
+        self.default_camera.setPos(0, -70, 40)
+        self.default_camera.lookAt(0, 0, 0)
 
         self.setBackgroundColor(0.3, 0.3, 0.3, 1)
 
+        self.cam_controls_enabled = False
+        self.zoom = 0
+
         self.taskMgr.setupTaskChain("loadingData", numThreads=1)
+
+        self.accept("sessionSelected", self.enable_camera_controls)
+        self.accept("wheel_up", self.zoom_camera_in)
+        self.accept("wheel_down", self.zoom_camera_out)
 
         self.ui_components: list = []
 
@@ -78,7 +88,7 @@ class F1PlayerApp(ShowBase):
     def register_ui_components(self) -> Self:
         playback_controls = PlaybackControls(
             self.pixel2d,
-            self.cam,
+            self.default_camera,
             self.taskMgr,
             self.height,
             self.width,
@@ -116,3 +126,38 @@ class F1PlayerApp(ShowBase):
         ]
 
         return self
+
+    def enable_camera_controls(self) -> None:
+        self.cam_controls_enabled = True
+
+    def zoom_camera_in(self) -> None:
+        if not self.cam_controls_enabled:
+            return
+
+        if self.zoom + 1 > 100:
+            self.zoom = 100
+            return
+
+        self.zoom += 1
+
+        self.zoom_camera()
+
+    def zoom_camera_out(self) -> None:
+        if not self.cam_controls_enabled:
+            return
+
+        if self.zoom - 1 < 0:
+            self.zoom = 0
+            return
+
+        self.zoom -= 1
+
+        self.zoom_camera()
+
+    def zoom_camera(self) -> None:
+        pass
+        # TODO
+        #  - find vector between Look At and Pos of camera
+        #  - scale vector by zoom
+        #  - reset pos based on Look At + vector
+        #  - set look at back to the original look at
