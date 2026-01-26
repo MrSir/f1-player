@@ -20,3 +20,13 @@ def test_initialization(value: str, expected: ConventionalSessionIdentifiers) ->
 
     assert isinstance(enum, Enum)
     assert enum == expected
+
+
+def test_all_values() -> None:
+    assert [
+        "Practice 1",
+        "Practice 2",
+        "Practice 3",
+        "Qualifying",
+        "Race",
+    ] == ConventionalSessionIdentifiers.all_values()
