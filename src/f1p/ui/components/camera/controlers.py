@@ -1,11 +1,10 @@
-from math import cos, sin
 
 from direct.showbase.DirectObject import DirectObject
 from direct.task.Task import TaskManager
-from panda3d.core import Camera, deg2Rad
+from panda3d.core import Camera
 
 from f1p.ui.components.camera.enums import CameraType
-from f1p.ui.components.camera.types import OrbitingCameraController, TopDownCameraController, CameraController
+from f1p.ui.components.camera.types import CameraController, OrbitingCameraController, TopDownCameraController
 
 
 class MainCameraController(DirectObject):

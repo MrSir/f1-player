@@ -8,14 +8,13 @@ class CameraController:
         self,
         camera: Camera,
         pos: tuple[float, float, float],
-        look_at: tuple[float, float, float] = (0, 0, 0)
+        look_at: tuple[float, float, float] = (0, 0, 0),
     ):
         super().__init__()
 
         self.camera = camera
         self.default_pos = pos
         self.default_look_at = look_at
-        self.default_vector = tuple([x - y for x, y in zip(self.default_pos, self.default_look_at)])
 
         self.zoom = 0
 
@@ -105,7 +104,11 @@ class TopDownCameraController(CameraController):
         multiplier = 1 - (self.zoom / 100)
 
         x0, y0, z0 = self.default_look_at
-        x_old_offset, y_old_offset, z_old_offset = self.default_vector
+        x1, y1, z1 = self.default_pos
+
+        x_old_offset = x1 - x0
+        y_old_offset = y1 - y0
+        z_old_offset = z1 - z0
 
         x_offest = x_old_offset * multiplier
         y_offset = y_old_offset * multiplier
