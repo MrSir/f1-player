@@ -1,4 +1,3 @@
-
 from direct.showbase.DirectObject import DirectObject
 from direct.task.Task import TaskManager
 from panda3d.core import Camera
