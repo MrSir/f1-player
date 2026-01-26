@@ -4,7 +4,7 @@ from direct.showbase.ShowBase import ShowBase
 from panda3d.core import PStatClient, WindowProperties
 
 from f1p.services.data_extractor.service import DataExtractorService
-from f1p.ui.components.camera.controlers import MainCameraController
+from f1p.ui.components.camera.component import MainCamera
 from f1p.ui.components.leaderboard.component import Leaderboard
 from f1p.ui.components.map import Map
 from f1p.ui.components.menu import Menu
@@ -119,7 +119,7 @@ class F1PlayerApp(ShowBase):
         return self
 
     def register_controls(self) -> Self:
-        controls = MainCameraController(self.taskMgr, self.cam)
+        controls = MainCamera(self.taskMgr, self.cam)
         controls.configure()
 
         return self

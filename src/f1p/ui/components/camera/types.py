@@ -10,8 +10,6 @@ class CameraController:
         pos: tuple[float, float, float],
         look_at: tuple[float, float, float] = (0, 0, 0),
     ):
-        super().__init__()
-
         self.camera = camera
         self.default_pos = pos
         self.default_look_at = look_at
@@ -77,17 +75,9 @@ class OrbitingCameraController(CameraController):
         x1, y1, z1 = self.default_pos
         x1_rotated, y1_rotated = self.rotate_around_z(x1, y1, self.rotation)
 
-        x_old_offset = x1_rotated - x0
-        y_old_offset = y1_rotated - y0
-        z_old_offset = z1 - z0
-
-        x_offest = x_old_offset * multiplier
-        y_offset = y_old_offset * multiplier
-        z_offset = z_old_offset * multiplier
-
-        x = x0 + x_offest
-        y = y0 + y_offset
-        z = z0 + z_offset
+        x = x0 + ((x1_rotated - x0) * multiplier)
+        y = y0 + ((y1_rotated - y0) * multiplier)
+        z = z0 + ((z1 - z0) * multiplier)
 
         self.camera.setPos(x, y, z)
         self.camera.lookAt(x0, y0, z0)
@@ -97,26 +87,15 @@ class TopDownCameraController(CameraController):
     def __init__(self, camera: Camera):
         super().__init__(camera, (0, 0, 100))
 
-    def animate_camera(self) -> None:
-        pass
-
     def zoom_camera(self) -> None:
         multiplier = 1 - (self.zoom / 100)
 
         x0, y0, z0 = self.default_look_at
         x1, y1, z1 = self.default_pos
 
-        x_old_offset = x1 - x0
-        y_old_offset = y1 - y0
-        z_old_offset = z1 - z0
-
-        x_offest = x_old_offset * multiplier
-        y_offset = y_old_offset * multiplier
-        z_offset = z_old_offset * multiplier
-
-        x = x0 + x_offest
-        y = y0 + y_offset
-        z = z0 + z_offset
+        x = x0 + ((x1 - x0) * multiplier)
+        y = y0 + ((y1 - y0) * multiplier)
+        z = z0 + ((z1 - z0) * multiplier)
 
         self.camera.setPos(x, y, z)
         self.camera.lookAt(x0, y0, z0)

@@ -6,7 +6,7 @@ from f1p.ui.components.camera.enums import CameraType
 from f1p.ui.components.camera.types import CameraController, OrbitingCameraController, TopDownCameraController
 
 
-class MainCameraController(DirectObject):
+class MainCamera(DirectObject):
     controller: CameraController
     camera_type: CameraType
 
