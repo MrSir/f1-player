@@ -4,6 +4,7 @@ from direct.showbase.ShowBase import ShowBase
 from panda3d.core import PStatClient, WindowProperties
 
 from f1p.services.data_extractor.service import DataExtractorService
+from f1p.ui.components.camera.component import MainCamera
 from f1p.ui.components.leaderboard.component import Leaderboard
 from f1p.ui.components.map import Map
 from f1p.ui.components.menu import Menu
@@ -30,14 +31,15 @@ class F1PlayerApp(ShowBase):
         self.height = height
 
         self._data_extractor: DataExtractorService | None = None
-        self.cam.setPos(0, -70, 40)
-        self.cam.lookAt(0, 0, 0)
 
         self.setBackgroundColor(0.3, 0.3, 0.3, 1)
 
         self.taskMgr.setupTaskChain("loadingData", numThreads=1)
 
         self.ui_components: list = []
+
+        # Turn off default mouse camera controls
+        self.disableMouse()
 
         if draw_origin:
             origin = Origin(self.render)
@@ -78,7 +80,6 @@ class F1PlayerApp(ShowBase):
     def register_ui_components(self) -> Self:
         playback_controls = PlaybackControls(
             self.pixel2d,
-            self.cam,
             self.taskMgr,
             self.height,
             self.width,
@@ -114,5 +115,11 @@ class F1PlayerApp(ShowBase):
             leaderboard,
             weather_board,
         ]
+
+        return self
+
+    def register_controls(self) -> Self:
+        controls = MainCamera(self.taskMgr, self.mouseWatcherNode, self.cam)
+        controls.configure()
 
         return self

@@ -1,4 +1,3 @@
-from math import cos, sin
 from typing import Any
 
 from direct.gui.DirectButton import DirectButton
@@ -8,9 +7,10 @@ from direct.gui.DirectSlider import DirectSlider
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.MessengerGlobal import messenger
 from direct.task.Task import Task, TaskManager
-from panda3d.core import Camera, Point3, StaticTextFont, TextNode, deg2Rad
+from panda3d.core import Point3, StaticTextFont, TextNode
 
 from f1p.services.data_extractor.service import DataExtractorService
+from f1p.ui.components.camera.enums import CameraType
 from f1p.ui.components.gui.button import BlackButton
 from f1p.ui.components.gui.drop_down import BlackDropDown
 
@@ -19,7 +19,6 @@ class PlaybackControls(DirectObject):
     def __init__(
         self,
         pixel2d,
-        camera: Camera,
         task_manager: TaskManager,
         window_height: int,
         width: int,
@@ -31,7 +30,6 @@ class PlaybackControls(DirectObject):
         super().__init__()
 
         self.pixel2d = pixel2d
-        self.camera = camera
         self.task_manager = task_manager
         self.window_height = window_height
         self.width = width
@@ -168,34 +166,12 @@ class PlaybackControls(DirectObject):
             pos=Point3(self.width - 87, 0, -self.height / 2),
         )
 
-    def move_camera(self, task):
-        if not self.orbiting_camera:
-            return task.cont
-
-        current_x = self.camera.getX()
-        current_y = self.camera.getY()
-
-        rad = deg2Rad(0.3)
-
-        self.camera.setX((current_x * cos(rad)) - (current_y * sin(rad)))
-        self.camera.setY((current_x * sin(rad)) + (current_y * cos(rad)))
-
-        self.camera.lookAt(0, 0, 0)
-
-        return task.cont
-
     def switch_camera(self, item: str) -> None:
         match item:
             case "🌎":
-                self.camera.setPos(0, -70, 40)
-                self.camera.lookAt(0, 0, 0)
-
-                self.orbiting_camera = True
+                messenger.send("switchCamera", sentArgs=[CameraType.ORBITING])
             case "🗺":
-                self.camera.setPos(0, 0, 100)
-                self.camera.lookAt(0, 0, 0)
-
-                self.orbiting_camera = False
+                messenger.send("switchCamera", sentArgs=[CameraType.TOP_DOWN])
 
     def render_camera_button(self) -> None:
         self.camera_button = BlackDropDown(
@@ -220,7 +196,6 @@ class PlaybackControls(DirectObject):
         self.task_manager.add(self.render, "renderPlayback")
 
     def render(self, task: Task) -> Any:
-        self.task_manager.add(self.move_camera, "move_camera")
         self.task_manager.add(self.move_timeline, "move_timeline")
         self.render_frame()
         self.render_play_button()
