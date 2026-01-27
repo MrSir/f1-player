@@ -30,7 +30,7 @@ def test_initialization(mock_camera: MagicMock) -> None:
         (0, 0, 0, 0, 0, "Nothing to rotate"),
         (10, 10, math.pi, -10, -10, "Rotate 180 deg."),
         (10, 10, math.pi / 2, -10, 10, "Rotate 90 deg."),
-    ]
+    ],
 )
 def test_rotate_around_z(
     x: float,
@@ -51,9 +51,14 @@ def test_rotate_around_z(
     [
         (0, deg2Rad(0.3)),
         (math.pi, math.pi + deg2Rad(0.3)),
-    ]
+    ],
 )
-def test_animate_camera(initial_rotation: float, rotation_after: float, camera_controller: OrbitingCameraController, mock_camera: MagicMock) -> None:
+def test_animate_camera(
+    initial_rotation: float,
+    rotation_after: float,
+    camera_controller: OrbitingCameraController,
+    mock_camera: MagicMock,
+) -> None:
     mock_camera.getX.return_value = 10
     mock_camera.getY.return_value = 10
 
@@ -70,7 +75,6 @@ def test_animate_camera(initial_rotation: float, rotation_after: float, camera_c
     mock_camera.lookAt.assert_called_once_with(*camera_controller.default_look_at)
 
 
-
 @pytest.mark.parametrize(
     ("zoom", "mouse_y", "default_pos", "default_look_at", "pos", "look_at"),
     [
@@ -79,7 +83,7 @@ def test_animate_camera(initial_rotation: float, rotation_after: float, camera_c
         (0, 0.5, (0, 0, 100), (0, 0, 0), (0, 0, 95), (0, 0, 0)),
         (50, -0.5, (0, 0, 100), (0, 0, 0), (0, 0, 55), (0, 0, 0)),
         (50, -0.5, (15, 15, 100), (0, 0, 0), (7.5, 7.5, 55), (0, 0, 0)),
-    ]
+    ],
 )
 def test_move_camera(
     zoom: int,

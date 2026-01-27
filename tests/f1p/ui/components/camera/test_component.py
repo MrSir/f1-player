@@ -2,13 +2,13 @@ from unittest.mock import MagicMock
 
 import pytest
 from direct.showbase.DirectObject import DirectObject
-from direct.task.Task import TaskManager, Task
+from direct.task.Task import Task, TaskManager
 from panda3d.core import MouseWatcher
 from pytest_mock import MockerFixture
 
 from f1p.ui.components.camera.component import MainCamera
 from f1p.ui.components.camera.enums import CameraType
-from f1p.ui.components.camera.types import CameraController, OrbitingCameraController, TopDownCameraController
+from f1p.ui.components.camera.types import OrbitingCameraController, TopDownCameraController
 
 
 @pytest.fixture()
@@ -37,10 +37,10 @@ def test_initialization(
     mock_task_manager: MagicMock,
     mock_mouse_watcher: MagicMock,
     mock_camera: MagicMock,
-    mocker: MockerFixture
+    mocker: MockerFixture,
 ) -> None:
     mock_accept = mocker.MagicMock()
-    mocker.patch('f1p.ui.components.camera.component.DirectObject.accept', mock_accept)
+    mocker.patch("f1p.ui.components.camera.component.DirectObject.accept", mock_accept)
 
     main_camera = MainCamera(mock_task_manager, mock_mouse_watcher, mock_camera)
 
@@ -65,17 +65,17 @@ def test_initialization(
             mocker.call("wheel_up", main_camera.zoom_camera_in),
             mocker.call("wheel_down", main_camera.zoom_camera_out),
             mocker.call("switchCamera", main_camera.switch_camera),
-        ]
+        ],
     )
 
 
 def test_configure(main_camera: MainCamera, mocker: MockerFixture) -> None:
     mock_orb_cam_cntr = mocker.MagicMock(spec=OrbitingCameraController)
     mock_orb_class = mocker.MagicMock(return_value=mock_orb_cam_cntr)
-    mocker.patch('f1p.ui.components.camera.component.OrbitingCameraController', mock_orb_class)
+    mocker.patch("f1p.ui.components.camera.component.OrbitingCameraController", mock_orb_class)
     mock_td_cam_cntr = mocker.MagicMock(spec=TopDownCameraController)
     mock_td_class = mocker.MagicMock(return_value=mock_td_cam_cntr)
-    mocker.patch('f1p.ui.components.camera.component.TopDownCameraController', mock_td_class)
+    mocker.patch("f1p.ui.components.camera.component.TopDownCameraController", mock_td_class)
 
     main_camera.configure()
 
@@ -104,9 +104,15 @@ def test_enable(main_camera: MainCamera, mock_task_manager: MagicMock) -> None:
     [
         (False, 0, "Not enabled."),
         (True, 1, "Enabled."),
-    ]
+    ],
 )
-def test_zoom_in(enabled: bool, expected_call_count: int, case: str, main_camera: MainCamera, mocker: MockerFixture) -> None:
+def test_zoom_in(
+    enabled: bool,
+    expected_call_count: int,
+    case: str,
+    main_camera: MainCamera,
+    mocker: MockerFixture,
+) -> None:
     mock_orb_cam_cntr = mocker.MagicMock(spec=OrbitingCameraController)
     mock_orb_cam_cntr.zoom_camera_in = mocker.MagicMock()
 
@@ -124,9 +130,15 @@ def test_zoom_in(enabled: bool, expected_call_count: int, case: str, main_camera
     [
         (False, 0, "Not enabled."),
         (True, 1, "Enabled."),
-    ]
+    ],
 )
-def test_zoom_out(enabled: bool, expected_call_count: int, case: str, main_camera: MainCamera, mocker: MockerFixture) -> None:
+def test_zoom_out(
+    enabled: bool,
+    expected_call_count: int,
+    case: str,
+    main_camera: MainCamera,
+    mocker: MockerFixture,
+) -> None:
     mock_orb_cam_cntr = mocker.MagicMock(spec=OrbitingCameraController)
     mock_orb_cam_cntr.zoom_camera_out = mocker.MagicMock()
 
@@ -168,7 +180,11 @@ def test_animate_camera(main_camera: MainCamera, mocker: MockerFixture) -> None:
     mock_orb_cam_cntr.animate_camera.assert_called_once()
 
 
-def test_left_mouse_down_not_in_screen(main_camera: MainCamera, mock_mouse_watcher: MagicMock, mock_task_manager: MagicMock) -> None:
+def test_left_mouse_down_not_in_screen(
+    main_camera: MainCamera,
+    mock_mouse_watcher: MagicMock,
+    mock_task_manager: MagicMock,
+) -> None:
     mock_mouse_watcher.hasMouse.return_value = False
 
     assert main_camera.can_move_camera is False
@@ -186,7 +202,11 @@ def test_left_mouse_down_not_in_screen(main_camera: MainCamera, mock_mouse_watch
     mock_task_manager.add.assert_not_called()
 
 
-def test_left_mouse_down_in_screen(main_camera: MainCamera, mock_mouse_watcher: MagicMock, mock_task_manager: MagicMock) -> None:
+def test_left_mouse_down_in_screen(
+    main_camera: MainCamera,
+    mock_mouse_watcher: MagicMock,
+    mock_task_manager: MagicMock,
+) -> None:
     mock_mouse_watcher.hasMouse.return_value = True
 
     assert main_camera.can_move_camera is False
@@ -198,7 +218,10 @@ def test_left_mouse_down_in_screen(main_camera: MainCamera, mock_mouse_watcher: 
     mock_mouse_watcher.getMouseX.assert_called_once()
     mock_mouse_watcher.getMouseY.assert_called_once()
 
-    assert (mock_mouse_watcher.getMouseX.return_value, mock_mouse_watcher.getMouseY.return_value) == main_camera.left_mouse_down_pos
+    assert (
+        mock_mouse_watcher.getMouseX.return_value,
+        mock_mouse_watcher.getMouseY.return_value,
+    ) == main_camera.left_mouse_down_pos
     assert main_camera.can_move_camera is True
 
     mock_task_manager.add.assert_called_once_with(main_camera.move_camera, "move_camera")
@@ -252,7 +275,11 @@ def test_move_camera_can_move(main_camera: MainCamera, mock_mouse_watcher: Magic
     assert mock_mouse_watcher.getMouseY.return_value == mock_orb_cam_cntr.mouse_y
 
 
-def test_move_camera_can_move_not_on_screen(main_camera: MainCamera, mock_mouse_watcher: MagicMock, mocker: MockerFixture) -> None:
+def test_move_camera_can_move_not_on_screen(
+    main_camera: MainCamera,
+    mock_mouse_watcher: MagicMock,
+    mocker: MockerFixture,
+) -> None:
     mock_task = mocker.MagicMock(spec=Task)
 
     mock_orb_cam_cntr = mocker.MagicMock(spec=OrbitingCameraController)
