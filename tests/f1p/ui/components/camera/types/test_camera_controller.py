@@ -1,19 +1,9 @@
 from unittest.mock import MagicMock
 
 import pytest
-from panda3d.core import Camera
 from pytest_mock import MockerFixture
 
 from f1p.ui.components.camera.types import CameraController
-
-
-@pytest.fixture()
-def mock_camera(mocker: MockerFixture) -> MagicMock:
-    m_camera = mocker.MagicMock(spec=Camera)
-    m_camera.setPos = mocker.MagicMock()
-    m_camera.lookAt = mocker.MagicMock()
-
-    return m_camera
 
 
 @pytest.fixture()

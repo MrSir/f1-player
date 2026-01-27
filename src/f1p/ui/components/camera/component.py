@@ -73,8 +73,8 @@ class MainCamera(DirectObject):
         if self.mouse_watcher.hasMouse():
             self.left_mouse_down_pos = (self.mouse_watcher.getMouseX(), self.mouse_watcher.getMouseY())
 
-        self.can_move_camera = True
-        self.task_manager.add(self.move_camera, "move_camera")
+            self.can_move_camera = True
+            self.task_manager.add(self.move_camera, "move_camera")
 
     def left_mouse_up(self) -> None:
         self.can_move_camera = False
