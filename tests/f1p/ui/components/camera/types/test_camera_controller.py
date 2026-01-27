@@ -79,7 +79,7 @@ def test_zoom_camera_in(
 
     camera_controller.zoom_camera_in()
 
-    assert expected_zoom == camera_controller.zoom
+    assert expected_zoom == camera_controller.zoom, case
     assert expected_calls_to_zoom == mock_zoom_camera.call_count
 
 
@@ -105,5 +105,5 @@ def test_zoom_camera_out(
 
     camera_controller.zoom_camera_out()
 
-    assert expected_zoom == camera_controller.zoom
+    assert expected_zoom == camera_controller.zoom, case
     assert expected_calls_to_zoom == mock_zoom_camera.call_count

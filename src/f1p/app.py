@@ -119,7 +119,7 @@ class F1PlayerApp(ShowBase):
         return self
 
     def register_controls(self) -> Self:
-        controls = MainCamera(self.taskMgr, self.cam)
+        controls = MainCamera(self.taskMgr, self.mouseWatcherNode, self.cam)
         controls.configure()
 
         return self

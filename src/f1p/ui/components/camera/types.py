@@ -14,7 +14,11 @@ class CameraController:
         self.default_pos = pos
         self.default_look_at = look_at
 
+        self.current_look_at = self.default_look_at
+
         self.zoom = 0
+        self.mouse_x = 0
+        self.mouse_y = 0
 
     def re_center(self) -> None:
         self.camera.setPos(*self.default_pos)
@@ -29,18 +33,18 @@ class CameraController:
 
         self.zoom += 1
 
-        self.zoom_camera()
+        self.move_camera()
 
     def zoom_camera_out(self) -> None:
-        if self.zoom - 1 < 0:
-            self.zoom = 0
+        if self.zoom - 1 < 10:
+            self.zoom = 10
             return
 
         self.zoom -= 1
 
-        self.zoom_camera()
+        self.move_camera()
 
-    def zoom_camera(self) -> None: ...
+    def move_camera(self) -> None: ...
 
 
 class OrbitingCameraController(CameraController):
@@ -68,34 +72,42 @@ class OrbitingCameraController(CameraController):
         self.camera.setY(y)
         self.camera.lookAt(*self.default_look_at)
 
-    def zoom_camera(self) -> None:
+    def move_camera(self) -> None:
+        movement_amount = -10
+
+        la_x, la_y, la_z = self.default_look_at
+        pos_x, pos_y, pos_z = self.default_pos
+
+        pos_x_rotated, pos_y_rotated = self.rotate_around_z(pos_x, pos_y, self.rotation)
+
         multiplier = 1 - (self.zoom / 100)
+        x = la_x + ((pos_x_rotated - la_x) * multiplier)
+        y = la_y + ((pos_y_rotated - la_y) * multiplier)
 
-        x0, y0, z0 = self.default_look_at
-        x1, y1, z1 = self.default_pos
-        x1_rotated, y1_rotated = self.rotate_around_z(x1, y1, self.rotation)
-
-        x = x0 + ((x1_rotated - x0) * multiplier)
-        y = y0 + ((y1_rotated - y0) * multiplier)
-        z = z0 + ((z1 - z0) * multiplier)
+        moved_z = movement_amount * self.mouse_y
+        z = la_z + ((pos_z - la_z) * multiplier) + moved_z
 
         self.camera.setPos(x, y, z)
-        self.camera.lookAt(x0, y0, z0)
+        self.camera.lookAt(la_x, la_y, la_z)
 
 
 class TopDownCameraController(CameraController):
     def __init__(self, camera: Camera):
         super().__init__(camera, (0, 0, 100))
 
-    def zoom_camera(self) -> None:
+    def move_camera(self) -> None:
+        movement_amount = -10
+
+        la_x, la_y, la_z = self.default_look_at
+        pos_x, pos_y, pos_z = self.default_pos
+
+        moved_x = movement_amount * self.mouse_x
+        moved_y = movement_amount * self.mouse_y
+
         multiplier = 1 - (self.zoom / 100)
-
-        x0, y0, z0 = self.default_look_at
-        x1, y1, z1 = self.default_pos
-
-        x = x0 + ((x1 - x0) * multiplier)
-        y = y0 + ((y1 - y0) * multiplier)
-        z = z0 + ((z1 - z0) * multiplier)
+        x = la_x + moved_x + ((pos_x - la_x) * multiplier)
+        y = la_y + moved_y + ((pos_y - la_y) * multiplier)
+        z = la_z + ((pos_z - la_z) * multiplier)
 
         self.camera.setPos(x, y, z)
-        self.camera.lookAt(x0, y0, z0)
+        self.camera.lookAt(la_x + moved_x, la_y + moved_y, la_z)
