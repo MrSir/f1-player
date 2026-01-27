@@ -53,7 +53,8 @@ class OrbitingCameraController(CameraController):
 
         self.rotation = 0
 
-    def rotate_around_z(self, current_x: float, current_y: float, rad: float) -> tuple[float, float]:
+    @staticmethod
+    def rotate_around_z(current_x: float, current_y: float, rad: float) -> tuple[float, float]:
         x = (current_x * cos(rad)) - (current_y * sin(rad))
         y = (current_x * sin(rad)) + (current_y * cos(rad))
 
