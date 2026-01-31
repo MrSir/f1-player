@@ -159,7 +159,7 @@ class Leaderboard(DirectObject):
             BlackDropDown(
                 parent=self.frame,
                 width=40,
-                height=30,
+                height=40,
                 font=self.symbols_font,
                 font_scale=20,
                 popup_menu_below=True,
@@ -171,7 +171,7 @@ class Leaderboard(DirectObject):
                 items=["🕒", "🕘", "⛁"],
                 item_scale=1.0,
                 initialitem=0,
-                pos=Point3(self.width - 45, 0, -22),
+                pos=Point3(self.width - 45, 0, -27),
             ),
         )
 
@@ -243,14 +243,14 @@ class Leaderboard(DirectObject):
 
             has_fastest_lap = OnscreenText(
                 parent=self.frame,
-                pos=(self.width + 10, -offset_from_top - (index * 23)),
+                pos=(self.width + 11, -offset_from_top - (index * 23) - 2),
                 scale=self.width / 14,
                 bg=(1, 0, 1, 0.6),
                 fg=(1, 1, 1, 0.8),
                 font=self.symbols_font,
                 text="",
             )
-            has_fastest_lap.textNode.setCardAsMargin(0.1, 0.2, 0.1, 0.02)
+            has_fastest_lap.textNode.setCardAsMargin(0.2, 0.4, 0.2, 0.02)
 
             self.has_fastest_lap.append(has_fastest_lap)
 
