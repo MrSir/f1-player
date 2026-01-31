@@ -17,7 +17,7 @@ from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f, NodePath, Point3, StaticTextFont, deg2Rad
 from pandas import DataFrame, Series, Timedelta
 
-from f1p.utils.geometry import center_pos_data, find_center, resize_pos_data, rotate_in_df
+from f1p.utils.geometry import center_pos_data, find_center, resize_pos_data
 
 
 class DataExtractorService(DirectObject):
@@ -496,7 +496,8 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = combined_df
 
-        # TODO figure out what to do with drivers that have no lap data at all. Should probably zero out everything relevant for them and DNS them
+        # TODO figure out what to do with drivers that have no lap data at all. Should probably zero out everything
+        #      relevant for them and DNS them
 
         self.update_loading(5)
 
@@ -774,7 +775,7 @@ class DataExtractorService(DirectObject):
     def process_corners(self) -> Self:
         df = self.circuit_info.corners.copy()
 
-        df["Label"] = df['Number'].astype(str) + df['Letter'].astype(str)
+        df["Label"] = df["Number"].astype(str) + df["Letter"].astype(str)
         df["AndleRad"] = df["Angle"].map(lambda d: deg2Rad(d))
         # Add Z coordinate
         df["Z"] = 0
