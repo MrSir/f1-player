@@ -120,13 +120,11 @@ class Map(DirectObject):
 
     def initialize_drivers(self) -> None:
         for _, driver_sr in self.data_extractor.session.results.iterrows():
-            driver_laps = self.data_extractor.laps[self.data_extractor.laps["Driver"] == driver_sr["Abbreviation"]]
-
             driver_pos_data = self.data_extractor.processed_pos_data[
                 self.data_extractor.processed_pos_data["DriverNumber"] == driver_sr["DriverNumber"]
             ]
 
-            driver = Driver.from_df(self.parent, driver_sr, driver_pos_data, driver_laps)
+            driver = Driver.from_df(self.parent, driver_sr, driver_pos_data)
 
             self.drivers.append(driver)
 

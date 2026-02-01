@@ -1,9 +1,8 @@
 from decimal import Decimal
 
 from direct.showbase.DirectObject import DirectObject
-from fastf1.core import Lap, Laps, Telemetry
 from panda3d.core import LVecBase4f, NodePath
-from pandas import Series, Timedelta
+from pandas import DataFrame, Series
 
 from f1p.utils.color import hex_to_rgb_saturation
 from procedural3d import SphereMaker
@@ -18,14 +17,8 @@ class Driver(DirectObject):
         broadcast_name: str,
         abbreviation: str,
         team_name: str,
-        team_color: str,
-        pos_data: Telemetry,
-        current_lap: Lap | None = None,
-        current_lap_time: Timedelta = Timedelta(milliseconds=0),
-        time_to_car_in_front: Timedelta = Timedelta(milliseconds=0),
-        time_to_leader: Timedelta = Timedelta(milliseconds=0),
+        pos_data: DataFrame,
         node_path: NodePath = None,
-        laps: Laps | None = None,
     ):
         super().__init__()
 
@@ -35,15 +28,10 @@ class Driver(DirectObject):
         self.broadcast_name = broadcast_name
         self.abbreviation = abbreviation
         self.team_name = team_name
-        self.team_color = team_color
         self.pos_data = pos_data
         self.ticks = self.pos_data.set_index("SessionTimeTick").to_dict(orient="index")
-        self.current_lap = current_lap
-        self.current_lap_time = current_lap_time
-        self.time_to_car_in_front = time_to_car_in_front
-        self.time_to_leader = time_to_leader
         self.node_path = node_path
-        self.laps = laps
+
         self.in_pit: bool = False
         self.is_dnf: bool = False
         self.is_finished: bool = False
@@ -51,14 +39,12 @@ class Driver(DirectObject):
 
         self.accept("updateDrivers", self.update)
 
-        self._last_session_time: int | None = None
-
     @property
     def team_color_obj(self) -> LVecBase4f:
         return self.node_path.getColor()
 
     @staticmethod
-    def create_node_path(parent, driver_sr: Series) -> NodePath:
+    def create_node_path(parent: NodePath, driver_sr: Series) -> NodePath:
         sphere_maker = SphereMaker(
             radius=0.10,
         )
@@ -80,8 +66,7 @@ class Driver(DirectObject):
         cls,
         parent: NodePath,
         driver_sr: Series,
-        pos_data: Telemetry,
-        laps: Laps,
+        pos_data: DataFrame,
     ) -> Driver:
         return Driver(
             number=driver_sr["DriverNumber"],
@@ -90,10 +75,8 @@ class Driver(DirectObject):
             broadcast_name=driver_sr["BroadcastName"],
             abbreviation=driver_sr["Abbreviation"],
             team_name=driver_sr["TeamName"],
-            team_color=driver_sr["TeamColor"],
             pos_data=pos_data,
             node_path=cls.create_node_path(parent, driver_sr),
-            laps=laps,
         )
 
     def update(self, session_time_tick: int) -> None:
@@ -106,14 +89,15 @@ class Driver(DirectObject):
 
         precision = Decimal("0.001")
 
-        X = Decimal(current_record["X"]).quantize(precision)
-        Y = Decimal(current_record["Y"]).quantize(precision)
-        Z = Decimal(current_record["Z"]).quantize(precision)
+        x = Decimal(current_record["X"]).quantize(precision)
+        y = Decimal(current_record["Y"]).quantize(precision)
+        z = Decimal(current_record["Z"]).quantize(precision)
 
         current_pos = self.node_path.getPos()
-        current_X = Decimal(current_pos.x).quantize(precision)
-        current_Y = Decimal(current_pos.y).quantize(precision)
-        current_Z = Decimal(current_pos.z).quantize(precision)
 
-        if (current_X, current_Y, current_Z) != (X, Y, Z):
-            self.node_path.setPos(X, Y, Z)
+        current_x = Decimal(current_pos.x).quantize(precision)
+        current_y = Decimal(current_pos.y).quantize(precision)
+        current_z = Decimal(current_pos.z).quantize(precision)
+
+        if (current_x, current_y, current_z) != (x, y, z):
+            self.node_path.setPos(x, y, z)
