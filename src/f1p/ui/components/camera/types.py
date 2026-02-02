@@ -74,7 +74,7 @@ class OrbitingCameraController(CameraController):
         self.camera.lookAt(*self.default_look_at)
 
     def move_camera(self) -> None:
-        movement_amount = -10
+        movement_amount = -20
 
         la_x, la_y, la_z = self.default_look_at
         pos_x, pos_y, pos_z = self.default_pos

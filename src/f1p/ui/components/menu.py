@@ -3,7 +3,6 @@ import datetime
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.showbase.Messenger import Messenger
-from direct.showbase.MessengerGlobal import messenger
 from direct.task.Task import TaskManager
 from panda3d.core import Point3, StaticTextFont
 
@@ -54,7 +53,6 @@ class Menu:
             self.data_extractor._session = None
             self.data_extractor._fastest_lap = None
             self.data_extractor._circuit_info = None
-            messenger.send("clearMaps")
             self.data_extractor.year = int(year)
 
             event_schedule = self.data_extractor.event_schedule
@@ -86,7 +84,6 @@ class Menu:
             self.data_extractor._session = None
             self.data_extractor._fastest_lap = None
             self.data_extractor._circuit_info = None
-            messenger.send("clearMaps")
             self.data_extractor.event_name = event_name
 
             event = self.data_extractor.event
@@ -117,12 +114,9 @@ class Menu:
             self.data_extractor._session = None
             self.data_extractor._fastest_lap = None
             self.data_extractor._circuit_info = None
-            self.messenger.send("clearMaps")
             self.data_extractor.session_id = session_id
 
             self.messenger.send("loadData")
-
-            # self.data_extractor.extract()
 
     def render_session_menu(self) -> None:
         self.session_menu = BlackDropDown(

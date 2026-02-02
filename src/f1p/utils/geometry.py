@@ -18,6 +18,23 @@ def shift(df: DataFrame, direction: str, amount: float) -> DataFrame:
     return new_df
 
 
+def rotate_in_df(df: DataFrame) -> DataFrame:
+    new_df = df.copy()
+
+    cos_angle = np.cos(new_df["AndleRad"])
+    sin_angle = np.sin(new_df["AndleRad"])
+
+    # Apply rotation formulas
+    new_df["X_rotated"] = new_df["X"] * cos_angle - new_df["Y"] * sin_angle
+    new_df["Y_rotated"] = new_df["X"] * sin_angle + new_df["Y"] * cos_angle
+
+    new_df = (
+        new_df.drop(["X", "Y", "Z"], axis=1).rename(columns={"X_rotated": "X", "Y_rotated": "Y"}).reset_index(drop=True)
+    )
+
+    return new_df
+
+
 def rotate(df: DataFrame, radians: float) -> DataFrame:
     coordinates = df.loc[:, ("X", "Y", "Z")].to_numpy()
 

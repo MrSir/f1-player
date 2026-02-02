@@ -3,7 +3,7 @@ from typing import Any
 import numpy as np
 from direct.showbase.DirectObject import DirectObject
 from direct.task.Task import Task, TaskManager
-from panda3d.core import LineSegs, NodePath
+from panda3d.core import BillboardEffect, LineSegs, NodePath, TextNode
 from pandas import DataFrame
 
 from f1p.services.data_extractor.service import DataExtractorService
@@ -26,10 +26,9 @@ class Map(DirectObject):
         self._map_center_coordinate: list[float] | None = None
 
         self.accept("sessionSelected", self.render_task)
-        # self.accept("clearMaps", self.clear_out_maps)
 
-    def render_map(self, df: DataFrame) -> None:
-        new_df = df.copy()
+    def render_map(self) -> None:
+        new_df = self.data_extractor.fastest_lap_telemetry.copy()
 
         track_width = 0.5
         track_x = new_df["X"]
@@ -53,18 +52,18 @@ class Map(DirectObject):
         inner_df = new_df.copy()
         inner_df["X"] = x_inner
         inner_df["Y"] = y_inner
-        inner_track = inner_df.loc[:, ("X", "Y", "Z")].to_numpy()
+        inner_track = inner_df.loc[:, ("X", "Y", "Z")].to_numpy().tolist()
         self.inner_border_node_path = self.draw_track(inner_track, (0.9, 0.9, 0.9, 1))
         self.inner_border_node_path.reparentTo(self.parent)
 
         outer_df = new_df.copy()
         outer_df["X"] = x_outer
         outer_df["Y"] = y_outer
-        outer_track = outer_df.loc[:, ("X", "Y", "Z")].to_numpy()
+        outer_track = outer_df.loc[:, ("X", "Y", "Z")].to_numpy().tolist()
         self.outer_border_node_path = self.draw_track(outer_track, (0.9, 0.9, 0.9, 1))
         self.outer_border_node_path.reparentTo(self.parent)
 
-    def draw_track(self, track: list[tuple[float, float, float]], color: tuple[float, float, float, float]):
+    def draw_track(self, track: list[list[float]], color: tuple[float, float, float, float]):
         line_segments = LineSegs("map")
         line_segments.setThickness(1)
         line_segments.setColor(*color)
@@ -87,22 +86,37 @@ class Map(DirectObject):
 
         return NodePath(line_node)
 
-    def clear_out_maps(self) -> None:
-        if self.inner_border_node_path is not None:
-            self.inner_border_node_path.removeNode()
+    def render_corners(self) -> None:
+        line_segments = LineSegs("corners")
+        line_segments.setThickness(1)
+        line_segments.setColor(1, 1, 1, 0.5)
 
-        if self.outer_border_node_path is not None:
-            self.outer_border_node_path.removeNode()
+        for corner in self.data_extractor.processed_corners.itertuples():
+            line_segments.moveTo(corner.X, corner.Y, self.data_extractor.lowest_z_coordinate)
+            line_segments.drawTo(corner.X, corner.Y, corner.Z)
+
+            turn = TextNode(f"turn{corner.Label}")
+            turn.setText(corner.Label)
+            turn.setAlign(TextNode.ACenter)
+            turn.setTextScale(0.7)
+            turn.setTextColor(1, 1, 1, 0.5)
+
+            turn_np = self.parent.attachNewNode(turn)
+            turn_np.setPos(corner.X, corner.Y, corner.Z)
+            turn.setCardDecal(True)
+            turn_np.setEffect(BillboardEffect.makePointEye())
+
+        line_node = line_segments.create(False)
+        node_path = NodePath(line_node)
+        node_path.reparentTo(self.parent)
 
     def initialize_drivers(self) -> None:
         for _, driver_sr in self.data_extractor.session.results.iterrows():
-            driver_laps = self.data_extractor.laps[self.data_extractor.laps["Driver"] == driver_sr["Abbreviation"]]
-
             driver_pos_data = self.data_extractor.processed_pos_data[
                 self.data_extractor.processed_pos_data["DriverNumber"] == driver_sr["DriverNumber"]
             ]
 
-            driver = Driver.from_df(self.parent, driver_sr, driver_pos_data, driver_laps)
+            driver = Driver.from_df(self.parent, driver_sr, driver_pos_data)
 
             self.drivers.append(driver)
 
@@ -110,7 +124,8 @@ class Map(DirectObject):
         self.task_manager.add(self.render, "renderMap")
 
     def render(self, task: Task) -> Any:
-        self.render_map(self.data_extractor.fastest_lap_telemetry)
+        self.render_map()
+        self.render_corners()
         self.initialize_drivers()
 
         return task.done

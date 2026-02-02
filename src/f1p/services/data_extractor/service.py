@@ -48,6 +48,7 @@ class DataExtractorService(DirectObject):
         self._session_end_time: Timedelta | None = None
         self._pos_data: dict[str, Telemetry] | None = None
         self._circuit_info: CircuitInfo | None = None
+        self._processed_corners: DataFrame | None = None
         self._track_status: DataFrame | None = None
         self._weather_data: DataFrame | None = None
         self.processed_weather_data: DataFrame | None = None
@@ -136,11 +137,22 @@ class DataExtractorService(DirectObject):
         return self._fastest_lap
 
     @property
+    def lowest_z_coordinate(self) -> float:
+        return self.processed_pos_data["Z"].min()
+
+    @property
     def circuit_info(self) -> CircuitInfo:
         if self._circuit_info is None:
             self._circuit_info = self.session.get_circuit_info()
 
         return self._circuit_info
+
+    @property
+    def processed_corners(self) -> DataFrame:
+        if self._processed_corners is None:
+            raise ValueError("Corners are not processed yet.")
+
+        return self._processed_corners
 
     @property
     def track_status(self) -> DataFrame:
@@ -409,8 +421,10 @@ class DataExtractorService(DirectObject):
         )
         laps["Sector3SessionTimeMilliseconds"] = sector3_session_time_in_milliseconds.astype("int64")
 
-        lap_time_in_milliseconds = laps["LapTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
-        laps["LapTimeMilliseconds"] = lap_time_in_milliseconds.astype("int64")
+        laps.loc[
+            laps["LapTime"].notna(),
+            "LapTimeMilliseconds",
+        ] = laps.loc[laps["LapTime"].notna(), "LapTime"].dt.total_seconds() * 1e3
         laps["LapEndTimeMilliseconds"] = laps["LapStartTimeMilliseconds"] + laps["LapTimeMilliseconds"]
 
         pit_in_time_in_milliseconds = laps.loc[laps["PitInTime"].notna(), "PitInTime"].dt.total_seconds() * 1e3
@@ -439,6 +453,8 @@ class DataExtractorService(DirectObject):
         laps["FastestLapTimeMillisecondsSoFar"] = laps.groupby("DriverNumber")["LastLapTimeMilliseconds"].cummin()
 
         self._laps = laps
+
+        # TODO figure out what to do with cases where a driver only has a X number of laps where X < Total # Laps
 
         self.update_loading(5)
 
@@ -478,6 +494,9 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = combined_df
 
+        # TODO figure out what to do with drivers that have no lap data at all. Should probably zero out everything
+        #      relevant for them and DNS them
+
         self.update_loading(5)
 
         return self
@@ -495,7 +514,7 @@ class DataExtractorService(DirectObject):
 
         df["ElapsedTimeSinceStartOfLapMilliseconds"] = df["SessionTimeMilliseconds"] - df["LapStartTimeMilliseconds"]
         df["LapPercentageCompletion"] = df["ElapsedTimeSinceStartOfLapMilliseconds"] / df["LapTimeMilliseconds"]
-        df["LapPercentageCompletion"] = df["LapPercentageCompletion"].replace([np.inf, -np.inf], 0)
+        df["LapPercentageCompletion"] = df["LapPercentageCompletion"].replace([np.inf, -np.inf, np.nan], 0)
         df.loc[df["LapNumber"] > self.total_laps, "LapPercentageCompletion"] = 0
         df["LapsCompletion"] = (df["LapNumber"] - 1) + df["LapPercentageCompletion"]
 
@@ -751,6 +770,24 @@ class DataExtractorService(DirectObject):
 
         return self
 
+    def process_corners(self) -> Self:
+        df = self.circuit_info.corners.copy()
+
+        df["Label"] = df["Number"].astype(str) + df["Letter"].astype(str)
+        df["AndleRad"] = df["Angle"].map(lambda d: deg2Rad(d))
+        # Add Z coordinate
+        df["Z"] = 0
+
+        df = resize_pos_data(self.map_rotation, df)
+        df = center_pos_data(self.map_center_coordinate, df)
+
+        # Move Z back to 1
+        df["Z"] = 1
+
+        self._processed_corners = df
+
+        return self
+
     def render_wait_bar(self) -> None:
         width = 400
         height = 200
@@ -815,6 +852,7 @@ class DataExtractorService(DirectObject):
             .compute_in_pit()
             .compute_tire_compound()
             .process_weather_data()
+            .process_corners()
         )
 
         self.delete_loading()
