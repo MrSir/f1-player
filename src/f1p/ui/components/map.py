@@ -99,7 +99,7 @@ class Map(DirectObject):
             turn.setText(corner.Label)
             turn.setAlign(TextNode.ACenter)
             turn.setTextScale(0.7)
-            turn.setTextColor(1, 1, 1, 0.5)
+            turn.setTextColor(0.8, 1, 0, 0.7)
 
             turn_np = self.parent.attachNewNode(turn)
             turn_np.setPos(corner.X, corner.Y, corner.Z)
