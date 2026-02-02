@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "F1 Player"
-version = "0.0.4"
+version = "0.2"
 description = "A tool for watching F1 races from a data perspective."
 authors = [
     "Mitko Toshev <mr.sir88@gmail.com>"

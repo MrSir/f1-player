@@ -50,6 +50,7 @@ class Driver(DirectObject):
         )
         sphere = sphere_maker.generate()
         node_path = parent.attachNewNode(sphere)
+        # TODO pre-compute the color as a tuple of floats in data extractor
         team_color_hex = driver_sr["TeamColor"]
         color = hex_to_rgb_saturation(f"#{team_color_hex}")
         node_path.setColor(
