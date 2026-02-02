@@ -214,8 +214,8 @@ def test_render_corners(
     )
     mock_text_node.setTextColor.assert_has_calls(
         [
-            mocker.call(1, 1, 1, 0.5),
-            mocker.call(1, 1, 1, 0.5),
+            mocker.call(0.8, 1, 0, 0.7),
+            mocker.call(0.8, 1, 0, 0.7),
         ],
     )
     mock_text_node.setCardDecal.assert_has_calls(

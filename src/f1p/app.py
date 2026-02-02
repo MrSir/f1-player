@@ -67,6 +67,7 @@ class F1PlayerApp(ShowBase):
         props = WindowProperties()
         props.setSize(self.width, self.height)
         props.setFixedSize(True)
+        props.setTitle("F1 Player")
         self.win.requestProperties(props)
 
         return self
