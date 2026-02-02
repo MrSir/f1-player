@@ -421,8 +421,6 @@ class DataExtractorService(DirectObject):
         )
         laps["Sector3SessionTimeMilliseconds"] = sector3_session_time_in_milliseconds.astype("int64")
 
-        # lap_time_in_milliseconds = laps["LapTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
-        # laps["LapTimeMilliseconds"] = lap_time_in_milliseconds.astype("int64")
         laps.loc[
             laps["LapTime"].notna(),
             "LapTimeMilliseconds",
