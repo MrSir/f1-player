@@ -2,20 +2,13 @@ from unittest.mock import MagicMock
 
 import pytest
 from direct.showbase.DirectObject import DirectObject
-from direct.task.Task import Task, TaskManager
+from direct.task.Task import Task
 from panda3d.core import MouseWatcher
 from pytest_mock import MockerFixture
 
 from f1p.ui.components.camera.component import MainCamera
 from f1p.ui.components.camera.enums import CameraType
 from f1p.ui.components.camera.types import OrbitingCameraController, TopDownCameraController
-
-
-@pytest.fixture()
-def mock_task_manager(mocker: MockerFixture) -> MagicMock:
-    m_task_manager = mocker.MagicMock(spec=TaskManager)
-
-    return m_task_manager
 
 
 @pytest.fixture()

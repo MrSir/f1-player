@@ -26,7 +26,6 @@ class Map(DirectObject):
         self._map_center_coordinate: list[float] | None = None
 
         self.accept("sessionSelected", self.render_task)
-        # self.accept("clearMaps", self.clear_out_maps)
 
     def render_map(self) -> None:
         new_df = self.data_extractor.fastest_lap_telemetry.copy()
@@ -53,18 +52,18 @@ class Map(DirectObject):
         inner_df = new_df.copy()
         inner_df["X"] = x_inner
         inner_df["Y"] = y_inner
-        inner_track = inner_df.loc[:, ("X", "Y", "Z")].to_numpy()
+        inner_track = inner_df.loc[:, ("X", "Y", "Z")].to_numpy().tolist()
         self.inner_border_node_path = self.draw_track(inner_track, (0.9, 0.9, 0.9, 1))
         self.inner_border_node_path.reparentTo(self.parent)
 
         outer_df = new_df.copy()
         outer_df["X"] = x_outer
         outer_df["Y"] = y_outer
-        outer_track = outer_df.loc[:, ("X", "Y", "Z")].to_numpy()
+        outer_track = outer_df.loc[:, ("X", "Y", "Z")].to_numpy().tolist()
         self.outer_border_node_path = self.draw_track(outer_track, (0.9, 0.9, 0.9, 1))
         self.outer_border_node_path.reparentTo(self.parent)
 
-    def draw_track(self, track: list[tuple[float, float, float]], color: tuple[float, float, float, float]):
+    def draw_track(self, track: list[list[float]], color: tuple[float, float, float, float]):
         line_segments = LineSegs("map")
         line_segments.setThickness(1)
         line_segments.setColor(*color)
@@ -111,13 +110,6 @@ class Map(DirectObject):
         node_path = NodePath(line_node)
         node_path.reparentTo(self.parent)
 
-    def clear_out_maps(self) -> None:
-        if self.inner_border_node_path is not None:
-            self.inner_border_node_path.removeNode()
-
-        if self.outer_border_node_path is not None:
-            self.outer_border_node_path.removeNode()
-
     def initialize_drivers(self) -> None:
         for _, driver_sr in self.data_extractor.session.results.iterrows():
             driver_pos_data = self.data_extractor.processed_pos_data[
@@ -134,7 +126,6 @@ class Map(DirectObject):
     def render(self, task: Task) -> Any:
         self.render_map()
         self.render_corners()
-
         self.initialize_drivers()
 
         return task.done

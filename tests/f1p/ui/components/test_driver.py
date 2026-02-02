@@ -12,11 +12,6 @@ from procedural3d import SphereMaker
 
 
 @pytest.fixture
-def mock_parent(mocker: MockerFixture) -> MagicMock:
-    return mocker.MagicMock(spec=NodePath)
-
-
-@pytest.fixture
 def ticks(pos_data: DataFrame) -> dict:
     return pos_data.set_index("SessionTimeTick").to_dict(orient="index")
 
