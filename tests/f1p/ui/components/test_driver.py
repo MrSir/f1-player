@@ -154,17 +154,13 @@ def test_create_node_path(mock_parent: MagicMock, mocker: MockerFixture) -> None
     node_path = mocker.MagicMock(spec=NodePath)
     mock_parent.attachNewNode.return_value = node_path
 
-    driver_sr = Series(
-        {
-            "TeamColor": "FF0000",
-        },
-    )
+    color = (1, 0, 0, 1)
 
-    assert node_path == Driver.create_node_path(mock_parent, driver_sr)
+    assert node_path == Driver.create_node_path(mock_parent, color)
     mock_sphere_maker_class.assert_called_once_with(radius=0.10)
     mock_sphere_maker.generate.assert_called_once()
     mock_parent.attachNewNode.assert_called_once_with(sphere)
-    node_path.setColor.assert_called_once_with(1, 0, 0, 1)
+    node_path.setColor.assert_called_once_with(*color)
 
 
 def test_from_df(mock_parent: MagicMock, driver_sr: Series, pos_data: DataFrame, ticks: dict) -> None:

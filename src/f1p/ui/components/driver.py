@@ -44,21 +44,13 @@ class Driver(DirectObject):
         return self.node_path.getColor()
 
     @staticmethod
-    def create_node_path(parent: NodePath, driver_sr: Series) -> NodePath:
+    def create_node_path(parent: NodePath, team_color: tuple[float, float, float, float]) -> NodePath:
         sphere_maker = SphereMaker(
             radius=0.10,
         )
         sphere = sphere_maker.generate()
         node_path = parent.attachNewNode(sphere)
-        # TODO pre-compute the color as a tuple of floats in data extractor
-        team_color_hex = driver_sr["TeamColor"]
-        color = hex_to_rgb_saturation(f"#{team_color_hex}")
-        node_path.setColor(
-            color["rgb"][0] / 255,
-            color["rgb"][1] / 255,
-            color["rgb"][2] / 255,
-            color["saturation_hls"],
-        )
+        node_path.setColor(*team_color)
 
         return node_path
 
@@ -77,7 +69,7 @@ class Driver(DirectObject):
             abbreviation=driver_sr["Abbreviation"],
             team_name=driver_sr["TeamName"],
             pos_data=pos_data,
-            node_path=cls.create_node_path(parent, driver_sr),
+            node_path=cls.create_node_path(parent, driver_sr["TeamColor"]),
         )
 
     def update(self, session_time_tick: int) -> None:

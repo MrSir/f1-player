@@ -17,6 +17,7 @@ from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f, NodePath, Point3, StaticTextFont, deg2Rad
 from pandas import DataFrame, Series, Timedelta
 
+from f1p.utils.color import hex_to_rgb_saturation
 from f1p.utils.geometry import center_pos_data, find_center, resize_pos_data
 
 
@@ -43,6 +44,7 @@ class DataExtractorService(DirectObject):
         self._event_schedule: EventSchedule | None = None
         self._event: Event | None = None
         self._session: Session | None = None
+        self._session_results: DataFrame | None = None
         self._session_status: DataFrame | None = None
         self._session_start_time: Timedelta | None = None
         self._session_end_time: Timedelta | None = None
@@ -94,6 +96,13 @@ class DataExtractorService(DirectObject):
             self._session = fastf1.get_session(self.year, self.event_name, self.session_id)
 
         return self._session
+
+    @property
+    def session_results(self) -> DataFrame:
+        if self._session_results is None:
+           raise ValueError("Session results are not loaded yet.")
+
+        return self._session_results
 
     @property
     def session_status(self) -> DataFrame:
@@ -766,7 +775,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_weather_data = weather_df
 
-        self.update_loading(5)
+        self.update_loading(2)
 
         return self
 
@@ -785,6 +794,27 @@ class DataExtractorService(DirectObject):
         df["Z"] = 1
 
         self._processed_corners = df
+
+        self.update_loading(2)
+
+        return self
+
+
+    def process_team_colors(self) -> Self:
+        df = self.session.results.copy()
+
+        df["TeamColorRGBH"] = df["TeamColor"].map(lambda c: hex_to_rgb_saturation(c))
+        df["TeamColorR"] = df["TeamColorRGBH"].map(lambda c: c["rgb"][0] / 255)
+        df["TeamColorG"] = df["TeamColorRGBH"].map(lambda c: c["rgb"][1] / 255)
+        df["TeamColorB"] = df["TeamColorRGBH"].map(lambda c: c["rgb"][2] / 255)
+        df["TeamColorH"] = df["TeamColorRGBH"].map(lambda c: c["saturation_hls"])
+
+        df["TeamColor"] = [(r, g, b, h) for r, g, b, h in zip(df['TeamColorR'], df['TeamColorG'], df['TeamColorB'], df['TeamColorH'])]
+        df = df.drop(columns=["TeamColorRGBH", "TeamColorR", "TeamColorG", "TeamColorB", "TeamColorH"])
+
+        self._session_results = df
+
+        self.update_loading(1)
 
         return self
 
@@ -853,6 +883,7 @@ class DataExtractorService(DirectObject):
             .compute_tire_compound()
             .process_weather_data()
             .process_corners()
+            .process_team_colors()
         )
 
         self.delete_loading()

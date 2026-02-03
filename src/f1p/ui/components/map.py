@@ -111,14 +111,12 @@ class Map(DirectObject):
         node_path.reparentTo(self.parent)
 
     def initialize_drivers(self) -> None:
-        for _, driver_sr in self.data_extractor.session.results.iterrows():
+        for _, driver_sr in self.data_extractor.session_results.iterrows():
             driver_pos_data = self.data_extractor.processed_pos_data[
                 self.data_extractor.processed_pos_data["DriverNumber"] == driver_sr["DriverNumber"]
             ]
 
-            driver = Driver.from_df(self.parent, driver_sr, driver_pos_data)
-
-            self.drivers.append(driver)
+            self.drivers.append(Driver.from_df(self.parent, driver_sr, driver_pos_data))
 
     def render_task(self) -> None:
         self.task_manager.add(self.render, "renderMap")

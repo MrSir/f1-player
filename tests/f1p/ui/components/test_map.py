@@ -243,11 +243,9 @@ def test_initialize_drivers(
         "BroadcastName": ["HAM", "RUS"],
         "Abbreviation": ["HAM", "RUS"],
         "TeamName": ["Team A", "Team B"],
-        "TeamColor": ["FF0000", "0000FF"],
+        "TeamColor": [(1, 0, 0, 1), (0, 0, 1, 1)],
     })
-    mock_session = mocker.MagicMock(spec=Session)
-    mock_session.results = driver_results
-    mock_data_extractor.session = mock_session
+    mock_data_extractor.session_results = driver_results
 
     pos_data = DataFrame({
         "SessionTimeTick": [1, 2, 1, 2],
