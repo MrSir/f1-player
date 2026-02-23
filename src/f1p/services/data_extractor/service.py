@@ -783,7 +783,7 @@ class DataExtractorService(DirectObject):
         df = self.circuit_info.corners.copy()
 
         df["Label"] = df["Number"].astype(str) + df["Letter"].astype(str)
-        df["AndleRad"] = df["Angle"].map(lambda d: deg2Rad(d))
+        df["AngleRad"] = df["Angle"].map(lambda d: deg2Rad(d))
         # Add Z coordinate
         df["Z"] = 0
 
@@ -795,7 +795,7 @@ class DataExtractorService(DirectObject):
 
         self._processed_corners = df
 
-        self.update_loading(2)
+        self.update_loading(1)
 
         return self
 

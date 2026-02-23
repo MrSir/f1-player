@@ -234,7 +234,6 @@ def test_initialize_drivers(
     map_component: Map,
     mock_parent: MagicMock,
     mock_data_extractor: MagicMock,
-    mocker: MockerFixture,
 ) -> None:
     driver_results = DataFrame({
         "DriverNumber": [1, 2],
