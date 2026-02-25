@@ -4,7 +4,8 @@ from panda3d.core import LVecBase4f
 from pandas import Series
 
 from f1p.services.data_extractor.service import DataExtractorService
-from f1p.ui.components.driver import Driver
+from f1p.ui.components.driver.component import Driver
+from f1p.ui.components.gui.button import BlackButton
 
 
 class LeaderboardProcessor:
@@ -18,7 +19,7 @@ class LeaderboardProcessor:
         drivers: list[Driver],
         checkered_flags: list[OnscreenText],
         team_colors: list[OnscreenText],
-        driver_abbreviations: list[OnscreenText],
+        driver_abbreviations: list[BlackButton],
         driver_times: list[OnscreenText],
         driver_tires: list[OnscreenText],
         has_fastest_lap: list[OnscreenText],
@@ -93,7 +94,6 @@ class LeaderboardProcessor:
 
             default_color = LVecBase4f(1, 1, 1, 0.8)
             dnf_color = LVecBase4f(1, 1, 1, 0.5)
-            current_color = self.driver_abbreviations[index].textNode.getTextColor()
 
             color = dnf_color if driver.is_dnf else default_color
 
@@ -102,14 +102,14 @@ class LeaderboardProcessor:
             elif not driver.is_finished and self.checkered_flags[index]["text"] != "":
                 self.checkered_flags[index]["text"] = ""
 
-            if current_color != color:
-                self.driver_abbreviations[index]["fg"] = color
+            self.driver_abbreviations[index]["text_fg"] = color
 
             if self.team_colors[index]["frameColor"] != driver.team_color_obj:
                 self.team_colors[index]["frameColor"] = driver.team_color_obj
 
             if self.driver_abbreviations[index]["text"] != driver.abbreviation:
                 self.driver_abbreviations[index]["text"] = driver.abbreviation
+                self.driver_abbreviations[index]["command"] = driver.open_driver
 
             if driver.has_fastest_lap:
                 if self.has_fastest_lap[index]["text"] != "⏱":

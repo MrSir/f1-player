@@ -1,16 +1,18 @@
 from decimal import Decimal
 
 from direct.showbase.DirectObject import DirectObject
+from direct.showbase.ShowBase import ShowBase
 from panda3d.core import LVecBase4f, NodePath
 from pandas import DataFrame, Series
 
-from f1p.utils.color import hex_to_rgb_saturation
+from f1p.ui.components.driver.window import DriverWindow
 from procedural3d import SphereMaker
 
 
 class Driver(DirectObject):
     def __init__(
         self,
+        app: ShowBase,
         number: str,
         first_name: str,
         last_name: str,
@@ -22,6 +24,7 @@ class Driver(DirectObject):
     ):
         super().__init__()
 
+        self.app = app
         self.number = number
         self.first_name = first_name
         self.last_name = last_name
@@ -37,7 +40,16 @@ class Driver(DirectObject):
         self.is_finished: bool = False
         self.has_fastest_lap: bool = False
 
+        self._driver_window: DriverWindow | None = None
+
         self.accept("updateDrivers", self.update)
+
+    @property
+    def driver_window(self) -> DriverWindow:
+        if self._driver_window is None:
+            self._driver_window = DriverWindow(self.number, self.first_name, self.last_name, self.app)
+
+        return self._driver_window
 
     @property
     def team_color_obj(self) -> LVecBase4f:
@@ -57,11 +69,13 @@ class Driver(DirectObject):
     @classmethod
     def from_df(
         cls,
+        app: ShowBase,
         parent: NodePath,
         driver_sr: Series,
         pos_data: DataFrame,
     ) -> Driver:
         return Driver(
+            app=app,
             number=driver_sr["DriverNumber"],
             first_name=driver_sr["FirstName"],
             last_name=driver_sr["LastName"],
@@ -94,3 +108,12 @@ class Driver(DirectObject):
 
         if (current_x, current_y, current_z) != (x, y, z):
             self.node_path.setPos(x, y, z)
+
+        if self.driver_window.is_open:
+            self.driver_window.update_camera_position(x, y, z)
+
+    def open_driver(self) -> None:
+        self.driver_window.open()
+
+        driver_pos = self.node_path.getPos()
+        self.driver_window.update_camera_position(driver_pos.x, driver_pos.y, driver_pos.z)

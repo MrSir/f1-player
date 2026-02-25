@@ -2,19 +2,21 @@ from typing import Any
 
 import numpy as np
 from direct.showbase.DirectObject import DirectObject
+from direct.showbase.ShowBase import ShowBase
 from direct.task.Task import Task, TaskManager
 from panda3d.core import BillboardEffect, LineSegs, NodePath, TextNode
 from pandas import DataFrame
 
 from f1p.services.data_extractor.service import DataExtractorService
-from f1p.ui.components.driver import Driver
+from f1p.ui.components.driver.component import Driver
 
 
 class Map(DirectObject):
-    def __init__(self, parent: NodePath, task_manager: TaskManager, data_extractor: DataExtractorService):
+    def __init__(self, app: ShowBase, task_manager: TaskManager, data_extractor: DataExtractorService):
         super().__init__()
 
-        self.parent = parent
+        self.app = app
+        self.parent = app.render
         self.task_manager = task_manager
         self.data_extractor = data_extractor
 
@@ -116,7 +118,7 @@ class Map(DirectObject):
                 self.data_extractor.processed_pos_data["DriverNumber"] == driver_sr["DriverNumber"]
             ]
 
-            self.drivers.append(Driver.from_df(self.parent, driver_sr, driver_pos_data))
+            self.drivers.append(Driver.from_df(self.app, self.parent, driver_sr, driver_pos_data))
 
     def render_task(self) -> None:
         self.task_manager.add(self.render, "renderMap")

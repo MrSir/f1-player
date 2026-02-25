@@ -90,7 +90,7 @@ class F1PlayerApp(ShowBase):
             self.data_extractor,
         )
 
-        circuit_map = Map(self.render, self.taskMgr, self.data_extractor)
+        circuit_map = Map(self, self.taskMgr, self.data_extractor)
 
         leaderboard = Leaderboard(
             self.pixel2d,
