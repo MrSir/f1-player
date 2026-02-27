@@ -47,7 +47,16 @@ class Driver(DirectObject):
     @property
     def driver_window(self) -> DriverWindow:
         if self._driver_window is None:
-            self._driver_window = DriverWindow(self.number, self.first_name, self.last_name, self.app)
+            self._driver_window = DriverWindow(
+                800,
+                800,
+                self.number,
+                self.first_name,
+                self.last_name,
+                self.team_color_obj,
+                self.team_name,
+                self.app,
+            )
 
         return self._driver_window
 
