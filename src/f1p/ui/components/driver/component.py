@@ -119,7 +119,7 @@ class Driver(DirectObject):
             self.node_path.setPos(x, y, z)
 
         if self.driver_window.is_open:
-            self.driver_window.update_camera_position(x, y, z)
+            self.driver_window.update(current_record)
 
     def open_driver(self) -> None:
         self.driver_window.open()

@@ -49,6 +49,7 @@ class DataExtractorService(DirectObject):
         self._session_start_time: Timedelta | None = None
         self._session_end_time: Timedelta | None = None
         self._pos_data: dict[str, Telemetry] | None = None
+        self._car_data: dict[str, Telemetry] | None = None
         self._circuit_info: CircuitInfo | None = None
         self._processed_corners: DataFrame | None = None
         self._track_status: DataFrame | None = None
@@ -68,6 +69,7 @@ class DataExtractorService(DirectObject):
         self.wait_bar: DirectWaitBar | None = None
 
         self.processed_pos_data: DataFrame | None = None
+        self.processed_car_data: DataFrame | None = None
 
         self.accept("loadData", self.load_data)
 
@@ -124,6 +126,13 @@ class DataExtractorService(DirectObject):
             self._pos_data = self.session.pos_data
 
         return self._pos_data
+
+    @property
+    def car_data(self) -> dict[str, Telemetry]:
+        if self._car_data is None:
+            self._car_data = self.session.car_data
+
+        return self._car_data
 
     @property
     def laps(self) -> Laps:
@@ -402,6 +411,8 @@ class DataExtractorService(DirectObject):
     def process_laps(self) -> Self:
         laps = self.laps.copy()
 
+        laps["TotalLaps"] = self.total_laps
+
         laps.loc[laps["Sector1SessionTime"].isna(), "Sector1SessionTime"] = (
             laps.loc[laps["Sector1SessionTime"].isna(), "LapStartTime"]
             + laps.loc[laps["Sector1SessionTime"].isna(), "Sector1Time"]
@@ -656,6 +667,81 @@ class DataExtractorService(DirectObject):
 
         return self
 
+    def combine_car_data(self) -> Self:
+        drivers_car_data = []
+        for driver_number, car_data in self.car_data.items():
+            car_data["DriverNumber"] = driver_number
+            drivers_car_data.append(car_data)
+
+        self.processed_car_data = pd.concat(drivers_car_data, ignore_index=True)
+
+        return self
+
+    def process_car_data(self) -> Self:
+        df = self.processed_pos_data.copy()
+        df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(keep="first").copy()
+
+        car_data_df = self.processed_car_data.copy()
+        car_data_df = car_data_df[car_data_df["SessionTime"] >= self.session_start_time]
+        car_data_df = car_data_df[car_data_df["SessionTime"] <= self.session_end_time]
+
+        session_time_df = car_data_df[["SessionTime"]].drop_duplicates(keep="first").copy()
+        session_time_df["ID"] = range(1, 1 + len(session_time_df))
+
+        for record in session_time_df.itertuples():
+            session_time_df.loc[session_time_df["ID"] == record.ID, "SessionTimeTick"] = df.loc[
+                df["SessionTime"] <= record.SessionTime,
+                "SessionTimeTick",
+            ].max()
+        session_time_df["SessionTimeTick"] = session_time_df["SessionTimeTick"].fillna(1)
+
+        car_data_df = car_data_df.merge(session_time_df, on=["SessionTime"], how="left")
+
+        # DRS
+        # 0 - DRS DEACTIVATED (CLOSED)
+        # 1 - DRS DISABLED
+        # 2 - DRS DEACTIVATING (CLOSING)
+        # 3 -
+        # 8 - DRS ENABLED
+        # 10 -
+        # 12 -
+        # 14 - DRS ACTIVATED (OPEN)
+
+        car_data_df["nGear"] = car_data_df["nGear"].astype("int64").astype(str)
+        car_data_df["nGear"] = car_data_df["nGear"].replace("0", "N")
+        car_data_df["SpeedMph"] = car_data_df["Speed"] / 1.609344
+        car_data_df = car_data_df.drop_duplicates(subset=["DriverNumber", "SessionTimeTick"], keep="first").reset_index()
+        car_data_df = car_data_df.drop(
+            columns=[
+                "Time",
+                "SessionTime",
+                "ID",
+                "Date",
+                "Source",
+            ]
+        )
+
+        self.processed_car_data = car_data_df
+
+        return self
+
+    def merge_pos_and_car_data(self) -> Self:
+        df = self.processed_pos_data.copy()
+        car_data = self.processed_car_data.copy()
+
+        combined_df = df.merge(car_data, on=["DriverNumber", "SessionTimeTick"], how="left")
+        combined_df["RPM"] = combined_df.groupby("DriverNumber")["RPM"].ffill()
+        combined_df["Speed"] = combined_df.groupby("DriverNumber")["Speed"].ffill()
+        combined_df["SpeedMph"] = combined_df.groupby("DriverNumber")["SpeedMph"].ffill()
+        combined_df["nGear"] = combined_df.groupby("DriverNumber")["nGear"].ffill()
+        combined_df["Throttle"] = combined_df.groupby("DriverNumber")["Throttle"].ffill()
+        combined_df["Brake"] = combined_df.groupby("DriverNumber")["Brake"].ffill()
+        combined_df["DRS"] = combined_df.groupby("DriverNumber")["DRS"].ffill()
+
+        self.processed_pos_data = combined_df
+
+        return self
+
     def compute_tire_compound(self) -> Self:
         df = self.processed_pos_data.copy()
 
@@ -799,7 +885,6 @@ class DataExtractorService(DirectObject):
 
         return self
 
-
     def process_team_colors(self) -> Self:
         df = self.session.results.copy()
 
@@ -880,6 +965,9 @@ class DataExtractorService(DirectObject):
             .compute_diff_to_car_in_front()
             .compute_diff_to_leader()
             .compute_in_pit()
+            .combine_car_data()
+            .process_car_data()
+            .merge_pos_and_car_data()
             .compute_tire_compound()
             .process_weather_data()
             .process_corners()
