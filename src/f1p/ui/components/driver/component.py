@@ -20,6 +20,7 @@ class Driver(DirectObject):
         abbreviation: str,
         team_name: str,
         pos_data: DataFrame,
+        strategy: dict[int, dict[str, str | int]],
         node_path: NodePath = None,
     ):
         super().__init__()
@@ -33,6 +34,7 @@ class Driver(DirectObject):
         self.team_name = team_name
         self.pos_data = pos_data
         self.ticks = self.pos_data.set_index("SessionTimeTick").to_dict(orient="index")
+        self.strategy = strategy
         self.node_path = node_path
 
         self.in_pit: bool = False
@@ -56,6 +58,7 @@ class Driver(DirectObject):
                 self.team_color_obj,
                 self.team_name,
                 self.app,
+                self.strategy,
             )
 
         return self._driver_window
@@ -82,6 +85,7 @@ class Driver(DirectObject):
         parent: NodePath,
         driver_sr: Series,
         pos_data: DataFrame,
+        strategy: dict[int, dict[str, str | int]],
     ) -> Driver:
         return Driver(
             app=app,
@@ -92,6 +96,7 @@ class Driver(DirectObject):
             abbreviation=driver_sr["Abbreviation"],
             team_name=driver_sr["TeamName"],
             pos_data=pos_data,
+            strategy=strategy,
             node_path=cls.create_node_path(parent, driver_sr["TeamColor"]),
         )
 

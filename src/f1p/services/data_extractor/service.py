@@ -35,6 +35,8 @@ class DataExtractorService(DirectObject):
         window_height: int,
         text_font: StaticTextFont,
     ):
+        super().__init__()
+        
         self.parent = parent
         self.task_manager = task_manager
         self.window_width = window_width
@@ -471,6 +473,24 @@ class DataExtractorService(DirectObject):
 
         laps["LastLapTimeMilliseconds"] = laps.groupby("DriverNumber")["LapTimeMilliseconds"].shift(1)
         laps["FastestLapTimeMillisecondsSoFar"] = laps.groupby("DriverNumber")["LastLapTimeMilliseconds"].cummin()
+        
+        laps["Compound"] = laps["Compound"].str[0].astype("string")
+        laps["Compound"] = laps.groupby("DriverNumber")["Compound"].ffill()
+        laps["SCompoundColor"] = LVecBase4f(1, 0, 0, 0.8)
+        laps["MCompoundColor"] = LVecBase4f(1, 1, 0, 0.8)
+        laps["HCompoundColor"] = LVecBase4f(1, 1, 1, 0.8)
+        laps["ICompoundColor"] = LVecBase4f(0, 1, 0, 0.8)
+        laps["WCompoundColor"] = LVecBase4f(0, 0, 1, 0.8)
+
+        laps.loc[laps["Compound"] == "S", "CompoundColor"] = laps.loc[laps["Compound"] == "S", "SCompoundColor"]
+        laps.loc[laps["Compound"] == "M", "CompoundColor"] = laps.loc[laps["Compound"] == "M", "MCompoundColor"]
+        laps.loc[laps["Compound"] == "H", "CompoundColor"] = laps.loc[laps["Compound"] == "H", "HCompoundColor"]
+        laps.loc[laps["Compound"] == "I", "CompoundColor"] = laps.loc[laps["Compound"] == "I", "ICompoundColor"]
+        laps.loc[laps["Compound"] == "W", "CompoundColor"] = laps.loc[laps["Compound"] == "W", "WCompoundColor"]
+
+        laps = laps.drop(
+            columns=["SCompoundColor", "MCompoundColor", "HCompoundColor", "ICompoundColor", "WCompoundColor"],
+        )
 
         self._laps = laps
 
@@ -742,31 +762,6 @@ class DataExtractorService(DirectObject):
 
         return self
 
-    def compute_tire_compound(self) -> Self:
-        df = self.processed_pos_data.copy()
-
-        df["Compound"] = df["Compound"].str[0].astype("string")
-        df["Compound"] = df.groupby("DriverNumber")["Compound"].ffill()
-        df["SCompoundColor"] = LVecBase4f(1, 0, 0, 0.8)
-        df["MCompoundColor"] = LVecBase4f(1, 1, 0, 0.8)
-        df["HCompoundColor"] = LVecBase4f(1, 1, 1, 0.8)
-        df["ICompoundColor"] = LVecBase4f(0, 1, 0, 0.8)
-        df["WCompoundColor"] = LVecBase4f(0, 0, 1, 0.8)
-
-        df.loc[df["Compound"] == "S", "CompoundColor"] = df.loc[df["Compound"] == "S", "SCompoundColor"]
-        df.loc[df["Compound"] == "M", "CompoundColor"] = df.loc[df["Compound"] == "M", "MCompoundColor"]
-        df.loc[df["Compound"] == "H", "CompoundColor"] = df.loc[df["Compound"] == "H", "HCompoundColor"]
-        df.loc[df["Compound"] == "I", "CompoundColor"] = df.loc[df["Compound"] == "I", "ICompoundColor"]
-        df.loc[df["Compound"] == "W", "CompoundColor"] = df.loc[df["Compound"] == "W", "WCompoundColor"]
-
-        self.processed_pos_data = df.drop(
-            columns=["SCompoundColor", "MCompoundColor", "HCompoundColor", "ICompoundColor", "WCompoundColor"],
-        )
-
-        self.update_loading(5)
-
-        return self
-
     def process_weather_data(self) -> Self:
         df = self.processed_pos_data.copy()
         df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(keep="first").copy()
@@ -968,7 +963,6 @@ class DataExtractorService(DirectObject):
             .combine_car_data()
             .process_car_data()
             .merge_pos_and_car_data()
-            .compute_tire_compound()
             .process_weather_data()
             .process_corners()
             .process_team_colors()
@@ -978,3 +972,19 @@ class DataExtractorService(DirectObject):
         messenger.send("sessionSelected")
 
         return task.done
+
+    def extract_tire_strategy(self, driver_number: str) -> dict[int, dict[str, str | int]]:
+        laps_df = self.laps.copy()
+        df = laps_df[laps_df["DriverNumber"] == driver_number].copy()
+        df = df.sort_values(by="LapNumber", ascending=True)
+
+        pd.set_option("display.max_rows", len(df))
+        pd.set_option("display.max_columns", None)
+
+        strategy_df = (
+            df[["Compound", "CompoundColor", "LapNumber", "Stint"]].drop_duplicates(subset=["Compound", "Stint"], keep="last")
+                .reset_index(drop=True)
+        )
+        strategy = strategy_df.set_index("Stint").to_dict(orient="index")
+
+        return strategy

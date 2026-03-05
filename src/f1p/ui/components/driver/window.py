@@ -19,12 +19,14 @@ class DriverWindow(DirectObject):
         team_color_obj: LVecBase4f,
         team_name: str,
         app: ShowBase,
+        strategy: dict[int, dict[str, str | int]],
     ):
         super().__init__()
 
         self.width = width
         self.height = height
         self.driver_frame_height = 380
+        self.telemetry_frame_height = 225
 
         self.driver_number = driver_number
         self.first_name = first_name
@@ -32,6 +34,7 @@ class DriverWindow(DirectObject):
         self.team_color_obj = team_color_obj
         self.team_name = team_name
         self.app = app
+        self.strategy = strategy
         self.is_open = False
 
         self._window_properties: WindowProperties | None = None
@@ -101,6 +104,9 @@ class DriverWindow(DirectObject):
             self._render2d.setDepthTest(False)
             self._render2d.setDepthWrite(False)
 
+            camera2d_np = self.app.makeCamera2d(self.window)
+            camera2d_np.reparentTo(self._render2d)
+
         return self._render2d
 
     @property
@@ -113,10 +119,6 @@ class DriverWindow(DirectObject):
             self._pixel2d.reparentTo(self.render2d)
 
         return self._pixel2d
-
-    def initialize_camera2d(self) -> None:
-        camera2d_np = self.app.makeCamera2d(self.window)
-        camera2d_np.reparentTo(self.render2d)
 
     @property
     def lens(self) -> PerspectiveLens:
@@ -188,16 +190,13 @@ class DriverWindow(DirectObject):
             pos=(10, self.driver_frame_height - title_frame_height - 25, 0),
         )
 
-        square = DirectFrame(
+        DirectFrame(
             parent=frame,
             frameColor=self.team_color_obj,
             frameSize=(0, 19, 0, 19),
             pos=(10, 0, self.driver_frame_height - title_frame_height - 54),
             sortOrder=20,
         )
-        # square.clearColor()
-        # square.clearColorScale()
-        # square.setColor(self.team_color_obj)
 
         OnscreenText(
             parent=frame,
@@ -250,13 +249,12 @@ class DriverWindow(DirectObject):
         )
 
     def make_telemetry_widget(self) -> None:
-        height = 225
         width = 260
         frame = DirectFrame(
             parent=self.pixel2d,
             frameColor=(0.2, 0.2, 0.2, 0.7),
-            frameSize=(0, width, 0, height),
-            pos=Point3(530, 0, -(self.height - (self.height - height - self.driver_frame_height - 20))),
+            frameSize=(0, width, 0, self.telemetry_frame_height),
+            pos=Point3(530, 0, -(self.height - (self.height - self.telemetry_frame_height - self.driver_frame_height - 20))),
             sortOrder=0,
         )
 
@@ -265,7 +263,7 @@ class DriverWindow(DirectObject):
             parent=frame,
             frameColor=(0.15, 0.15, 0.15, 0.7),
             frameSize=(0, width, 0, title_frame_height),
-            pos=Point3(0, 0, height - title_frame_height),
+            pos=Point3(0, 0, self.telemetry_frame_height - title_frame_height),
             sortOrder=10,
         )
         title_frame.clearColorScale()
@@ -287,7 +285,7 @@ class DriverWindow(DirectObject):
             scale=13,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(width / 2, height - title_frame_height - 20, 0),
+            pos=(width / 2, self.telemetry_frame_height - title_frame_height - 20, 0),
         )
 
         gear_spacer = 20
@@ -299,7 +297,7 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.green_color,
-            pos=(initial_space, height - title_frame_height - 40, 0),
+            pos=(initial_space, self.telemetry_frame_height - title_frame_height - 40, 0),
         )
 
         self.gear_1 = OnscreenText(
@@ -309,7 +307,7 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 1), height - title_frame_height - 40, 0),
+            pos=(initial_space + (gear_spacer * 1), self.telemetry_frame_height - title_frame_height - 40, 0),
         )
 
         self.gear_2 = OnscreenText(
@@ -319,7 +317,7 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 2), height - title_frame_height - 40, 0),
+            pos=(initial_space + (gear_spacer * 2), self.telemetry_frame_height - title_frame_height - 40, 0),
         )
 
         self.gear_3 = OnscreenText(
@@ -329,7 +327,7 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 3), height - title_frame_height - 40, 0),
+            pos=(initial_space + (gear_spacer * 3), self.telemetry_frame_height - title_frame_height - 40, 0),
         )
 
         self.gear_4 = OnscreenText(
@@ -339,7 +337,7 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 4), height - title_frame_height - 40, 0),
+            pos=(initial_space + (gear_spacer * 4), self.telemetry_frame_height - title_frame_height - 40, 0),
         )
 
         self.gear_5 = OnscreenText(
@@ -349,7 +347,7 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 5), height - title_frame_height - 40, 0),
+            pos=(initial_space + (gear_spacer * 5), self.telemetry_frame_height - title_frame_height - 40, 0),
         )
 
         self.gear_6 = OnscreenText(
@@ -359,7 +357,7 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 6), height - title_frame_height - 40, 0),
+            pos=(initial_space + (gear_spacer * 6), self.telemetry_frame_height - title_frame_height - 40, 0),
         )
 
         self.gear_7 = OnscreenText(
@@ -369,7 +367,7 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 7), height - title_frame_height - 40, 0),
+            pos=(initial_space + (gear_spacer * 7), self.telemetry_frame_height - title_frame_height - 40, 0),
         )
 
         self.gear_8 = OnscreenText(
@@ -379,14 +377,14 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 8), height - title_frame_height - 40, 0),
+            pos=(initial_space + (gear_spacer * 8), self.telemetry_frame_height - title_frame_height - 40, 0),
         )
 
         rpm_frame = DirectFrame(
             parent=frame,
             frameColor=self.gray_color,
             frameSize=(0, 240, 0, 10),
-            pos=Point3(10, 0, height - title_frame_height - 60),
+            pos=Point3(10, 0, self.telemetry_frame_height - title_frame_height - 60),
         )
 
         self.rpm = DirectFrame(
@@ -403,7 +401,7 @@ class DriverWindow(DirectObject):
             scale=11,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(10, height - title_frame_height - 70, 0),
+            pos=(10, self.telemetry_frame_height - title_frame_height - 70, 0),
         )
 
         OnscreenText(
@@ -413,7 +411,7 @@ class DriverWindow(DirectObject):
             scale=11,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(width - 10, height - title_frame_height - 70, 0),
+            pos=(width - 10, self.telemetry_frame_height - title_frame_height - 70, 0),
         )
 
         OnscreenText(
@@ -423,14 +421,14 @@ class DriverWindow(DirectObject):
             scale=11,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(width / 2, height - title_frame_height - 70, 0),
+            pos=(width / 2, self.telemetry_frame_height - title_frame_height - 70, 0),
         )
 
         brake_frame = DirectFrame(
             parent=frame,
             frameColor=self.gray_color,
             frameSize=(-10, 10, 0, 100),
-            pos=Point3(60, 0, height - title_frame_height - 170),
+            pos=Point3(60, 0, self.telemetry_frame_height - title_frame_height - 170),
         )
         self.brake = DirectFrame(
             parent=brake_frame,
@@ -446,7 +444,7 @@ class DriverWindow(DirectObject):
             scale=13,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(60, height - title_frame_height - 185, 0),
+            pos=(60, self.telemetry_frame_height - title_frame_height - 185, 0),
         )
 
         OnscreenText(
@@ -456,7 +454,7 @@ class DriverWindow(DirectObject):
             scale=15,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(width / 2, height - title_frame_height - 90, 0),
+            pos=(width / 2, self.telemetry_frame_height - title_frame_height - 90, 0),
         )
 
         self.speed_kph = OnscreenText(
@@ -466,7 +464,7 @@ class DriverWindow(DirectObject):
             scale=18,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(width / 2, height - title_frame_height - 110, 0),
+            pos=(width / 2, self.telemetry_frame_height - title_frame_height - 110, 0),
         )
 
         self.drs =OnscreenText(
@@ -476,7 +474,7 @@ class DriverWindow(DirectObject):
             scale=14,
             font=self.app.text_font,
             fg=self.blue_color,
-            pos=(width / 2, height - title_frame_height - 132, 0),
+            pos=(width / 2, self.telemetry_frame_height - title_frame_height - 132, 0),
         )
 
         self.speed_mph = OnscreenText(
@@ -486,7 +484,7 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.dark_gray_color,
-            pos=(width / 2, height - title_frame_height - 155, 0),
+            pos=(width / 2, self.telemetry_frame_height - title_frame_height - 155, 0),
         )
 
         OnscreenText(
@@ -496,14 +494,14 @@ class DriverWindow(DirectObject):
             scale=13,
             font=self.app.text_font,
             fg=self.dark_gray_color,
-            pos=(width / 2, height - title_frame_height - 170, 0),
+            pos=(width / 2, self.telemetry_frame_height - title_frame_height - 170, 0),
         )
 
         throttle_frame = DirectFrame(
             parent=frame,
             frameColor=self.gray_color,
             frameSize=(-10, 10, 0, 100),
-            pos=Point3(width - 60, 0, height - title_frame_height - 170),
+            pos=Point3(width - 60, 0, self.telemetry_frame_height - title_frame_height - 170),
         )
         self.throttle = DirectFrame(
             parent=throttle_frame,
@@ -519,7 +517,80 @@ class DriverWindow(DirectObject):
             scale=13,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(width - 60, height - title_frame_height - 185, 0),
+            pos=(width - 60, self.telemetry_frame_height - title_frame_height - 185, 0),
+        )
+
+    def make_tire_strategy_widget(self) -> None:
+        height = 90
+        width = 260
+        frame = DirectFrame(
+            parent=self.pixel2d,
+            frameColor=(0.2, 0.2, 0.2, 0.7),
+            frameSize=(0, width, 0, height),
+            pos=Point3(530, 0, -(self.height - (self.height - height - self.driver_frame_height - self.telemetry_frame_height - 30))),
+            sortOrder=0,
+        )
+
+        title_frame_height = 30
+        title_frame = DirectFrame(
+            parent=frame,
+            frameColor=(0.15, 0.15, 0.15, 0.7),
+            frameSize=(0, width, 0, title_frame_height),
+            pos=Point3(0, 0, height - title_frame_height),
+            sortOrder=10,
+        )
+        title_frame.clearColorScale()
+
+        OnscreenText(
+            parent=title_frame,
+            text="TIRE STRATEGY",
+            align=TextNode.ACenter,
+            scale=16,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(width / 2, title_frame_height - 21, 0),
+        )
+
+        padding = 10
+        total_width = width - (padding * 2)
+        total_laps = max(i["LapNumber"] for i in self.strategy.values())
+        start = padding + 0
+        for stint, info in self.strategy.items():
+            current_ratio = info["LapNumber"] / total_laps
+            end = padding + (total_width * current_ratio)
+            DirectFrame(
+                parent=frame,
+                frameColor=(0.4, 0.4, 0.4, 1),
+                frameSize=(start, end, 0, 30),
+                pos=Point3(0, 0, height - title_frame_height - 40),
+            )
+            DirectFrame(
+                parent=frame,
+                frameColor=info["CompoundColor"],
+                frameSize=(start + 1, end - 1, 1, 29),
+                pos=Point3(1, 0, height - title_frame_height - 41),
+            )
+
+            start = end
+
+        OnscreenText(
+            parent=frame,
+            text="1",
+            align=TextNode.ALeft,
+            scale=11,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(10, height - title_frame_height - 50, 0),
+        )
+
+        OnscreenText(
+            parent=frame,
+            text=f"{total_laps:.0f}",
+            align=TextNode.ARight,
+            scale=11,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(width - 10, height - title_frame_height - 50, 0),
         )
 
     def update_standings(self, position_index: int, lap: float, total_laps: str) -> None:
@@ -649,10 +720,10 @@ class DriverWindow(DirectObject):
             return
 
         self.is_open = True
-        self.initialize_camera2d()
         self.make_driver_widget()
         self.make_camera_region()
         self.make_telemetry_widget()
+        self.make_tire_strategy_widget()
 
     def close(self) -> None:
         self.is_open = False

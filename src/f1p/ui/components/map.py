@@ -118,7 +118,9 @@ class Map(DirectObject):
                 self.data_extractor.processed_pos_data["DriverNumber"] == driver_sr["DriverNumber"]
             ]
 
-            self.drivers.append(Driver.from_df(self.app, self.parent, driver_sr, driver_pos_data))
+            strategy = self.data_extractor.extract_tire_strategy(driver_sr["DriverNumber"])
+
+            self.drivers.append(Driver.from_df(self.app, self.parent, driver_sr, driver_pos_data, strategy))
 
     def render_task(self) -> None:
         self.task_manager.add(self.render, "renderMap")
