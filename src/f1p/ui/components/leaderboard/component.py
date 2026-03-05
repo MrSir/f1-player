@@ -220,7 +220,7 @@ class Leaderboard(DirectObject):
                     text_scale=self.width / 14,
                     text_align=TextNode.ACenter,
                     text_pos=(-2, -3),
-                    pos=Point3(80, 0,  -offset_from_top + 3 - (index * 23)),
+                    pos=Point3(80, 0, -offset_from_top + 3 - (index * 23)),
                 ),
             )
 

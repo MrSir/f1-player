@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 import pytest
 from direct.showbase.DirectObject import DirectObject
 from direct.task.Task import Task
-from fastf1.core import Session
 from panda3d.core import BillboardEffect, LineSegs, NodePath, TextNode
 from pandas import DataFrame
 from pytest_mock import MockerFixture

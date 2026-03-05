@@ -4,8 +4,20 @@ from direct.gui.DirectFrame import DirectFrame
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.ShowBase import ShowBase
-from panda3d.core import WindowProperties, GraphicsWindow, PerspectiveLens, Camera, NodePath, TextNode, PGTop, Point3, \
-    OrthographicLens, DisplayRegion, LVecBase4f, Vec4, CardMaker, VBase4
+from panda3d.core import (
+    Camera,
+    GraphicsWindow,
+    LVecBase4f,
+    NodePath,
+    OrthographicLens,
+    PerspectiveLens,
+    PGTop,
+    Point3,
+    TextNode,
+    VBase4,
+    Vec4,
+    WindowProperties,
+)
 
 
 class DriverWindow(DirectObject):
@@ -69,9 +81,9 @@ class DriverWindow(DirectObject):
         self.brake: DirectFrame | None = None
         self.throttle: DirectFrame | None = None
 
-        self.blue_color = (103/255, 190/255, 217/255, 1)
-        self.green_color = (102/255, 217/255, 126/255, 1)
-        self.red_color = (217/255, 110/255, 102/255, 1)
+        self.blue_color = (103 / 255, 190 / 255, 217 / 255, 1)
+        self.green_color = (102 / 255, 217 / 255, 126 / 255, 1)
+        self.red_color = (217 / 255, 110 / 255, 102 / 255, 1)
         self.white_color = (1, 1, 1, 1)
         self.gray_color = (0.7, 0.7, 0.7, 1)
         self.dark_gray_color = (0.5, 0.5, 0.5, 1)
@@ -100,7 +112,7 @@ class DriverWindow(DirectObject):
     @property
     def render2d(self) -> NodePath:
         if self._render2d is None:
-            self._render2d = NodePath(f'render2d{self.driver_number}')
+            self._render2d = NodePath(f"render2d{self.driver_number}")
             self._render2d.setDepthTest(False)
             self._render2d.setDepthWrite(False)
 
@@ -112,7 +124,7 @@ class DriverWindow(DirectObject):
     @property
     def pixel2d(self) -> NodePath:
         if self._pixel2d is None:
-            self._pixel2d = self.render2d.attachNewNode(PGTop(f'pixel2d{self.driver_number}'))
+            self._pixel2d = self.render2d.attachNewNode(PGTop(f"pixel2d{self.driver_number}"))
             self._pixel2d.setPos(-1, 0, 1)
             width, height = self.window.getSize()
             self._pixel2d.setScale(2.0 / width, 1.0, 2.0 / height)
@@ -177,7 +189,7 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=(1, 1, 1, 1),
-            pos=(260/ 2, title_frame_height - 20, 0),
+            pos=(260 / 2, title_frame_height - 20, 0),
         )
 
         OnscreenText(
@@ -250,11 +262,12 @@ class DriverWindow(DirectObject):
 
     def make_telemetry_widget(self) -> None:
         width = 260
+        frame_z = -(self.height - (self.height - self.telemetry_frame_height - self.driver_frame_height - 20))
         frame = DirectFrame(
             parent=self.pixel2d,
             frameColor=(0.2, 0.2, 0.2, 0.7),
             frameSize=(0, width, 0, self.telemetry_frame_height),
-            pos=Point3(530, 0, -(self.height - (self.height - self.telemetry_frame_height - self.driver_frame_height - 20))),
+            pos=Point3(530, 0, frame_z),
             sortOrder=0,
         )
 
@@ -467,7 +480,7 @@ class DriverWindow(DirectObject):
             pos=(width / 2, self.telemetry_frame_height - title_frame_height - 110, 0),
         )
 
-        self.drs =OnscreenText(
+        self.drs = OnscreenText(
             parent=frame,
             text="DRS",
             align=TextNode.ACenter,
@@ -523,11 +536,12 @@ class DriverWindow(DirectObject):
     def make_tire_strategy_widget(self) -> None:
         height = 90
         width = 260
+        frame_z = -(self.height - (self.height - height - self.driver_frame_height - self.telemetry_frame_height - 30))
         frame = DirectFrame(
             parent=self.pixel2d,
             frameColor=(0.2, 0.2, 0.2, 0.7),
             frameSize=(0, width, 0, height),
-            pos=Point3(530, 0, -(self.height - (self.height - height - self.driver_frame_height - self.telemetry_frame_height - 30))),
+            pos=Point3(530, 0, frame_z),
             sortOrder=0,
         )
 
@@ -697,7 +711,7 @@ class DriverWindow(DirectObject):
         self.camera_np.lookAt(x, y, z)
 
     def update(self, current_record: dict) -> None:
-        self.update_standings(current_record["PositionIndex"], current_record['LapNumber'], current_record["TotalLaps"])
+        self.update_standings(current_record["PositionIndex"], current_record["LapNumber"], current_record["TotalLaps"])
 
         self.update_telemetry(
             current_record["nGear"],

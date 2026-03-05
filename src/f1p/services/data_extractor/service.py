@@ -36,7 +36,7 @@ class DataExtractorService(DirectObject):
         text_font: StaticTextFont,
     ):
         super().__init__()
-        
+
         self.parent = parent
         self.task_manager = task_manager
         self.window_width = window_width
@@ -104,7 +104,7 @@ class DataExtractorService(DirectObject):
     @property
     def session_results(self) -> DataFrame:
         if self._session_results is None:
-           raise ValueError("Session results are not loaded yet.")
+            raise ValueError("Session results are not loaded yet.")
 
         return self._session_results
 
@@ -473,7 +473,7 @@ class DataExtractorService(DirectObject):
 
         laps["LastLapTimeMilliseconds"] = laps.groupby("DriverNumber")["LapTimeMilliseconds"].shift(1)
         laps["FastestLapTimeMillisecondsSoFar"] = laps.groupby("DriverNumber")["LastLapTimeMilliseconds"].cummin()
-        
+
         laps["Compound"] = laps["Compound"].str[0].astype("string")
         laps["Compound"] = laps.groupby("DriverNumber")["Compound"].ffill()
         laps["SCompoundColor"] = LVecBase4f(1, 0, 0, 0.8)
@@ -730,7 +730,10 @@ class DataExtractorService(DirectObject):
         car_data_df["nGear"] = car_data_df["nGear"].astype("int64").astype(str)
         car_data_df["nGear"] = car_data_df["nGear"].replace("0", "N")
         car_data_df["SpeedMph"] = car_data_df["Speed"] / 1.609344
-        car_data_df = car_data_df.drop_duplicates(subset=["DriverNumber", "SessionTimeTick"], keep="first").reset_index()
+        car_data_df = car_data_df.drop_duplicates(
+            subset=["DriverNumber", "SessionTimeTick"],
+            keep="first",
+        ).reset_index()
         car_data_df = car_data_df.drop(
             columns=[
                 "Time",
@@ -738,7 +741,7 @@ class DataExtractorService(DirectObject):
                 "ID",
                 "Date",
                 "Source",
-            ]
+            ],
         )
 
         self.processed_car_data = car_data_df
@@ -889,7 +892,9 @@ class DataExtractorService(DirectObject):
         df["TeamColorB"] = df["TeamColorRGBH"].map(lambda c: c["rgb"][2] / 255)
         df["TeamColorH"] = df["TeamColorRGBH"].map(lambda c: c["saturation_hls"])
 
-        df["TeamColor"] = [(r, g, b, h) for r, g, b, h in zip(df['TeamColorR'], df['TeamColorG'], df['TeamColorB'], df['TeamColorH'])]
+        df["TeamColor"] = [
+            (r, g, b, h) for r, g, b, h in zip(df["TeamColorR"], df["TeamColorG"], df["TeamColorB"], df["TeamColorH"])
+        ]
         df = df.drop(columns=["TeamColorRGBH", "TeamColorR", "TeamColorG", "TeamColorB", "TeamColorH"])
 
         self._session_results = df
@@ -982,8 +987,9 @@ class DataExtractorService(DirectObject):
         pd.set_option("display.max_columns", None)
 
         strategy_df = (
-            df[["Compound", "CompoundColor", "LapNumber", "Stint"]].drop_duplicates(subset=["Compound", "Stint"], keep="last")
-                .reset_index(drop=True)
+            df[["Compound", "CompoundColor", "LapNumber", "Stint"]]
+            .drop_duplicates(subset=["Compound", "Stint"], keep="last")
+            .reset_index(drop=True)
         )
         strategy = strategy_df.set_index("Stint").to_dict(orient="index")
 
