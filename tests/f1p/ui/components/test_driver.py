@@ -7,7 +7,7 @@ from panda3d.core import LVecBase4f, NodePath
 from pandas import DataFrame, Series
 from pytest_mock import MockerFixture
 
-from f1p.ui.components.driver import Driver
+from f1p.ui.components.driver.component import Driver
 from procedural3d import SphereMaker
 
 

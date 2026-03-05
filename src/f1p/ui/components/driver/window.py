@@ -567,11 +567,13 @@ class DriverWindow(DirectObject):
 
         padding = 10
         total_width = width - (padding * 2)
-        total_laps = max(i["LapNumber"] for i in self.strategy.values())
+        total_laps = max(i["TotalLaps"] for i in self.strategy.values())
         start = padding + 0
+
         for stint, info in self.strategy.items():
             current_ratio = info["LapNumber"] / total_laps
             end = padding + (total_width * current_ratio)
+
             DirectFrame(
                 parent=frame,
                 frameColor=(0.4, 0.4, 0.4, 1),
@@ -585,26 +587,25 @@ class DriverWindow(DirectObject):
                 pos=Point3(1, 0, height - title_frame_height - 41),
             )
 
+            OnscreenText(
+                parent=frame,
+                text=f"{info['LapNumber']:.0f}",
+                align=TextNode.ACenter,
+                scale=11,
+                font=self.app.text_font,
+                fg=self.white_color,
+                pos=(end, height - title_frame_height - 50, 0),
+            )
             start = end
 
         OnscreenText(
             parent=frame,
             text="1",
-            align=TextNode.ALeft,
+            align=TextNode.ACenter,
             scale=11,
             font=self.app.text_font,
             fg=self.white_color,
             pos=(10, height - title_frame_height - 50, 0),
-        )
-
-        OnscreenText(
-            parent=frame,
-            text=f"{total_laps:.0f}",
-            align=TextNode.ARight,
-            scale=11,
-            font=self.app.text_font,
-            fg=self.white_color,
-            pos=(width - 10, height - title_frame_height - 50, 0),
         )
 
     def update_standings(self, position_index: int, lap: float, total_laps: str) -> None:

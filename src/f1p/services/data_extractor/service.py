@@ -987,7 +987,7 @@ class DataExtractorService(DirectObject):
         pd.set_option("display.max_columns", None)
 
         strategy_df = (
-            df[["Compound", "CompoundColor", "LapNumber", "Stint"]]
+            df[["Compound", "CompoundColor", "LapNumber", "Stint", "TotalLaps"]]
             .drop_duplicates(subset=["Compound", "Stint"], keep="last")
             .reset_index(drop=True)
         )
