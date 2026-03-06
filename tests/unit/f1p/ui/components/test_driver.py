@@ -88,13 +88,33 @@ def pos_data() -> DataFrame:
         ],
     )
 
+@pytest.fixture()
+def strategy() -> dict[int, dict[str, str | int]]:
+    return {
+        1: {"Compound": "S", "CompoundColor": LVecBase4f(1, 0, 0, 0.8), "LapNumber": 10, "TotalLaps": 60},
+        2: {"Compound": "M", "CompoundColor": LVecBase4f(1, 1, 0, 0.8), "LapNumber": 20, "TotalLaps": 60},
+        3: {"Compound": "H", "CompoundColor": LVecBase4f(1, 1, 1, 0.8), "LapNumber": 30, "TotalLaps": 60},
+    }
+
 
 @pytest.fixture
-def driver(mock_parent: MagicMock, driver_sr: Series, pos_data: DataFrame) -> Driver:
-    return Driver.from_df(mock_parent, driver_sr, pos_data)
+def driver(
+    mock_f1p_app: MagicMock,
+    mock_parent: MagicMock,
+    driver_sr: Series,
+    pos_data: DataFrame,
+    strategy: dict[int, dict[str, str | int]],
+) -> Driver:
+    return Driver.from_df(mock_f1p_app, mock_parent, driver_sr, pos_data, strategy)
 
 
-def test_initialization(pos_data: DataFrame, ticks: dict, mocker: MockerFixture) -> None:
+def test_initialization(
+    mock_f1p_app: MagicMock,
+    pos_data: DataFrame,
+    ticks: dict,
+    strategy: dict[int, dict[str, str | int]],
+    mocker: MockerFixture,
+) -> None:
     number = "1"
     first_name = "Joe"
     last_name = "Shmoe"
@@ -103,9 +123,10 @@ def test_initialization(pos_data: DataFrame, ticks: dict, mocker: MockerFixture)
     team_name = "Team 1"
 
     mock_accept = mocker.MagicMock()
-    mocker.patch("f1p.ui.components.driver.Driver.accept", mock_accept)
+    mocker.patch("f1p.ui.components.driver.component.Driver.accept", mock_accept)
 
     driver = Driver(
+        mock_f1p_app,
         number,
         first_name,
         last_name,
@@ -113,9 +134,11 @@ def test_initialization(pos_data: DataFrame, ticks: dict, mocker: MockerFixture)
         abbreviation,
         team_name,
         pos_data,
+        strategy,
     )
 
     assert isinstance(driver, DirectObject)
+    assert mock_f1p_app == driver.app
     assert number == driver.number
     assert first_name == driver.first_name
     assert last_name == driver.last_name
@@ -123,6 +146,7 @@ def test_initialization(pos_data: DataFrame, ticks: dict, mocker: MockerFixture)
     assert abbreviation == driver.abbreviation
     assert team_name == driver.team_name
     assert pos_data.equals(driver.pos_data)
+    assert strategy == driver.strategy
     assert ticks == driver.ticks
 
     assert driver.node_path is None
@@ -149,7 +173,7 @@ def test_create_node_path(mock_parent: MagicMock, mocker: MockerFixture) -> None
     mock_sphere_maker = mocker.MagicMock(spec=SphereMaker)
     mock_sphere_maker.generate.return_value = sphere
     mock_sphere_maker_class = mocker.MagicMock(return_value=mock_sphere_maker)
-    mocker.patch("f1p.ui.components.driver.SphereMaker", mock_sphere_maker_class)
+    mocker.patch("f1p.ui.components.driver.component.SphereMaker", mock_sphere_maker_class)
 
     node_path = mocker.MagicMock(spec=NodePath)
     mock_parent.attachNewNode.return_value = node_path
@@ -163,10 +187,18 @@ def test_create_node_path(mock_parent: MagicMock, mocker: MockerFixture) -> None
     node_path.setColor.assert_called_once_with(*color)
 
 
-def test_from_df(mock_parent: MagicMock, driver_sr: Series, pos_data: DataFrame, ticks: dict) -> None:
-    driver = Driver.from_df(mock_parent, driver_sr, pos_data)
+def test_from_df(
+    mock_parent: MagicMock,
+    driver_sr: Series,
+    pos_data: DataFrame,
+    ticks: dict,
+    mock_f1p_app: MagicMock,
+    strategy: dict[int, dict[str, str | int]],
+) -> None:
+    driver = Driver.from_df(mock_f1p_app, mock_parent, driver_sr, pos_data, strategy)
 
     assert isinstance(driver, DirectObject)
+    assert mock_f1p_app == driver.app
     assert driver_sr["DriverNumber"] == driver.number
     assert driver_sr["FirstName"] == driver.first_name
     assert driver_sr["LastName"] == driver.last_name
@@ -174,6 +206,7 @@ def test_from_df(mock_parent: MagicMock, driver_sr: Series, pos_data: DataFrame,
     assert driver_sr["Abbreviation"] == driver.abbreviation
     assert driver_sr["TeamName"] == driver.team_name
     assert pos_data.equals(driver.pos_data)
+    assert strategy == driver.strategy
     assert ticks == driver.ticks
 
     assert mock_parent.attachNewNode.return_value == driver.node_path
