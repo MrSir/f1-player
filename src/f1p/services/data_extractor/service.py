@@ -284,7 +284,7 @@ class DataExtractorService(DirectObject):
 
         pixel_per_tick = width / self.session_ticks
 
-        df.loc[:, "Pixel"] = df.loc[:, "SessionTimeTick"] * pixel_per_tick
+        df.loc[:, "Pixel"] = (df.loc[:, "SessionTimeTick"] * pixel_per_tick) - pixel_per_tick
 
         ts_df = self.track_status.copy()
         ts_df = ts_df[ts_df["Time"] >= self.session_start_time]
@@ -311,7 +311,7 @@ class DataExtractorService(DirectObject):
             columns={"SessionTimeTick_x": "SessionTimeTick"},
         )
         ts_df = ts_df.rename(columns={"Pixel": "PixelEnd"}).drop(columns=["SessionTime", "SessionTimeTick_y"])
-        ts_df = ts_df.drop(columns=["Time", "EndTime"]).reset_index()
+        ts_df = ts_df.drop(columns=["Time", "EndTime"]).reset_index(drop=True)
 
         ts_df["Width"] = ts_df["PixelEnd"] - ts_df["PixelStart"]
         ts_df["Status"] = ts_df["Status"].astype("int64")

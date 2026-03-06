@@ -3,9 +3,10 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 from direct.task.Task import TaskManager
+from fastf1.core import Lap, Telemetry
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f, NodePath, StaticTextFont
-from pandas import DataFrame, Timedelta
+from pandas import DataFrame, Series, Timedelta
 from pytest_mock import MockerFixture
 
 from f1p.services.data_extractor.service import DataExtractorService
@@ -115,7 +116,7 @@ def track_status_colors() -> DataFrame:
 
 
 @pytest.fixture()
-def mock_green_flag_track_status() -> DataFrame:
+def green_flag_track_status() -> DataFrame:
     return pd.DataFrame({
         "Status": [1],
         "Label": ["Green Flag"],
@@ -123,3 +124,130 @@ def mock_green_flag_track_status() -> DataFrame:
         "TextColor": [LVecBase4f(0, 0, 0, 0.8)],
     })
 
+
+@pytest.fixture()
+def processed_weather_data() -> DataFrame:
+    return pd.DataFrame({
+        "SessionTimeTick": [1, 2, 3, 4, 5],
+        "Time": [Timedelta(milliseconds=1000), Timedelta(milliseconds=2000), Timedelta(milliseconds=3000), Timedelta(milliseconds=4000), Timedelta(milliseconds=5000)],
+        "AirTemp": [20, 21, 22, 21, 20],
+        "TrackTemp": [30, 31, 32, 31, 30],
+    })
+
+
+@pytest.fixture()
+def processed_track_statuses() -> DataFrame:
+    return pd.DataFrame({
+        "Status": [1, 2],
+        "SessionTimeTick": [1, 2],
+        "SessionTimeTickEnd": [2, 4],
+        "PixelStart": [0, 166.666667],
+        "PixelEnd": [166.666667 ,500],
+        "Width": [166.666667, 333.333333],
+        "Label": ["Green Flag", "Yellow Flag"],
+        "Color": [LVecBase4f(0, 1, 0, 0.8), LVecBase4f(1, 1, 0, 0.8)],
+        "TextColor": [LVecBase4f(0, 0, 0, 0.8), LVecBase4f(0, 0, 0, 0.8)],
+    })
+
+
+@pytest.fixture()
+def mock_pos_data_with_session_time() -> DataFrame:
+    return pd.DataFrame({
+        "SessionTimeTick": [1, 2, 3, 4, 1, 2, 3],
+        "SessionTime": [
+            Timedelta(milliseconds=1000),
+            Timedelta(milliseconds=2000),
+            Timedelta(milliseconds=3000),
+            Timedelta(milliseconds=4000),
+            Timedelta(milliseconds=1000),
+            Timedelta(milliseconds=2000),
+            Timedelta(milliseconds=3000),
+        ],
+        "X": [1.0, 2.0, 3.0, 4.0, 1.1, 2.1, 3.1],
+        "Y": [1.0, 2.0, 3.0, 4.0, 1.1, 2.1, 3.1],
+        "Z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "DriverNumber": [1, 1, 1, 1, 2, 2, 2],
+    })
+
+
+@pytest.fixture()
+def fastest_lap_data() -> DataFrame:
+    return pd.DataFrame({
+        "X": [1.0, 2.0, 3.0, 4.0],
+        "Y": [1.0, 2.0, 3.0, 4.0],
+        "Z": [0.0, 0.0, 0.0, 0.0],
+    })
+
+
+@pytest.fixture()
+def pos_data_dict(mocker: MockerFixture, fastest_lap_data: DataFrame) -> dict[str, Telemetry]:
+    mock_telemetry_1 = mocker.MagicMock(spec=Telemetry)
+    mock_telemetry_1.__getitem__ = lambda self, key: fastest_lap_data[key]
+    mock_telemetry_1.columns = fastest_lap_data.columns.tolist()
+
+    mock_telemetry_2 = mocker.MagicMock(spec=Telemetry)
+    mock_telemetry_2.__getitem__ = lambda self, key: fastest_lap_data[key]
+    mock_telemetry_2.columns = fastest_lap_data.columns.tolist()
+
+    return {"1": mock_telemetry_1, "2": mock_telemetry_2}
+
+
+@pytest.fixture()
+def pos_data_for_filtering() -> DataFrame:
+    return pd.DataFrame({
+        "SessionTime": [
+            Timedelta(milliseconds=500),
+            Timedelta(milliseconds=1000),
+            Timedelta(milliseconds=1500),
+            Timedelta(milliseconds=2000),
+            Timedelta(milliseconds=2500),
+        ],
+        "X": [1.0, 2.0, 3.0, 4.0, 5.0],
+        "Y": [1.0, 2.0, 3.0, 4.0, 5.0],
+        "Z": [0.0, 0.0, 0.0, 0.0, 0.0],
+        "DriverNumber": [1, 1, 1, 1, 1],
+    })
+
+
+@pytest.fixture()
+def pos_data_for_normalization() -> DataFrame:
+    return pd.DataFrame({
+        "SessionTime": [Timedelta(milliseconds=1000), Timedelta(milliseconds=2000)],
+        "X": [1.0, 2.0],
+        "Y": [1.0, 2.0],
+        "Z": [0.0, 0.0],
+        "DriverNumber": [1, 1],
+    })
+
+
+@pytest.fixture()
+def pos_data_for_milliseconds() -> DataFrame:
+    return pd.DataFrame({
+        "SessionTime": [
+            Timedelta(seconds=1),
+            Timedelta(seconds=2),
+            Timedelta(seconds=3),
+        ],
+        "X": [1.0, 2.0, 3.0],
+        "Y": [1.0, 2.0, 3.0],
+        "Z": [0.0, 0.0, 0.0],
+        "DriverNumber": [1, 1, 1],
+    })
+
+
+@pytest.fixture()
+def pos_data_for_session_time_tick() -> DataFrame:
+    return pd.DataFrame({
+        "SessionTime": [
+            Timedelta(milliseconds=1000),
+            Timedelta(milliseconds=2000),
+            Timedelta(milliseconds=3000),
+            Timedelta(milliseconds=1000),
+            Timedelta(milliseconds=2000),
+            Timedelta(milliseconds=3000),
+        ],
+        "X": [1.0, 2.0, 3.0, 1.1, 2.1, 3.1],
+        "Y": [1.0, 2.0, 3.0, 1.1, 2.1, 3.1],
+        "Z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        "DriverNumber": [1, 1, 1, 2, 2, 2],
+    })

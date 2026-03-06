@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import numpy as np
 import pandas as pd
 import pytest
 from fastf1.core import Lap, Laps, Session, Telemetry
@@ -8,6 +9,7 @@ from fastf1.events import Event, EventSchedule
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f
 from pandas import DataFrame, Timedelta
+from pandas._testing import assert_frame_equal
 from pytest_mock import MockerFixture
 
 from f1p.services.data_extractor.service import DataExtractorService
@@ -596,3 +598,264 @@ def test_session_ticks_with_different_driver_counts(data_extractor_service: Data
 
     assert result == 1
 
+
+def test_process_track_statuses(
+    data_extractor_service: DataExtractorService,
+    mock_pos_data_with_session_time: DataFrame,
+    processed_track_statuses: DataFrame,
+    track_status_colors: DataFrame,
+    mocker: MockerFixture,
+) -> None:
+    data_extractor_service.processed_pos_data = mock_pos_data_with_session_time
+    data_extractor_service._session_start_time = Timedelta(milliseconds=1000)
+    data_extractor_service._session_end_time = Timedelta(milliseconds=5000)
+
+    mock_track_status_df = pd.DataFrame({
+        "Status": [1, 2],
+        "Time": [Timedelta(milliseconds=1000), Timedelta(milliseconds=2000)],
+    })
+    data_extractor_service._track_status = mock_track_status_df
+    data_extractor_service._track_status_colors = track_status_colors
+    mocker.patch.object(data_extractor_service, "update_loading")
+
+    data_extractor_service.process_track_statuses(500)
+    assert_frame_equal(processed_track_statuses, data_extractor_service._track_statuses)
+
+
+def test_track_statuses_returns_cached_value(
+    data_extractor_service: DataExtractorService,
+    processed_track_statuses: DataFrame,
+) -> None:
+    data_extractor_service._track_statuses = processed_track_statuses
+
+    result = data_extractor_service.track_statuses
+
+    assert result.equals(processed_track_statuses)
+
+
+def test_track_statuses_raises_when_not_processed(data_extractor_service: DataExtractorService) -> None:
+    with pytest.raises(ValueError, match="Track statuses not processed."):
+        data_extractor_service.track_statuses
+
+
+def test_get_current_track_status_returns_matching_status(
+    data_extractor_service: DataExtractorService,
+    processed_track_statuses: DataFrame,
+) -> None:
+    data_extractor_service._track_statuses = processed_track_statuses
+
+    result = data_extractor_service.get_current_track_status(2)
+
+    assert result is not None
+    assert result["Status"] == np.int64(1)
+
+
+def test_get_current_track_status_returns_none_when_not_found(
+    data_extractor_service: DataExtractorService,
+    processed_track_statuses: DataFrame,
+) -> None:
+    data_extractor_service._track_statuses = processed_track_statuses
+
+    result = data_extractor_service.get_current_track_status(100)
+
+    assert result is None
+
+
+@pytest.mark.parametrize(
+    "session_time_tick,expected_status",
+    [
+        (1, 1),
+        (2, 1),
+        (4, 2),
+    ],
+)
+def test_get_current_track_status_parametrized(
+    data_extractor_service: DataExtractorService,
+    processed_track_statuses: DataFrame,
+    session_time_tick: int,
+    expected_status: int,
+) -> None:
+    data_extractor_service._track_statuses = processed_track_statuses
+
+    result = data_extractor_service.get_current_track_status(session_time_tick)
+
+    assert result is not None
+    assert result["Status"] == expected_status
+
+
+def test_get_current_weather_data_returns_matching_data(
+    data_extractor_service: DataExtractorService,
+    processed_weather_data: DataFrame,
+) -> None:
+    data_extractor_service.processed_weather_data = processed_weather_data
+
+    result = data_extractor_service.get_current_weather_data(3)
+
+    assert result is not None
+    assert result["SessionTimeTick"] == 3
+
+
+def test_get_current_weather_data_returns_none_when_not_found(
+    data_extractor_service: DataExtractorService,
+    processed_weather_data: DataFrame,
+) -> None:
+    data_extractor_service.processed_weather_data = processed_weather_data
+
+    result = data_extractor_service.get_current_weather_data(0)
+
+    assert result is None
+
+
+@pytest.mark.parametrize(
+    "session_time_tick,expected_tick",
+    [
+        (1, 1),
+        (3, 3),
+        (5, 5),
+    ],
+)
+def test_get_current_weather_data_parametrized(
+    data_extractor_service: DataExtractorService,
+    processed_weather_data: DataFrame,
+    session_time_tick: int,
+    expected_tick: int,
+) -> None:
+    data_extractor_service.processed_weather_data = processed_weather_data
+
+    result = data_extractor_service.get_current_weather_data(session_time_tick)
+
+    assert result is not None
+    assert result["SessionTimeTick"] == expected_tick
+
+
+def test_process_fastest_lap(
+    data_extractor_service: DataExtractorService,
+    fastest_lap_data: DataFrame,
+    mocker: MockerFixture,
+) -> None:
+    mock_fastest_lap = mocker.MagicMock(spec=Lap)
+    mock_fastest_lap.get_pos_data.return_value = fastest_lap_data
+    data_extractor_service._fastest_lap = mock_fastest_lap
+
+    mock_resize = mocker.patch("f1p.services.data_extractor.service.resize_pos_data", return_value=fastest_lap_data)
+    mock_find_center = mocker.patch("f1p.services.data_extractor.service.find_center", return_value=(2.0, 2.0, 0.0))
+    mock_center = mocker.patch("f1p.services.data_extractor.service.center_pos_data", return_value=fastest_lap_data)
+    mocker.patch("f1p.services.data_extractor.service.DataExtractorService.map_rotation", new_callable=mocker.PropertyMock, return_value=0.785)
+    mock_update_loading = mocker.patch.object(data_extractor_service, "update_loading")
+
+    result = data_extractor_service.process_fastest_lap()
+
+    assert result == data_extractor_service
+    assert data_extractor_service.map_center_coordinate == (2.0, 2.0, 0.0)
+    assert data_extractor_service.fastest_lap_telemetry is not None
+    mock_resize.assert_called_once()
+    mock_find_center.assert_called_once()
+    mock_center.assert_called_once()
+    mock_update_loading.assert_called_once_with(1)
+
+
+def test_combine_position_data(
+    data_extractor_service: DataExtractorService,
+    fastest_lap_data: DataFrame,
+    mocker: MockerFixture,
+) -> None:
+    mock_pos_data = {
+        "1": fastest_lap_data.copy(),
+        "2": fastest_lap_data.copy(),
+    }
+    data_extractor_service._pos_data = mock_pos_data
+    mock_update_loading = mocker.patch.object(data_extractor_service, "update_loading")
+
+    result = data_extractor_service.combine_position_data()
+
+    assert result == data_extractor_service
+    assert data_extractor_service.processed_pos_data is not None
+    assert len(data_extractor_service.processed_pos_data) == 8
+    assert "DriverNumber" in data_extractor_service.processed_pos_data.columns
+    mock_update_loading.assert_called_once_with(2)
+
+    driver_numbers = data_extractor_service.processed_pos_data["DriverNumber"].unique()
+    assert len(driver_numbers) == 2
+    assert "1" in driver_numbers
+    assert "2" in driver_numbers
+
+
+def test_remove_records_before_session_start_time(
+    data_extractor_service: DataExtractorService,
+    pos_data_for_filtering: DataFrame,
+    mocker: MockerFixture,
+) -> None:
+    data_extractor_service.processed_pos_data = pos_data_for_filtering.copy()
+    data_extractor_service._session_start_time = Timedelta(milliseconds=1000)
+    mock_update_loading = mocker.patch.object(data_extractor_service, "update_loading")
+
+    result = data_extractor_service.remove_records_before_session_start_time()
+
+    assert result == data_extractor_service
+    assert len(data_extractor_service.processed_pos_data) == 4
+    assert data_extractor_service.processed_pos_data["SessionTime"].min() == Timedelta(milliseconds=1000)
+    mock_update_loading.assert_called_once_with(1)
+
+
+def test_normalize_position_data(
+    data_extractor_service: DataExtractorService,
+    pos_data_for_normalization: DataFrame,
+    mocker: MockerFixture,
+) -> None:
+    data_extractor_service.processed_pos_data = pos_data_for_normalization.copy()
+    data_extractor_service.map_center_coordinate = (2.0, 2.0, 0.0)
+
+    mock_resize = mocker.patch("f1p.services.data_extractor.service.resize_pos_data", return_value=pos_data_for_normalization)
+    mock_center = mocker.patch("f1p.services.data_extractor.service.center_pos_data", return_value=pos_data_for_normalization)
+    mocker.patch("f1p.services.data_extractor.service.DataExtractorService.map_rotation", new_callable=mocker.PropertyMock, return_value=0.785)
+    mock_update_loading = mocker.patch.object(data_extractor_service, "update_loading")
+
+    result = data_extractor_service.normalize_position_data()
+
+    assert result == data_extractor_service
+    assert data_extractor_service.processed_pos_data is not None
+    mock_resize.assert_called_once()
+    mock_center.assert_called_once()
+    mock_update_loading.assert_called_once_with(5)
+
+
+def test_add_session_time_in_milliseconds(
+    data_extractor_service: DataExtractorService,
+    pos_data_for_milliseconds: DataFrame,
+    mocker: MockerFixture,
+) -> None:
+    data_extractor_service.processed_pos_data = pos_data_for_milliseconds.copy()
+    mock_update_loading = mocker.patch.object(data_extractor_service, "update_loading")
+
+    result = data_extractor_service.add_session_time_in_milliseconds()
+
+    assert result == data_extractor_service
+    assert "SessionTimeMilliseconds" in data_extractor_service.processed_pos_data.columns
+    assert data_extractor_service.processed_pos_data["SessionTimeMilliseconds"].dtype == "int64"
+    assert data_extractor_service.processed_pos_data["SessionTimeMilliseconds"].tolist() == [1000, 2000, 3000]
+    mock_update_loading.assert_called_once_with(1)
+
+
+def test_add_session_time_tick(
+    data_extractor_service: DataExtractorService,
+    pos_data_for_session_time_tick: DataFrame,
+    mocker: MockerFixture,
+) -> None:
+    data_extractor_service.processed_pos_data = pos_data_for_session_time_tick.copy()
+    mock_update_loading = mocker.patch.object(data_extractor_service, "update_loading")
+
+    result = data_extractor_service.add_session_time_tick()
+
+    assert result == data_extractor_service
+    assert "SessionTimeTick" in data_extractor_service.processed_pos_data.columns
+
+    driver_1_ticks = data_extractor_service.processed_pos_data[
+        data_extractor_service.processed_pos_data["DriverNumber"] == 1
+    ]["SessionTimeTick"].tolist()
+    driver_2_ticks = data_extractor_service.processed_pos_data[
+        data_extractor_service.processed_pos_data["DriverNumber"] == 2
+    ]["SessionTimeTick"].tolist()
+
+    assert driver_1_ticks == [1, 2, 3]
+    assert driver_2_ticks == [1, 2, 3]
+    mock_update_loading.assert_called_once_with(1)
