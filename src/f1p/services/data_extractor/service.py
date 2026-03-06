@@ -355,7 +355,7 @@ class DataExtractorService(DirectObject):
 
         self.fastest_lap_telemetry = center_pos_data(self.map_center_coordinate, resized_pos_data_df)
 
-        self.update_loading(5)
+        self.update_loading(1)
 
         return self
 
@@ -367,7 +367,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = pd.concat(drivers_pos_data, ignore_index=True)
 
-        self.update_loading(5)
+        self.update_loading(2)
 
         return self
 
@@ -376,7 +376,7 @@ class DataExtractorService(DirectObject):
             self.processed_pos_data["SessionTime"] >= self.session_start_time
         ]
 
-        self.update_loading(5)
+        self.update_loading(1)
 
         return self
 
@@ -395,7 +395,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data["SessionTimeMilliseconds"] = session_time_in_milliseconds.astype("int64")
 
-        self.update_loading(5)
+        self.update_loading(1)
 
         return self
 
@@ -406,7 +406,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
-        self.update_loading(5)
+        self.update_loading(1)
 
         return self
 
@@ -496,7 +496,7 @@ class DataExtractorService(DirectObject):
 
         # TODO figure out what to do with cases where a driver only has a X number of laps where X < Total # Laps
 
-        self.update_loading(5)
+        self.update_loading(15)
 
         return self
 
@@ -572,7 +572,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
-        self.update_loading(5)
+        self.update_loading(1)
 
         return self
 
@@ -584,7 +584,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
-        self.update_loading(5)
+        self.update_loading(1)
 
         return self
 
@@ -605,7 +605,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
-        self.update_loading(5)
+        self.update_loading(2)
 
         return self
 
@@ -622,7 +622,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
-        self.update_loading(5)
+        self.update_loading(3)
 
         return self
 
@@ -695,6 +695,8 @@ class DataExtractorService(DirectObject):
 
         self.processed_car_data = pd.concat(drivers_car_data, ignore_index=True)
 
+        self.update_loading(1)
+
         return self
 
     def process_car_data(self) -> Self:
@@ -746,6 +748,8 @@ class DataExtractorService(DirectObject):
 
         self.processed_car_data = car_data_df
 
+        self.update_loading(15)
+
         return self
 
     def merge_pos_and_car_data(self) -> Self:
@@ -762,6 +766,8 @@ class DataExtractorService(DirectObject):
         combined_df["DRS"] = combined_df.groupby("DriverNumber")["DRS"].ffill()
 
         self.processed_pos_data = combined_df
+
+        self.update_loading(3)
 
         return self
 
@@ -859,7 +865,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_weather_data = weather_df
 
-        self.update_loading(2)
+        self.update_loading(10)
 
         return self
 
