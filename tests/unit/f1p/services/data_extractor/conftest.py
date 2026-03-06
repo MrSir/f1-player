@@ -3,10 +3,10 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 from direct.task.Task import TaskManager
-from fastf1.core import Lap, Telemetry
+from fastf1.core import Telemetry
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f, NodePath, StaticTextFont
-from pandas import DataFrame, Series, Timedelta
+from pandas import DataFrame, Timedelta
 from pytest_mock import MockerFixture
 
 from f1p.services.data_extractor.service import DataExtractorService

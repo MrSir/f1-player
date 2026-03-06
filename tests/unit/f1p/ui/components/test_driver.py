@@ -8,6 +8,7 @@ from pandas import DataFrame, Series
 from pytest_mock import MockerFixture
 
 from f1p.ui.components.driver.component import Driver
+from f1p.ui.components.driver.window import DriverWindow
 from procedural3d import SphereMaker
 
 
@@ -159,6 +160,45 @@ def test_initialization(
     mock_accept.assert_called_once_with("updateDrivers", driver.update)
 
 
+def test_driver_window_lazy_initialization(
+    driver: Driver,
+    mocker: MockerFixture,
+) -> None:
+    mock_driver_window = mocker.MagicMock(spec=DriverWindow)
+    mock_driver_window_class = mocker.MagicMock(return_value=mock_driver_window)
+    mocker.patch("f1p.ui.components.driver.component.DriverWindow", mock_driver_window_class)
+
+    result = driver.driver_window
+
+    assert mock_driver_window == result
+    mock_driver_window_class.assert_called_once_with(
+        800,
+        800,
+        driver.number,
+        driver.first_name,
+        driver.last_name,
+        driver.team_color_obj,
+        driver.team_name,
+        driver.app,
+        driver.strategy,
+    )
+
+
+def test_driver_window_returns_cached_instance(
+    driver: Driver,
+    mocker: MockerFixture,
+) -> None:
+    mock_driver_window = mocker.MagicMock(spec=DriverWindow)
+    mock_driver_window_class = mocker.MagicMock(return_value=mock_driver_window)
+    mocker.patch("f1p.ui.components.driver.component.DriverWindow", mock_driver_window_class)
+
+    result1 = driver.driver_window
+    result2 = driver.driver_window
+
+    assert result1 is result2
+    mock_driver_window_class.assert_called_once()
+
+
 def test_team_color_obj(driver: Driver, mocker: MockerFixture) -> None:
     color = LVecBase4f(1, 0, 0, 1)
     mock_node_path = mocker.MagicMock(space=NodePath)
@@ -262,3 +302,49 @@ def test_update(
         parsed_y = Decimal(y).quantize(precision)
         parsed_z = Decimal(z).quantize(precision)
         node_path.setPos.assert_called_once_with(parsed_x, parsed_y, parsed_z)
+
+def test_update_with_open_window(driver: Driver, mocker: MockerFixture) -> None:
+    mock_pos = mocker.MagicMock()
+    mock_pos.x = 1
+    mock_pos.y = 1
+    mock_pos.z = 1
+    node_path = mocker.MagicMock(spec=NodePath)
+    node_path.getPos.return_value = mock_pos
+    driver.node_path = node_path
+
+    mock_driver_window = mocker.MagicMock(spec=DriverWindow)
+    mock_driver_window.is_open = True
+    driver._driver_window = mock_driver_window
+
+    driver.update(2)
+
+    assert driver.is_dnf is True
+    assert driver.in_pit is False
+    assert driver.is_finished is False
+    assert driver.has_fastest_lap is False
+
+    node_path.getPos.assert_called_once()
+    precision = Decimal("0.001")
+    parsed_x = Decimal(2).quantize(precision)
+    parsed_y = Decimal(2).quantize(precision)
+    parsed_z = Decimal(2).quantize(precision)
+    node_path.setPos.assert_called_once_with(parsed_x, parsed_y, parsed_z)
+    mock_driver_window.update.assert_called_once_with(driver.ticks[2])
+
+def test_open_driver(driver: Driver, mocker: MockerFixture) -> None:
+    mock_driver_window = mocker.MagicMock(spec=DriverWindow)
+    driver._driver_window = mock_driver_window
+
+    mock_node_path = mocker.MagicMock(spec=NodePath)
+    mock_pos = mocker.MagicMock()
+    mock_pos.x = 1.5
+    mock_pos.y = 2.5
+    mock_pos.z = 3.5
+    mock_node_path.getPos.return_value = mock_pos
+    driver.node_path = mock_node_path
+
+    driver.open_driver()
+
+    mock_driver_window.open.assert_called_once()
+    mock_node_path.getPos.assert_called_once()
+    mock_driver_window.update_camera_position.assert_called_once_with(1.5, 2.5, 3.5)
