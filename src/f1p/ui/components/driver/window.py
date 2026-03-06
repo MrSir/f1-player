@@ -615,6 +615,29 @@ class DriverWindow(DirectObject):
         if self.laps.text != f"{int(lap)}/{total_laps}":
             self.laps["text"] = f"{int(lap)}/{total_laps}"
 
+    def update_gear_indicator(self, indicator: str, gear: str) -> None:
+        indicator_property = getattr(self, f"gear_{indicator}")
+
+        current_gear_color = indicator_property.textNode.getTextColor()
+        gear_color = self.green_color if gear == indicator else self.gray_color
+        if current_gear_color != gear_color:
+            indicator_property["fg"] = gear_color
+
+    def update_drs_indicator(self, drs: float) -> None:
+        current_drs_color = self.drs.textNode.getTextColor()
+
+        drs_color = self.blue_color
+        match drs:
+            case 0.0:
+                drs_color = self.blue_color
+            case 1.0:
+                drs_color = self.red_color
+            case 14.0:
+                drs_color = self.green_color
+
+        if current_drs_color != drs_color:
+            self.drs["fg"] = drs_color
+
     def update_telemetry(
         self,
         gear: str,
@@ -625,50 +648,8 @@ class DriverWindow(DirectObject):
         speed_mph: float,
         throttle: float,
     ) -> None:
-        current_gear_N_color = self.gear_N.textNode.getTextColor()
-        gear_N_color = self.green_color if gear == "N" else self.gray_color
-        if current_gear_N_color != gear_N_color:
-            self.gear_N["fg"] = gear_N_color
-
-        current_gear_1_color = self.gear_1.textNode.getTextColor()
-        gear_1_color = self.green_color if gear == "1" else self.gray_color
-        if current_gear_1_color != gear_1_color:
-            self.gear_1["fg"] = gear_1_color
-
-        current_gear_2_color = self.gear_2.textNode.getTextColor()
-        gear_2_color = self.green_color if gear == "2" else self.gray_color
-        if current_gear_2_color != gear_2_color:
-            self.gear_2["fg"] = gear_2_color
-
-        current_gear_3_color = self.gear_3.textNode.getTextColor()
-        gear_3_color = self.green_color if gear == "3" else self.gray_color
-        if current_gear_3_color != gear_3_color:
-            self.gear_3["fg"] = gear_3_color
-
-        current_gear_4_color = self.gear_4.textNode.getTextColor()
-        gear_4_color = self.green_color if gear == "4" else self.gray_color
-        if current_gear_4_color != gear_4_color:
-            self.gear_4["fg"] = gear_4_color
-
-        current_gear_5_color = self.gear_5.textNode.getTextColor()
-        gear_5_color = self.green_color if gear == "5" else self.gray_color
-        if current_gear_5_color != gear_5_color:
-            self.gear_5["fg"] = gear_5_color
-
-        current_gear_6_color = self.gear_6.textNode.getTextColor()
-        gear_6_color = self.green_color if gear == "6" else self.gray_color
-        if current_gear_6_color != gear_6_color:
-            self.gear_6["fg"] = gear_6_color
-
-        current_gear_7_color = self.gear_7.textNode.getTextColor()
-        gear_7_color = self.green_color if gear == "7" else self.gray_color
-        if current_gear_7_color != gear_7_color:
-            self.gear_7["fg"] = gear_7_color
-
-        current_gear_8_color = self.gear_8.textNode.getTextColor()
-        gear_8_color = self.green_color if gear == "8" else self.gray_color
-        if current_gear_8_color != gear_8_color:
-            self.gear_8["fg"] = gear_8_color
+        for indicator in ["N", "1", "2", "3", "4", "5", "6", "7", "8"]:
+            self.update_gear_indicator(indicator, gear)
 
         current_rpm_size = self.rpm["frameSize"]
         rpm_size = (0, rpm / 15000 * 240, 0, 10)
@@ -683,19 +664,7 @@ class DriverWindow(DirectObject):
         if self.speed_kph.text != f"{speed_kph:.0f}":
             self.speed_kph["text"] = f"{speed_kph:.0f}"
 
-        current_drs_color = self.drs.textNode.getTextColor()
-
-        drs_color = self.blue_color
-        match drs:
-            case 0.0:
-                drs_color = self.blue_color
-            case 1.0:
-                drs_color = self.red_color
-            case 14.0:
-                drs_color = self.green_color
-
-        if current_drs_color != drs_color:
-            self.drs["fg"] = drs_color
+        self.update_drs_indicator(drs)
 
         if self.speed_mph.text != f"{speed_mph:.0f}":
             self.speed_mph["text"] = f"{speed_mph:.0f}"
