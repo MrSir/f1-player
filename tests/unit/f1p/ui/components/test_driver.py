@@ -88,6 +88,7 @@ def pos_data() -> DataFrame:
         ],
     )
 
+
 @pytest.fixture()
 def strategy() -> dict[int, dict[str, str | int]]:
     return {
