@@ -27,7 +27,9 @@ def mock_data_extractor(mocker: MockerFixture) -> MagicMock:
 
 
 @pytest.fixture()
-def mock_f1p_app(mocker: MockerFixture) -> MagicMock:
+def mock_f1p_app(mock_task_manager: MagicMock, mocker: MockerFixture) -> MagicMock:
     m = mocker.MagicMock(spec=F1PlayerApp)
+    m.render = mocker.MagicMock(spec=NodePath)
+    m.taskMgr = mock_task_manager
 
     return m

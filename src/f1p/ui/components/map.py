@@ -12,12 +12,12 @@ from f1p.ui.components.driver.component import Driver
 
 
 class Map(DirectObject):
-    def __init__(self, app: ShowBase, task_manager: TaskManager, data_extractor: DataExtractorService):
+    def __init__(self, app: ShowBase, data_extractor: DataExtractorService):
         super().__init__()
 
         self.app = app
         self.parent = app.render
-        self.task_manager = task_manager
+        self.task_manager = app.taskMgr
         self.data_extractor = data_extractor
 
         self.inner_border_node_path: NodePath | None = None

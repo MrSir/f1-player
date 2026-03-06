@@ -12,32 +12,30 @@ from f1p.ui.components.map import Map
 
 @pytest.fixture()
 def map_component(
-    mock_parent: MagicMock,
-    mock_task_manager: MagicMock,
+    mock_f1p_app: MagicMock,
     mock_data_extractor: MagicMock,
     mocker: MockerFixture,
 ) -> Map:
     mock_accept = mocker.MagicMock()
     mocker.patch("f1p.ui.components.map.Map.accept", mock_accept)
 
-    return Map(mock_parent, mock_task_manager, mock_data_extractor)
+    return Map(mock_f1p_app, mock_data_extractor)
 
 
 def test_initialization(
-    mock_parent: MagicMock,
-    mock_task_manager: MagicMock,
+    mock_f1p_app: MagicMock,
     mock_data_extractor: MagicMock,
     mocker: MockerFixture,
 ) -> None:
     mock_accept = mocker.MagicMock()
     mocker.patch("f1p.ui.components.map.Map.accept", mock_accept)
 
-    map_component = Map(mock_parent, mock_task_manager, mock_data_extractor)
+    map_component = Map(mock_f1p_app, mock_data_extractor)
 
     assert isinstance(map_component, DirectObject)
 
-    assert mock_parent == map_component.parent
-    assert mock_task_manager == map_component.task_manager
+    assert mock_f1p_app.render == map_component.parent
+    assert mock_f1p_app.taskMgr == map_component.task_manager
     assert mock_data_extractor == map_component.data_extractor
 
     assert map_component.inner_border_node_path is None
@@ -130,7 +128,7 @@ def test_draw_track(map_component: Map, mocker: MockerFixture) -> None:
 
 def test_render_corners(
     map_component: Map,
-    mock_parent: MagicMock,
+    mock_f1p_app: MagicMock,
     mock_data_extractor: MagicMock,
     mocker: MockerFixture,
 ) -> None:
@@ -176,7 +174,7 @@ def test_render_corners(
         ],
     )
 
-    mock_parent.attachNewNode.assert_has_calls(
+    mock_f1p_app.render.attachNewNode.assert_has_calls(
         [
             mocker.call(mock_text_node),
             mocker.call().setPos(10.0, 10.0, 1.0),
@@ -231,7 +229,7 @@ def test_render_corners(
 
 def test_initialize_drivers(
     map_component: Map,
-    mock_parent: MagicMock,
+    mock_f1p_app: MagicMock,
     mock_data_extractor: MagicMock,
 ) -> None:
     driver_results = DataFrame({
@@ -270,7 +268,7 @@ def test_initialize_drivers(
     assert driver1_sr["TeamName"] == driver1.team_name
     assert driver1_pos_data.equals(driver1.pos_data)
     assert driver1_pos_data.set_index("SessionTimeTick").to_dict(orient="index") == driver1.ticks
-    assert mock_parent.attachNewNode.return_value == driver1.node_path
+    assert mock_f1p_app.render.attachNewNode.return_value == driver1.node_path
     assert driver1.in_pit is False
     assert driver1.is_dnf is False
     assert driver1.is_finished is False
@@ -288,7 +286,7 @@ def test_initialize_drivers(
     assert driver2_sr["TeamName"] == driver2.team_name
     assert driver2_pos_data.equals(driver2.pos_data)
     assert driver2_pos_data.set_index("SessionTimeTick").to_dict(orient="index") == driver2.ticks
-    assert mock_parent.attachNewNode.return_value == driver2.node_path
+    assert mock_f1p_app.render.attachNewNode.return_value == driver2.node_path
     assert driver2.in_pit is False
     assert driver2.is_dnf is False
     assert driver2.is_finished is False
