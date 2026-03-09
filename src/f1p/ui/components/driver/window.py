@@ -608,12 +608,12 @@ class DriverWindow(DirectObject):
             pos=(10, height - title_frame_height - 50, 0),
         )
 
-    def update_standings(self, position_index: int, lap: float, total_laps: str) -> None:
+    def update_standings(self, position_index: int, lap: float, total_laps: float) -> None:
         if self.position.text != f"{position_index + 1}":
             self.position["text"] = f"{position_index + 1}"
 
-        if self.laps.text != f"{int(lap)}/{total_laps}":
-            self.laps["text"] = f"{int(lap)}/{total_laps}"
+        if self.laps.text != f"{int(lap)}/{total_laps:.0f}":
+            self.laps["text"] = f"{int(lap)}/{total_laps:.0f}"
 
     def update_gear_indicator(self, indicator: str, gear: str) -> None:
         indicator_property = getattr(self, f"gear_{indicator}")
