@@ -101,7 +101,8 @@ def test_init_and_create_cache_dir(
 
 
 def test_event_schedule_returns_cached_value(
-    data_extractor_service: DataExtractorService, mocker: MockerFixture
+    data_extractor_service: DataExtractorService,
+    mocker: MockerFixture,
 ) -> None:
     mock_event_schedule = mocker.MagicMock(spec=EventSchedule)
     data_extractor_service._event_schedule = mock_event_schedule
@@ -289,7 +290,7 @@ def test_laps_fetches_and_caches(data_extractor_service: DataExtractorService, m
 
 
 @pytest.mark.parametrize(
-    "session_tick,expected_lap",
+    ("session_tick", "expected_lap"),
     [
         (1, 1),
         (2, 2),
@@ -482,7 +483,11 @@ def test_weather_data_fetches_and_caches(data_extractor_service: DataExtractorSe
     assert data_extractor_service._weather_data is not None
 
 
-def test_map_rotation(data_extractor_service: DataExtractorService, mock_circuit_info: MagicMock, mocker: MockerFixture) -> None:
+def test_map_rotation(
+    data_extractor_service: DataExtractorService,
+    mock_circuit_info: MagicMock,
+    mocker: MockerFixture,
+) -> None:
     degs = 45.0
     radians = 0.7853981633974483
 
@@ -662,7 +667,7 @@ def test_get_current_track_status_returns_none_when_not_found(
 
 
 @pytest.mark.parametrize(
-    "session_time_tick,expected_status",
+    ("session_time_tick", "expected_status"),
     [
         (1, 1),
         (2, 1),
@@ -707,7 +712,7 @@ def test_get_current_weather_data_returns_none_when_not_found(
 
 
 @pytest.mark.parametrize(
-    "session_time_tick,expected_tick",
+    ("session_time_tick", "expected_tick"),
     [
         (1, 1),
         (3, 3),
@@ -740,7 +745,11 @@ def test_process_fastest_lap(
     mock_resize = mocker.patch("f1p.services.data_extractor.service.resize_pos_data", return_value=fastest_lap_data)
     mock_find_center = mocker.patch("f1p.services.data_extractor.service.find_center", return_value=(2.0, 2.0, 0.0))
     mock_center = mocker.patch("f1p.services.data_extractor.service.center_pos_data", return_value=fastest_lap_data)
-    mocker.patch("f1p.services.data_extractor.service.DataExtractorService.map_rotation", new_callable=mocker.PropertyMock, return_value=0.785)
+    mocker.patch(
+        "f1p.services.data_extractor.service.DataExtractorService.map_rotation",
+        new_callable=mocker.PropertyMock,
+        return_value=0.785,
+    )
     mock_update_loading = mocker.patch.object(data_extractor_service, "update_loading")
 
     result = data_extractor_service.process_fastest_lap()
@@ -805,9 +814,19 @@ def test_normalize_position_data(
     data_extractor_service.processed_pos_data = pos_data_for_normalization.copy()
     data_extractor_service.map_center_coordinate = (2.0, 2.0, 0.0)
 
-    mock_resize = mocker.patch("f1p.services.data_extractor.service.resize_pos_data", return_value=pos_data_for_normalization)
-    mock_center = mocker.patch("f1p.services.data_extractor.service.center_pos_data", return_value=pos_data_for_normalization)
-    mocker.patch("f1p.services.data_extractor.service.DataExtractorService.map_rotation", new_callable=mocker.PropertyMock, return_value=0.785)
+    mock_resize = mocker.patch(
+        "f1p.services.data_extractor.service.resize_pos_data",
+        return_value=pos_data_for_normalization,
+    )
+    mock_center = mocker.patch(
+        "f1p.services.data_extractor.service.center_pos_data",
+        return_value=pos_data_for_normalization,
+    )
+    mocker.patch(
+        "f1p.services.data_extractor.service.DataExtractorService.map_rotation",
+        new_callable=mocker.PropertyMock,
+        return_value=0.785,
+    )
     mock_update_loading = mocker.patch.object(data_extractor_service, "update_loading")
 
     result = data_extractor_service.normalize_position_data()

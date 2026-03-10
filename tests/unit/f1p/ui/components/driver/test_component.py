@@ -303,6 +303,7 @@ def test_update(
         parsed_z = Decimal(z).quantize(precision)
         node_path.setPos.assert_called_once_with(parsed_x, parsed_y, parsed_z)
 
+
 def test_update_with_open_window(driver: Driver, mocker: MockerFixture) -> None:
     mock_pos = mocker.MagicMock()
     mock_pos.x = 1
@@ -330,6 +331,7 @@ def test_update_with_open_window(driver: Driver, mocker: MockerFixture) -> None:
     parsed_z = Decimal(2).quantize(precision)
     node_path.setPos.assert_called_once_with(parsed_x, parsed_y, parsed_z)
     mock_driver_window.update.assert_called_once_with(driver.ticks[2])
+
 
 def test_open_driver(driver: Driver, mocker: MockerFixture) -> None:
     mock_driver_window = mocker.MagicMock(spec=DriverWindow)

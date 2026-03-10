@@ -11,8 +11,11 @@ from panda3d.core import (
     NodePath,
     PerspectiveLens,
     PGTop,
+    Point3,
+    TextNode,
+    VBase4,
+    Vec4,
     WindowProperties,
-    VBase4, Vec4, Point3, TextNode,
 )
 from pytest_mock import MockerFixture
 
@@ -147,10 +150,7 @@ def test_window_properties_creates_properties_on_first_access(
     assert "Driver 1 - Joe Shmoe" in props.getTitle()
 
 
-def test_window_properties_returns_cached_instance(
-    driver_window: DriverWindow,
-    mocker: MagicMock
-) -> None:
+def test_window_properties_returns_cached_instance(driver_window: DriverWindow, mocker: MagicMock) -> None:
     mock_window_properties = mocker.MagicMock(spec=WindowProperties)
 
     driver_window._window_properties = mock_window_properties
@@ -377,98 +377,98 @@ def test_make_driver_widget(
     assert driver_window.laps is not None
 
     title_frame_height = 30
-    mock_direct_frame_class.assert_has_calls(
-        [
-            mocker.call(
-                parent=mock_pixel2d,
-                frameColor=(0.2, 0.2, 0.2, 0.7),
-                frameSize=(0, 260, 0, driver_window.driver_frame_height),
-                pos=Point3(530, 0, -(driver_window.height - (driver_window.height - driver_window.driver_frame_height - 10))),
-                sortOrder=0,
+    mock_direct_frame_class.assert_has_calls([
+        mocker.call(
+            parent=mock_pixel2d,
+            frameColor=(0.2, 0.2, 0.2, 0.7),
+            frameSize=(0, 260, 0, driver_window.driver_frame_height),
+            pos=Point3(
+                530,
+                0,
+                -(driver_window.height - (driver_window.height - driver_window.driver_frame_height - 10)),
             ),
-            mocker.call(
-                parent=mock_direct_frame,
-                frameColor=(0.15, 0.15, 0.15, 0.7),
-                frameSize=(0, 260, 0, title_frame_height),
-                pos=Point3(0, 0, driver_window.driver_frame_height - title_frame_height),
-                sortOrder=10,
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                frameColor=driver_window.team_color_obj,
-                frameSize=(0, 19, 0, 19),
-                pos=(10, 0, driver_window.driver_frame_height - title_frame_height - 54),
-                sortOrder=20,
-            )
-        ]
-    )
-    mock_onscreen_text_class.assert_has_calls(
-        [
-            mocker.call(
-                parent=mock_direct_frame,
-                text="DRIVER",
-                align=TextNode.ACenter,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=(1, 1, 1, 1),
-                pos=(260 / 2, title_frame_height - 20, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text=f"#{driver_window.driver_number} {driver_window.first_name} {driver_window.last_name}",
-                align=TextNode.ALeft,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=(1, 1, 1, 1),
-                pos=(10, driver_window.driver_frame_height - title_frame_height - 25, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text=driver_window.team_name,
-                align=TextNode.ALeft,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=(1, 1, 1, 1),
-                pos=(33, driver_window.driver_frame_height - title_frame_height - 50, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="POSITION",
-                align=TextNode.ALeft,
-                scale=13,
-                font=driver_window.app.text_font,
-                fg=(0.8, 1, 0, 0.7),
-                pos=(10, driver_window.driver_frame_height - title_frame_height - 70, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="TBD",
-                align=TextNode.ALeft,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=(1, 1, 1, 0.8),
-                pos=(10, driver_window.driver_frame_height - title_frame_height - 90, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="LAPS",
-                align=TextNode.ALeft,
-                scale=13,
-                font=driver_window.app.text_font,
-                fg=(0.8, 1, 0, 0.7),
-                pos=(100, driver_window.driver_frame_height - title_frame_height - 70, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="TBD",
-                align=TextNode.ACenter,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=(1, 1, 1, 0.8),
-                pos=(120, driver_window.driver_frame_height - title_frame_height - 90, 0),
-            ),
-        ]
-    )
+            sortOrder=0,
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            frameColor=(0.15, 0.15, 0.15, 0.7),
+            frameSize=(0, 260, 0, title_frame_height),
+            pos=Point3(0, 0, driver_window.driver_frame_height - title_frame_height),
+            sortOrder=10,
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            frameColor=driver_window.team_color_obj,
+            frameSize=(0, 19, 0, 19),
+            pos=(10, 0, driver_window.driver_frame_height - title_frame_height - 54),
+            sortOrder=20,
+        ),
+    ])
+    mock_onscreen_text_class.assert_has_calls([
+        mocker.call(
+            parent=mock_direct_frame,
+            text="DRIVER",
+            align=TextNode.ACenter,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=(1, 1, 1, 1),
+            pos=(260 / 2, title_frame_height - 20, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text=f"#{driver_window.driver_number} {driver_window.first_name} {driver_window.last_name}",
+            align=TextNode.ALeft,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=(1, 1, 1, 1),
+            pos=(10, driver_window.driver_frame_height - title_frame_height - 25, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text=driver_window.team_name,
+            align=TextNode.ALeft,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=(1, 1, 1, 1),
+            pos=(33, driver_window.driver_frame_height - title_frame_height - 50, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="POSITION",
+            align=TextNode.ALeft,
+            scale=13,
+            font=driver_window.app.text_font,
+            fg=(0.8, 1, 0, 0.7),
+            pos=(10, driver_window.driver_frame_height - title_frame_height - 70, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="TBD",
+            align=TextNode.ALeft,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=(1, 1, 1, 0.8),
+            pos=(10, driver_window.driver_frame_height - title_frame_height - 90, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="LAPS",
+            align=TextNode.ALeft,
+            scale=13,
+            font=driver_window.app.text_font,
+            fg=(0.8, 1, 0, 0.7),
+            pos=(100, driver_window.driver_frame_height - title_frame_height - 70, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="TBD",
+            align=TextNode.ACenter,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=(1, 1, 1, 0.8),
+            pos=(120, driver_window.driver_frame_height - title_frame_height - 90, 0),
+        ),
+    ])
 
 
 def test_make_telemetry_widget(
@@ -493,267 +493,257 @@ def test_make_telemetry_widget(
 
     width = 260
     title_frame_height = 30
-    frame_z = -(driver_window.height - (driver_window.height - driver_window.telemetry_frame_height - driver_window.driver_frame_height - 20))
+    frame_z = -(
+        driver_window.height
+        - (driver_window.height - driver_window.telemetry_frame_height - driver_window.driver_frame_height - 20)
+    )
     gear_spacer = 20
     initial_space = 45
 
-    mock_direct_frame_class.assert_has_calls(
-        [
-            mocker.call(
-                parent=mock_pixel2d,
-                frameColor=(0.2, 0.2, 0.2, 0.7),
-                frameSize=(0, width, 0, driver_window.telemetry_frame_height),
-                pos=Point3(530, 0, frame_z),
-                sortOrder=0,
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                frameColor=(0.15, 0.15, 0.15, 0.7),
-                frameSize=(0, width, 0, title_frame_height),
-                pos=Point3(0, 0, driver_window.telemetry_frame_height - title_frame_height),
-                sortOrder=10,
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                frameColor=driver_window.gray_color,
-                frameSize=(0, 240, 0, 10),
-                pos=Point3(10, 0, driver_window.telemetry_frame_height - title_frame_height - 60),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                frameColor=driver_window.blue_color,
-                frameSize=(0, 0, 0, 10),
-                pos=Point3(0, 0, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                frameColor=driver_window.gray_color,
-                frameSize=(-10, 10, 0, 100),
-                pos=Point3(60, 0, driver_window.telemetry_frame_height - title_frame_height - 170),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                frameColor=driver_window.red_color,
-                frameSize=(-10, 10, 0, 0),
-                pos=Point3(0, 0, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                frameColor=driver_window.gray_color,
-                frameSize=(-10, 10, 0, 100),
-                pos=Point3(width - 60, 0, driver_window.telemetry_frame_height - title_frame_height - 170),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                frameColor=driver_window.green_color,
-                frameSize=(-10, 10, 0, 0),
-                pos=Point3(0, 0, 0),
-            )
+    mock_direct_frame_class.assert_has_calls([
+        mocker.call(
+            parent=mock_pixel2d,
+            frameColor=(0.2, 0.2, 0.2, 0.7),
+            frameSize=(0, width, 0, driver_window.telemetry_frame_height),
+            pos=Point3(530, 0, frame_z),
+            sortOrder=0,
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            frameColor=(0.15, 0.15, 0.15, 0.7),
+            frameSize=(0, width, 0, title_frame_height),
+            pos=Point3(0, 0, driver_window.telemetry_frame_height - title_frame_height),
+            sortOrder=10,
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            frameColor=driver_window.gray_color,
+            frameSize=(0, 240, 0, 10),
+            pos=Point3(10, 0, driver_window.telemetry_frame_height - title_frame_height - 60),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            frameColor=driver_window.blue_color,
+            frameSize=(0, 0, 0, 10),
+            pos=Point3(0, 0, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            frameColor=driver_window.gray_color,
+            frameSize=(-10, 10, 0, 100),
+            pos=Point3(60, 0, driver_window.telemetry_frame_height - title_frame_height - 170),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            frameColor=driver_window.red_color,
+            frameSize=(-10, 10, 0, 0),
+            pos=Point3(0, 0, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            frameColor=driver_window.gray_color,
+            frameSize=(-10, 10, 0, 100),
+            pos=Point3(width - 60, 0, driver_window.telemetry_frame_height - title_frame_height - 170),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            frameColor=driver_window.green_color,
+            frameSize=(-10, 10, 0, 0),
+            pos=Point3(0, 0, 0),
+        ),
+    ])
 
-        ]
-    )
-
-    mock_onscreen_text_class.assert_has_calls(
-        [
-            mocker.call(
-                parent=mock_direct_frame,
-                text="TELEMETRY",
-                align=TextNode.ACenter,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(width / 2, title_frame_height - 21, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="GEARS",
-                align=TextNode.ACenter,
-                scale=13,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 20, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="N",
-                align=TextNode.ALeft,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=driver_window.green_color,
-                pos=(initial_space, driver_window.telemetry_frame_height - title_frame_height - 40, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="1",
-                align=TextNode.ALeft,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(initial_space + (gear_spacer * 1), driver_window.telemetry_frame_height - title_frame_height - 40,
-                     0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="2",
-                align=TextNode.ALeft,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(initial_space + (gear_spacer * 2), driver_window.telemetry_frame_height - title_frame_height - 40,
-                     0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="3",
-                align=TextNode.ALeft,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(initial_space + (gear_spacer * 3), driver_window.telemetry_frame_height - title_frame_height - 40,
-                     0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="4",
-                align=TextNode.ALeft,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(initial_space + (gear_spacer * 4), driver_window.telemetry_frame_height - title_frame_height - 40,
-                     0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="5",
-                align=TextNode.ALeft,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(initial_space + (gear_spacer * 5), driver_window.telemetry_frame_height - title_frame_height - 40,
-                     0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="6",
-                align=TextNode.ALeft,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(initial_space + (gear_spacer * 6), driver_window.telemetry_frame_height - title_frame_height - 40,
-                     0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="7",
-                align=TextNode.ALeft,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(initial_space + (gear_spacer * 7), driver_window.telemetry_frame_height - title_frame_height - 40,
-                     0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="8",
-                align=TextNode.ALeft,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(initial_space + (gear_spacer * 8), driver_window.telemetry_frame_height - title_frame_height - 40,
-                     0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="0",
-                align=TextNode.ALeft,
-                scale=11,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(10, driver_window.telemetry_frame_height - title_frame_height - 70, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="15",
-                align=TextNode.ARight,
-                scale=11,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(width - 10, driver_window.telemetry_frame_height - title_frame_height - 70, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="RPM x1000",
-                align=TextNode.ACenter,
-                scale=11,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 70, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="BRAKE",
-                align=TextNode.ACenter,
-                scale=13,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(60, driver_window.telemetry_frame_height - title_frame_height - 185, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="KM/H",
-                align=TextNode.ACenter,
-                scale=15,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 90, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="0",
-                align=TextNode.ACenter,
-                scale=18,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 110, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="DRS",
-                align=TextNode.ACenter,
-                scale=14,
-                font=driver_window.app.text_font,
-                fg=driver_window.blue_color,
-                pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 132, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="0",
-                align=TextNode.ACenter,
-                scale=16,
-                font=driver_window.app.text_font,
-                fg=driver_window.dark_gray_color,
-                pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 155, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="MPH",
-                align=TextNode.ACenter,
-                scale=13,
-                font=driver_window.app.text_font,
-                fg=driver_window.dark_gray_color,
-                pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 170, 0),
-            ),
-            mocker.call(
-                parent=mock_direct_frame,
-                text="THROTTLE",
-                align=TextNode.ACenter,
-                scale=13,
-                font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(width - 60, driver_window.telemetry_frame_height - title_frame_height - 185, 0),
-            ),
-        ]
-    )
+    mock_onscreen_text_class.assert_has_calls([
+        mocker.call(
+            parent=mock_direct_frame,
+            text="TELEMETRY",
+            align=TextNode.ACenter,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(width / 2, title_frame_height - 21, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="GEARS",
+            align=TextNode.ACenter,
+            scale=13,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 20, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="N",
+            align=TextNode.ALeft,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=driver_window.green_color,
+            pos=(initial_space, driver_window.telemetry_frame_height - title_frame_height - 40, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="1",
+            align=TextNode.ALeft,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(initial_space + (gear_spacer * 1), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="2",
+            align=TextNode.ALeft,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(initial_space + (gear_spacer * 2), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="3",
+            align=TextNode.ALeft,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(initial_space + (gear_spacer * 3), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="4",
+            align=TextNode.ALeft,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(initial_space + (gear_spacer * 4), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="5",
+            align=TextNode.ALeft,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(initial_space + (gear_spacer * 5), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="6",
+            align=TextNode.ALeft,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(initial_space + (gear_spacer * 6), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="7",
+            align=TextNode.ALeft,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(initial_space + (gear_spacer * 7), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="8",
+            align=TextNode.ALeft,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(initial_space + (gear_spacer * 8), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="0",
+            align=TextNode.ALeft,
+            scale=11,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(10, driver_window.telemetry_frame_height - title_frame_height - 70, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="15",
+            align=TextNode.ARight,
+            scale=11,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(width - 10, driver_window.telemetry_frame_height - title_frame_height - 70, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="RPM x1000",
+            align=TextNode.ACenter,
+            scale=11,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 70, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="BRAKE",
+            align=TextNode.ACenter,
+            scale=13,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(60, driver_window.telemetry_frame_height - title_frame_height - 185, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="KM/H",
+            align=TextNode.ACenter,
+            scale=15,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 90, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="0",
+            align=TextNode.ACenter,
+            scale=18,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 110, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="DRS",
+            align=TextNode.ACenter,
+            scale=14,
+            font=driver_window.app.text_font,
+            fg=driver_window.blue_color,
+            pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 132, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="0",
+            align=TextNode.ACenter,
+            scale=16,
+            font=driver_window.app.text_font,
+            fg=driver_window.dark_gray_color,
+            pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 155, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="MPH",
+            align=TextNode.ACenter,
+            scale=13,
+            font=driver_window.app.text_font,
+            fg=driver_window.dark_gray_color,
+            pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 170, 0),
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            text="THROTTLE",
+            align=TextNode.ACenter,
+            scale=13,
+            font=driver_window.app.text_font,
+            fg=driver_window.white_color,
+            pos=(width - 60, driver_window.telemetry_frame_height - title_frame_height - 185, 0),
+        ),
+    ])
 
 
 def test_make_tire_strategy_widget(
@@ -779,7 +769,16 @@ def test_make_tire_strategy_widget(
     height = 90
     width = 260
     title_frame_height = 30
-    frame_z = -(driver_window.height - (driver_window.height - height - driver_window.driver_frame_height - driver_window.telemetry_frame_height - 30))
+    frame_z = -(
+        driver_window.height
+        - (
+            driver_window.height
+            - height
+            - driver_window.driver_frame_height
+            - driver_window.telemetry_frame_height
+            - 30
+        )
+    )
     padding = 10
     total_width = width - (padding * 2)
     total_laps = max(i["TotalLaps"] for i in driver_window.strategy.values())
@@ -812,7 +811,7 @@ def test_make_tire_strategy_widget(
                 frameColor=(0.4, 0.4, 0.4, 1),
                 frameSize=(start, end, 0, 30),
                 pos=Point3(0, 0, height - title_frame_height - 40),
-            )
+            ),
         )
         expected_direct_frame_calls.append(
             mocker.call(
@@ -820,7 +819,7 @@ def test_make_tire_strategy_widget(
                 frameColor=info["CompoundColor"],
                 frameSize=(start + 1, end - 1, 1, 29),
                 pos=Point3(1, 0, height - title_frame_height - 41),
-            )
+            ),
         )
         start = end
 
@@ -852,7 +851,7 @@ def test_make_tire_strategy_widget(
                 font=driver_window.app.text_font,
                 fg=driver_window.white_color,
                 pos=(end, height - title_frame_height - 50, 0),
-            )
+            ),
         )
 
     expected_onscreen_text_calls.append(
@@ -864,14 +863,14 @@ def test_make_tire_strategy_widget(
             font=driver_window.app.text_font,
             fg=driver_window.white_color,
             pos=(10, height - title_frame_height - 50, 0),
-        )
+        ),
     )
 
     mock_onscreen_text_class.assert_has_calls(expected_onscreen_text_calls)
 
 
 @pytest.mark.parametrize(
-    "position_index,lap,total_laps,expected_position,expected_laps",
+    ("position_index", "lap", "total_laps", "expected_position", "expected_laps"),
     [
         (0, 1.0, 60.0, "1", "1/60"),
         (5, 10.5, 60.0, "6", "10/60"),
@@ -922,7 +921,7 @@ def test_update_standings_does_not_update_when_values_same(
 
 
 @pytest.mark.parametrize(
-    "indicator,gear,expected_color",
+    ("indicator", "gear", "expected_color"),
     [
         ("N", "N", (102 / 255, 217 / 255, 126 / 255, 1)),
         ("1", "1", (102 / 255, 217 / 255, 126 / 255, 1)),
@@ -969,7 +968,7 @@ def test_update_gear_indicator_does_not_update_when_color_same(
 
 
 @pytest.mark.parametrize(
-    "drs,expected_color",
+    ("drs", "expected_color"),
     [
         (0, (103 / 255, 190 / 255, 217 / 255, 1)),
         (1, (217 / 255, 110 / 255, 102 / 255, 1)),
@@ -1013,7 +1012,7 @@ def test_update_drs_indicator_does_not_update_when_color_same(
 
 
 @pytest.mark.parametrize(
-    "gear,rpm,brake,speed_kph,drs,speed_mph,throttle",
+    ("gear", "rpm", "brake", "speed_kph", "drs", "speed_mph", "throttle"),
     [
         ("N", 1000.0, True, 16.0, 0, 10.0, 100.0),
         ("1", 5000.0, True, 50.0, 0, 31.0, 75.0),
@@ -1055,12 +1054,9 @@ def test_update_telemetry_updates_all_components(
 
     driver_window.update_telemetry(gear, rpm, brake, speed_kph, drs, speed_mph, throttle)
 
-    mock_update_gear.assert_has_calls(
-        [
-            mocker.call(indicator, gear)
-            for indicator in ["N", "1", "2", "3", "4", "5", "6", "7", "8"]
-        ]
-    )
+    mock_update_gear.assert_has_calls([
+        mocker.call(indicator, gear) for indicator in ["N", "1", "2", "3", "4", "5", "6", "7", "8"]
+    ])
     mock_update_rpm.assert_called_once_with(drs)
     mock_speed_kph_text.__setitem__.assert_called_with("text", f"{speed_kph:.0f}")
     mock_speed_mph_text.__setitem__.assert_called_with("text", f"{speed_mph:.0f}")
@@ -1103,12 +1099,9 @@ def test_update_telemetry_skips_updates_when_values_unchanged(
 
     driver_window.update_telemetry(gear, rpm, False, speed_kph, drs, speed_mph, throttle)
 
-    mock_update_gear.assert_has_calls(
-        [
-            mocker.call(indicator, gear)
-            for indicator in ["N", "1", "2", "3", "4", "5", "6", "7", "8"]
-        ]
-    )
+    mock_update_gear.assert_has_calls([
+        mocker.call(indicator, gear) for indicator in ["N", "1", "2", "3", "4", "5", "6", "7", "8"]
+    ])
     mock_update_drs.assert_called_once_with(drs)
     mock_speed_kph_text.__setitem__.assert_not_called()
     mock_speed_mph_text.__setitem__.assert_not_called()
@@ -1238,4 +1231,3 @@ def test_close(
     assert driver_window._lens is None
     assert driver_window._camera is None
     assert driver_window._camera_np is None
-

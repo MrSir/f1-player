@@ -129,7 +129,13 @@ def green_flag_track_status() -> DataFrame:
 def processed_weather_data() -> DataFrame:
     return pd.DataFrame({
         "SessionTimeTick": [1, 2, 3, 4, 5],
-        "Time": [Timedelta(milliseconds=1000), Timedelta(milliseconds=2000), Timedelta(milliseconds=3000), Timedelta(milliseconds=4000), Timedelta(milliseconds=5000)],
+        "Time": [
+            Timedelta(milliseconds=1000),
+            Timedelta(milliseconds=2000),
+            Timedelta(milliseconds=3000),
+            Timedelta(milliseconds=4000),
+            Timedelta(milliseconds=5000),
+        ],
         "AirTemp": [20, 21, 22, 21, 20],
         "TrackTemp": [30, 31, 32, 31, 30],
     })
@@ -142,7 +148,7 @@ def processed_track_statuses() -> DataFrame:
         "SessionTimeTick": [1, 2],
         "SessionTimeTickEnd": [2, 4],
         "PixelStart": [0, 166.666667],
-        "PixelEnd": [166.666667 ,500],
+        "PixelEnd": [166.666667, 500],
         "Width": [166.666667, 333.333333],
         "Label": ["Green Flag", "Yellow Flag"],
         "Color": [LVecBase4f(0, 1, 0, 0.8), LVecBase4f(1, 1, 0, 0.8)],
@@ -182,11 +188,11 @@ def fastest_lap_data() -> DataFrame:
 @pytest.fixture()
 def pos_data_dict(mocker: MockerFixture, fastest_lap_data: DataFrame) -> dict[str, Telemetry]:
     mock_telemetry_1 = mocker.MagicMock(spec=Telemetry)
-    mock_telemetry_1.__getitem__ = lambda self, key: fastest_lap_data[key]
+    mock_telemetry_1.__getitem__ = lambda key: fastest_lap_data[key]
     mock_telemetry_1.columns = fastest_lap_data.columns.tolist()
 
     mock_telemetry_2 = mocker.MagicMock(spec=Telemetry)
-    mock_telemetry_2.__getitem__ = lambda self, key: fastest_lap_data[key]
+    mock_telemetry_2.__getitem__ = lambda key: fastest_lap_data[key]
     mock_telemetry_2.columns = fastest_lap_data.columns.tolist()
 
     return {"1": mock_telemetry_1, "2": mock_telemetry_2}

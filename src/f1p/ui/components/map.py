@@ -3,7 +3,7 @@ from typing import Any
 import numpy as np
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.ShowBase import ShowBase
-from direct.task.Task import Task, TaskManager
+from direct.task.Task import Task
 from panda3d.core import BillboardEffect, LineSegs, NodePath, TextNode
 from pandas import DataFrame
 
