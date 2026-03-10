@@ -10,9 +10,9 @@ packages = [{include = "f1p", from = "src"}]
 
 [tool.poetry.dependencies]
 python = ">=3.14,<4.0"
-fastf1 = "^3.7.0"
-panda3d = "^1.10.15"
-pandas-stubs = "^2.3.3.251219"
+fastf1 = "3.8.1"
+panda3d = "1.10.16"
+pandas-stubs = "~=2.3.3"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.12.8"

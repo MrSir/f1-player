@@ -17,6 +17,7 @@ from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f, NodePath, Point3, StaticTextFont, deg2Rad
 from pandas import DataFrame, Series, Timedelta
 
+from f1p.utils.color import hex_to_rgb_saturation
 from f1p.utils.geometry import center_pos_data, find_center, resize_pos_data
 
 
@@ -34,6 +35,8 @@ class DataExtractorService(DirectObject):
         window_height: int,
         text_font: StaticTextFont,
     ):
+        super().__init__()
+
         self.parent = parent
         self.task_manager = task_manager
         self.window_width = window_width
@@ -43,10 +46,12 @@ class DataExtractorService(DirectObject):
         self._event_schedule: EventSchedule | None = None
         self._event: Event | None = None
         self._session: Session | None = None
+        self._session_results: DataFrame | None = None
         self._session_status: DataFrame | None = None
         self._session_start_time: Timedelta | None = None
         self._session_end_time: Timedelta | None = None
         self._pos_data: dict[str, Telemetry] | None = None
+        self._car_data: dict[str, Telemetry] | None = None
         self._circuit_info: CircuitInfo | None = None
         self._processed_corners: DataFrame | None = None
         self._track_status: DataFrame | None = None
@@ -66,6 +71,7 @@ class DataExtractorService(DirectObject):
         self.wait_bar: DirectWaitBar | None = None
 
         self.processed_pos_data: DataFrame | None = None
+        self.processed_car_data: DataFrame | None = None
 
         self.accept("loadData", self.load_data)
 
@@ -96,6 +102,13 @@ class DataExtractorService(DirectObject):
         return self._session
 
     @property
+    def session_results(self) -> DataFrame:
+        if self._session_results is None:
+            raise ValueError("Session results are not loaded yet.")
+
+        return self._session_results
+
+    @property
     def session_status(self) -> DataFrame:
         if self._session_status is None:
             self._session_status = self.session.session_status
@@ -115,6 +128,13 @@ class DataExtractorService(DirectObject):
             self._pos_data = self.session.pos_data
 
         return self._pos_data
+
+    @property
+    def car_data(self) -> dict[str, Telemetry]:
+        if self._car_data is None:
+            self._car_data = self.session.car_data
+
+        return self._car_data
 
     @property
     def laps(self) -> Laps:
@@ -264,7 +284,7 @@ class DataExtractorService(DirectObject):
 
         pixel_per_tick = width / self.session_ticks
 
-        df.loc[:, "Pixel"] = df.loc[:, "SessionTimeTick"] * pixel_per_tick
+        df.loc[:, "Pixel"] = (df.loc[:, "SessionTimeTick"] * pixel_per_tick) - pixel_per_tick
 
         ts_df = self.track_status.copy()
         ts_df = ts_df[ts_df["Time"] >= self.session_start_time]
@@ -291,7 +311,7 @@ class DataExtractorService(DirectObject):
             columns={"SessionTimeTick_x": "SessionTimeTick"},
         )
         ts_df = ts_df.rename(columns={"Pixel": "PixelEnd"}).drop(columns=["SessionTime", "SessionTimeTick_y"])
-        ts_df = ts_df.drop(columns=["Time", "EndTime"]).reset_index()
+        ts_df = ts_df.drop(columns=["Time", "EndTime"]).reset_index(drop=True)
 
         ts_df["Width"] = ts_df["PixelEnd"] - ts_df["PixelStart"]
         ts_df["Status"] = ts_df["Status"].astype("int64")
@@ -335,7 +355,7 @@ class DataExtractorService(DirectObject):
 
         self.fastest_lap_telemetry = center_pos_data(self.map_center_coordinate, resized_pos_data_df)
 
-        self.update_loading(5)
+        self.update_loading(1)
 
         return self
 
@@ -347,7 +367,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = pd.concat(drivers_pos_data, ignore_index=True)
 
-        self.update_loading(5)
+        self.update_loading(2)
 
         return self
 
@@ -356,7 +376,7 @@ class DataExtractorService(DirectObject):
             self.processed_pos_data["SessionTime"] >= self.session_start_time
         ]
 
-        self.update_loading(5)
+        self.update_loading(1)
 
         return self
 
@@ -375,7 +395,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data["SessionTimeMilliseconds"] = session_time_in_milliseconds.astype("int64")
 
-        self.update_loading(5)
+        self.update_loading(1)
 
         return self
 
@@ -386,12 +406,14 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
-        self.update_loading(5)
+        self.update_loading(1)
 
         return self
 
     def process_laps(self) -> Self:
         laps = self.laps.copy()
+
+        laps["TotalLaps"] = self.total_laps
 
         laps.loc[laps["Sector1SessionTime"].isna(), "Sector1SessionTime"] = (
             laps.loc[laps["Sector1SessionTime"].isna(), "LapStartTime"]
@@ -452,11 +474,29 @@ class DataExtractorService(DirectObject):
         laps["LastLapTimeMilliseconds"] = laps.groupby("DriverNumber")["LapTimeMilliseconds"].shift(1)
         laps["FastestLapTimeMillisecondsSoFar"] = laps.groupby("DriverNumber")["LastLapTimeMilliseconds"].cummin()
 
+        laps["Compound"] = laps["Compound"].str[0].astype("string")
+        laps["Compound"] = laps.groupby("DriverNumber")["Compound"].ffill()
+        laps["SCompoundColor"] = LVecBase4f(1, 0, 0, 0.8)
+        laps["MCompoundColor"] = LVecBase4f(1, 1, 0, 0.8)
+        laps["HCompoundColor"] = LVecBase4f(1, 1, 1, 0.8)
+        laps["ICompoundColor"] = LVecBase4f(0, 1, 0, 0.8)
+        laps["WCompoundColor"] = LVecBase4f(0, 0, 1, 0.8)
+
+        laps.loc[laps["Compound"] == "S", "CompoundColor"] = laps.loc[laps["Compound"] == "S", "SCompoundColor"]
+        laps.loc[laps["Compound"] == "M", "CompoundColor"] = laps.loc[laps["Compound"] == "M", "MCompoundColor"]
+        laps.loc[laps["Compound"] == "H", "CompoundColor"] = laps.loc[laps["Compound"] == "H", "HCompoundColor"]
+        laps.loc[laps["Compound"] == "I", "CompoundColor"] = laps.loc[laps["Compound"] == "I", "ICompoundColor"]
+        laps.loc[laps["Compound"] == "W", "CompoundColor"] = laps.loc[laps["Compound"] == "W", "WCompoundColor"]
+
+        laps = laps.drop(
+            columns=["SCompoundColor", "MCompoundColor", "HCompoundColor", "ICompoundColor", "WCompoundColor"],
+        )
+
         self._laps = laps
 
         # TODO figure out what to do with cases where a driver only has a X number of laps where X < Total # Laps
 
-        self.update_loading(5)
+        self.update_loading(15)
 
         return self
 
@@ -532,7 +572,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
-        self.update_loading(5)
+        self.update_loading(1)
 
         return self
 
@@ -544,7 +584,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
-        self.update_loading(5)
+        self.update_loading(1)
 
         return self
 
@@ -565,7 +605,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
-        self.update_loading(5)
+        self.update_loading(2)
 
         return self
 
@@ -582,7 +622,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data = df
 
-        self.update_loading(5)
+        self.update_loading(3)
 
         return self
 
@@ -647,28 +687,88 @@ class DataExtractorService(DirectObject):
 
         return self
 
-    def compute_tire_compound(self) -> Self:
+    def combine_car_data(self) -> Self:
+        drivers_car_data = []
+        for driver_number, car_data in self.car_data.items():
+            car_data["DriverNumber"] = driver_number
+            drivers_car_data.append(car_data)
+
+        self.processed_car_data = pd.concat(drivers_car_data, ignore_index=True)
+
+        self.update_loading(1)
+
+        return self
+
+    def process_car_data(self) -> Self:
         df = self.processed_pos_data.copy()
+        df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(keep="first").copy()
 
-        df["Compound"] = df["Compound"].str[0].astype("string")
-        df["Compound"] = df.groupby("DriverNumber")["Compound"].ffill()
-        df["SCompoundColor"] = LVecBase4f(1, 0, 0, 0.8)
-        df["MCompoundColor"] = LVecBase4f(1, 1, 0, 0.8)
-        df["HCompoundColor"] = LVecBase4f(1, 1, 1, 0.8)
-        df["ICompoundColor"] = LVecBase4f(0, 1, 0, 0.8)
-        df["WCompoundColor"] = LVecBase4f(0, 0, 1, 0.8)
+        car_data_df = self.processed_car_data.copy()
+        car_data_df = car_data_df[car_data_df["SessionTime"] >= self.session_start_time]
+        car_data_df = car_data_df[car_data_df["SessionTime"] <= self.session_end_time]
 
-        df.loc[df["Compound"] == "S", "CompoundColor"] = df.loc[df["Compound"] == "S", "SCompoundColor"]
-        df.loc[df["Compound"] == "M", "CompoundColor"] = df.loc[df["Compound"] == "M", "MCompoundColor"]
-        df.loc[df["Compound"] == "H", "CompoundColor"] = df.loc[df["Compound"] == "H", "HCompoundColor"]
-        df.loc[df["Compound"] == "I", "CompoundColor"] = df.loc[df["Compound"] == "I", "ICompoundColor"]
-        df.loc[df["Compound"] == "W", "CompoundColor"] = df.loc[df["Compound"] == "W", "WCompoundColor"]
+        session_time_df = car_data_df[["SessionTime"]].drop_duplicates(keep="first").copy()
+        session_time_df["ID"] = range(1, 1 + len(session_time_df))
 
-        self.processed_pos_data = df.drop(
-            columns=["SCompoundColor", "MCompoundColor", "HCompoundColor", "ICompoundColor", "WCompoundColor"],
+        for record in session_time_df.itertuples():
+            session_time_df.loc[session_time_df["ID"] == record.ID, "SessionTimeTick"] = df.loc[
+                df["SessionTime"] <= record.SessionTime,
+                "SessionTimeTick",
+            ].max()
+        session_time_df["SessionTimeTick"] = session_time_df["SessionTimeTick"].fillna(1)
+
+        car_data_df = car_data_df.merge(session_time_df, on=["SessionTime"], how="left")
+
+        # DRS
+        # 0 - DRS DEACTIVATED (CLOSED)
+        # 1 - DRS DISABLED
+        # 2 - DRS DEACTIVATING (CLOSING)
+        # 3 -
+        # 8 - DRS ENABLED
+        # 10 -
+        # 12 -
+        # 14 - DRS ACTIVATED (OPEN)
+
+        car_data_df["nGear"] = car_data_df["nGear"].astype("int64").astype(str)
+        car_data_df["nGear"] = car_data_df["nGear"].replace("0", "N")
+        car_data_df["SpeedMph"] = car_data_df["Speed"] / 1.609344
+        car_data_df = car_data_df.drop_duplicates(
+            subset=["DriverNumber", "SessionTimeTick"],
+            keep="first",
+        ).reset_index()
+        car_data_df = car_data_df.drop(
+            columns=[
+                "Time",
+                "SessionTime",
+                "ID",
+                "Date",
+                "Source",
+            ],
         )
 
-        self.update_loading(5)
+        self.processed_car_data = car_data_df
+
+        self.update_loading(15)
+
+        return self
+
+    def merge_pos_and_car_data(self) -> Self:
+        df = self.processed_pos_data.copy()
+        car_data = self.processed_car_data.copy()
+
+        combined_df = df.merge(car_data, on=["DriverNumber", "SessionTimeTick"], how="left")
+        combined_df["RPM"] = combined_df.groupby("DriverNumber")["RPM"].ffill()
+        combined_df["Speed"] = combined_df.groupby("DriverNumber")["Speed"].ffill()
+        combined_df["SpeedMph"] = combined_df.groupby("DriverNumber")["SpeedMph"].ffill()
+        combined_df["nGear"] = combined_df.groupby("DriverNumber")["nGear"].ffill()
+        combined_df["Throttle"] = combined_df.groupby("DriverNumber")["Throttle"].ffill()
+        combined_df["Brake"] = combined_df.groupby("DriverNumber")["Brake"].ffill()
+        combined_df["DRS"] = combined_df.groupby("DriverNumber")["DRS"].ffill()
+        combined_df["DRS"] = combined_df["DRS"].astype("int64")
+
+        self.processed_pos_data = combined_df
+
+        self.update_loading(3)
 
         return self
 
@@ -766,7 +866,7 @@ class DataExtractorService(DirectObject):
 
         self.processed_weather_data = weather_df
 
-        self.update_loading(5)
+        self.update_loading(10)
 
         return self
 
@@ -774,7 +874,7 @@ class DataExtractorService(DirectObject):
         df = self.circuit_info.corners.copy()
 
         df["Label"] = df["Number"].astype(str) + df["Letter"].astype(str)
-        df["AndleRad"] = df["Angle"].map(lambda d: deg2Rad(d))
+        df["AngleRad"] = df["Angle"].map(lambda d: deg2Rad(d))
         # Add Z coordinate
         df["Z"] = 0
 
@@ -785,6 +885,28 @@ class DataExtractorService(DirectObject):
         df["Z"] = 1
 
         self._processed_corners = df
+
+        self.update_loading(1)
+
+        return self
+
+    def process_team_colors(self) -> Self:
+        df = self.session.results.copy()
+
+        df["TeamColorRGBH"] = df["TeamColor"].map(lambda c: hex_to_rgb_saturation(c))
+        df["TeamColorR"] = df["TeamColorRGBH"].map(lambda c: c["rgb"][0] / 255)
+        df["TeamColorG"] = df["TeamColorRGBH"].map(lambda c: c["rgb"][1] / 255)
+        df["TeamColorB"] = df["TeamColorRGBH"].map(lambda c: c["rgb"][2] / 255)
+        df["TeamColorH"] = df["TeamColorRGBH"].map(lambda c: c["saturation_hls"])
+
+        df["TeamColor"] = [
+            (r, g, b, h) for r, g, b, h in zip(df["TeamColorR"], df["TeamColorG"], df["TeamColorB"], df["TeamColorH"])
+        ]
+        df = df.drop(columns=["TeamColorRGBH", "TeamColorR", "TeamColorG", "TeamColorB", "TeamColorH"])
+
+        self._session_results = df
+
+        self.update_loading(1)
 
         return self
 
@@ -850,12 +972,32 @@ class DataExtractorService(DirectObject):
             .compute_diff_to_car_in_front()
             .compute_diff_to_leader()
             .compute_in_pit()
-            .compute_tire_compound()
+            .combine_car_data()
+            .process_car_data()
+            .merge_pos_and_car_data()
             .process_weather_data()
             .process_corners()
+            .process_team_colors()
         )
 
         self.delete_loading()
         messenger.send("sessionSelected")
 
         return task.done
+
+    def extract_tire_strategy(self, driver_number: str) -> dict[int, dict[str, str | int]]:
+        laps_df = self.laps.copy()
+        df = laps_df[laps_df["DriverNumber"] == driver_number].copy()
+        df = df.sort_values(by="LapNumber", ascending=True)
+
+        pd.set_option("display.max_rows", len(df))
+        pd.set_option("display.max_columns", None)
+
+        strategy_df = (
+            df[["Compound", "CompoundColor", "LapNumber", "Stint", "TotalLaps"]]
+            .drop_duplicates(subset=["Compound", "Stint"], keep="last")
+            .reset_index(drop=True)
+        )
+        strategy = strategy_df.set_index("Stint").to_dict(orient="index")
+
+        return strategy

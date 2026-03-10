@@ -9,7 +9,8 @@ from fastf1.core import Laps
 from panda3d.core import Point3, StaticTextFont, TextNode, TransparencyAttrib
 
 from f1p.services.data_extractor.service import DataExtractorService
-from f1p.ui.components.driver import Driver
+from f1p.ui.components.driver.component import Driver
+from f1p.ui.components.gui.button import BlackButton
 from f1p.ui.components.gui.drop_down import BlackDropDown
 from f1p.ui.components.leaderboard.processors import (
     IntervalLeaderboardProcessor,
@@ -209,13 +210,17 @@ class Leaderboard(DirectObject):
             )
 
             self.driver_abbreviations.append(
-                OnscreenText(
+                BlackButton(
                     parent=self.frame,
-                    pos=(80, -offset_from_top - (index * 23)),
-                    scale=self.width / 14,
-                    fg=(1, 1, 1, 0.8),
-                    font=self.text_font,
+                    frameSize=(-17, 17, -10, 10),
+                    frameColor=(0, 0, 0, 0),
+                    command=driver.open_driver,
+                    text_font=self.text_font,
                     text=driver.abbreviation,
+                    text_scale=self.width / 14,
+                    text_align=TextNode.ACenter,
+                    text_pos=(-2, -3),
+                    pos=Point3(80, 0, -offset_from_top + 3 - (index * 23)),
                 ),
             )
 

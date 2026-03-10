@@ -2,20 +2,22 @@ from typing import Any
 
 import numpy as np
 from direct.showbase.DirectObject import DirectObject
-from direct.task.Task import Task, TaskManager
+from direct.showbase.ShowBase import ShowBase
+from direct.task.Task import Task
 from panda3d.core import BillboardEffect, LineSegs, NodePath, TextNode
 from pandas import DataFrame
 
 from f1p.services.data_extractor.service import DataExtractorService
-from f1p.ui.components.driver import Driver
+from f1p.ui.components.driver.component import Driver
 
 
 class Map(DirectObject):
-    def __init__(self, parent: NodePath, task_manager: TaskManager, data_extractor: DataExtractorService):
+    def __init__(self, app: ShowBase, data_extractor: DataExtractorService):
         super().__init__()
 
-        self.parent = parent
-        self.task_manager = task_manager
+        self.app = app
+        self.parent = app.render
+        self.task_manager = app.taskMgr
         self.data_extractor = data_extractor
 
         self.inner_border_node_path: NodePath | None = None
@@ -111,14 +113,14 @@ class Map(DirectObject):
         node_path.reparentTo(self.parent)
 
     def initialize_drivers(self) -> None:
-        for _, driver_sr in self.data_extractor.session.results.iterrows():
+        for _, driver_sr in self.data_extractor.session_results.iterrows():
             driver_pos_data = self.data_extractor.processed_pos_data[
                 self.data_extractor.processed_pos_data["DriverNumber"] == driver_sr["DriverNumber"]
             ]
 
-            driver = Driver.from_df(self.parent, driver_sr, driver_pos_data)
+            strategy = self.data_extractor.extract_tire_strategy(driver_sr["DriverNumber"])
 
-            self.drivers.append(driver)
+            self.drivers.append(Driver.from_df(self.app, self.parent, driver_sr, driver_pos_data, strategy))
 
     def render_task(self) -> None:
         self.task_manager.add(self.render, "renderMap")
