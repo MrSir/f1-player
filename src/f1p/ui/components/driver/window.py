@@ -9,7 +9,6 @@ from panda3d.core import (
     GraphicsWindow,
     LVecBase4f,
     NodePath,
-    OrthographicLens,
     PerspectiveLens,
     PGTop,
     Point3,
@@ -51,10 +50,6 @@ class DriverWindow(DirectObject):
 
         self._window_properties: WindowProperties | None = None
         self._window: GraphicsWindow | None = None
-
-        self._lens2d: OrthographicLens | None = None
-        self._camera2d: Camera | None = None
-        self._camera2d_np: NodePath | None = None
 
         self._render2d: NodePath | None = None
         self._pixel2d: NodePath | None = None
@@ -570,7 +565,7 @@ class DriverWindow(DirectObject):
         total_laps = max(i["TotalLaps"] for i in self.strategy.values())
         start = padding + 0
 
-        for stint, info in self.strategy.items():
+        for _, info in self.strategy.items():
             current_ratio = info["LapNumber"] / total_laps
             end = padding + (total_width * current_ratio)
 
@@ -623,16 +618,16 @@ class DriverWindow(DirectObject):
         if current_gear_color != gear_color:
             indicator_property["fg"] = gear_color
 
-    def update_drs_indicator(self, drs: float) -> None:
+    def update_drs_indicator(self, drs: int) -> None:
         current_drs_color = self.drs.textNode.getTextColor()
 
         drs_color = self.blue_color
         match drs:
-            case 0.0:
+            case 0:
                 drs_color = self.blue_color
-            case 1.0:
+            case 1:
                 drs_color = self.red_color
-            case 14.0:
+            case 14:
                 drs_color = self.green_color
 
         if current_drs_color != drs_color:
@@ -644,7 +639,7 @@ class DriverWindow(DirectObject):
         rpm: float,
         brake: bool,
         speed_kph: float,
-        drs: float,
+        drs: int,
         speed_mph: float,
         throttle: float,
     ) -> None:
