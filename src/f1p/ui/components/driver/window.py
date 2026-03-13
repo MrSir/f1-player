@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from direct.gui.DirectFrame import DirectFrame
@@ -15,8 +16,11 @@ from panda3d.core import (
     TextNode,
     VBase4,
     Vec4,
-    WindowProperties,
+    WindowProperties, LineSegs,
 )
+from pandas import DataFrame
+
+from f1p.services.data_extractor.service import DataExtractorService
 
 
 class DriverWindow(DirectObject):
@@ -30,7 +34,7 @@ class DriverWindow(DirectObject):
         team_color_obj: LVecBase4f,
         team_name: str,
         app: ShowBase,
-        strategy: dict[int, dict[str, str | int]],
+        data_extractor: DataExtractorService,
     ):
         super().__init__()
 
@@ -45,9 +49,13 @@ class DriverWindow(DirectObject):
         self.team_color_obj = team_color_obj
         self.team_name = team_name
         self.app = app
-        self.strategy = strategy
+        self.data_extractor = data_extractor
+
+        self.total_laps = self.data_extractor.total_laps
         self.is_open = False
 
+        self._strategy: dict[int, dict[str, str | int]] | None = None
+        self._driver_laps: DataFrame | None = None
         self._window_properties: WindowProperties | None = None
         self._window: GraphicsWindow | None = None
 
@@ -84,6 +92,20 @@ class DriverWindow(DirectObject):
         self.dark_gray_color = (0.5, 0.5, 0.5, 1)
 
         self.accept(f"closeDriver{self.driver_number}", self.close)
+
+    @property
+    def strategy(self) -> dict[int, dict[str, str | int]]:
+        if self._strategy is None:
+            self._strategy = self.data_extractor.extract_tire_strategy(self.driver_number)
+
+        return self._strategy
+
+    @property
+    def driver_laps(self) -> DataFrame:
+        if self._driver_laps is None:
+            self._driver_laps = self.data_extractor.laps[self.data_extractor.laps["DriverNumber"] == self.driver_number]
+
+        return self._driver_laps
 
     @property
     def window_properties(self) -> WindowProperties:
@@ -175,7 +197,6 @@ class DriverWindow(DirectObject):
             pos=Point3(0, 0, self.driver_frame_height - title_frame_height),
             sortOrder=10,
         )
-        title_frame.clearColorScale()
 
         OnscreenText(
             parent=title_frame,
@@ -247,7 +268,7 @@ class DriverWindow(DirectObject):
 
         self.laps = OnscreenText(
             parent=frame,
-            text="TBD",
+            text=f"TBD/{self.total_laps}",
             align=TextNode.ACenter,
             scale=16,
             font=self.app.text_font,
@@ -603,6 +624,332 @@ class DriverWindow(DirectObject):
             pos=(10, height - title_frame_height - 50, 0),
         )
 
+    def draw_lap(self, height: float, title_frame_height: float, frame: DirectFrame, lap_number: int) -> None:
+        offset = lap_number * 15
+        text_scale = 9
+
+        OnscreenText(
+            parent=frame,
+            text=f"{lap_number}",
+            align=TextNode.ALeft,
+            scale=text_scale,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(10, height - title_frame_height - 21 - offset, 0),
+        )
+
+        OnscreenText(
+            parent=frame,
+            text="M(4)",
+            align=TextNode.ALeft,
+            scale=text_scale,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(30, height - title_frame_height - 21 - offset, 0),
+        )
+
+        OnscreenText(
+            parent=frame,
+            text="29.223",
+            align=TextNode.ALeft,
+            scale=text_scale,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(70, height - title_frame_height - 21 - offset, 0),
+        )
+
+        OnscreenText(
+            parent=frame,
+            text="31.234",
+            align=TextNode.ALeft,
+            scale=text_scale,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(110, height - title_frame_height - 21 - offset, 0),
+        )
+
+        OnscreenText(
+            parent=frame,
+            text="36.123",
+            align=TextNode.ALeft,
+            scale=text_scale,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(140, height - title_frame_height - 21 - offset, 0),
+        )
+
+        OnscreenText(
+            parent=frame,
+            text="1:36.580",
+            align=TextNode.ALeft,
+            scale=text_scale,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(170, height - title_frame_height - 21 - offset, 0),
+        )
+
+        OnscreenText(
+            parent=frame,
+            text="123km/h",
+            align=TextNode.ALeft,
+            scale=text_scale,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(200, height - title_frame_height - 21 - offset, 0),
+        )
+
+        OnscreenText(
+            parent=frame,
+            text="314km/h",
+            align=TextNode.ALeft,
+            scale=text_scale,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(230, height - title_frame_height - 21 - offset, 0),
+        )
+
+        OnscreenText(
+            parent=frame,
+            text="340km/h",
+            align=TextNode.ALeft,
+            scale=text_scale,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(260, height - title_frame_height - 21 - offset, 0),
+        )
+
+    def draw_chart_line(
+        self,
+        frame: DirectFrame,
+        height: float,
+        title_frame_height: float,
+        width: float,
+        times: DataFrame,
+        color: tuple[float, float, float, float],
+    ) -> None:
+        offset_x = (width - 90) / self.total_laps
+        offset_y = (self.driver_frame_height - title_frame_height) / 150
+
+        points = []
+        for lap in times.itertuples():
+            i = int(lap.LapNumber)
+            lap_time = lap.Time.total_seconds()
+            x = 80 + (offset_x * i)
+            y = height - title_frame_height - (self.driver_frame_height - title_frame_height - (offset_y * lap_time)) - 10
+            points.append(Point3(x, 0, y))
+
+        line_segments = LineSegs()
+        line_segments.setThickness(1)
+        line_segments.setColor(color)
+
+        for i in range(len(points) - 1):
+            line_segments.moveTo(points[i])
+            line_segments.drawTo(points[i + 1])
+
+        node_path = NodePath(line_segments.create(False))
+        node_path.reparentTo(frame)
+
+    def draw_lap_time_chart(self, frame: DirectFrame, height: float, width: float, title_frame_height: float) -> None:
+        # Y-axis
+        DirectFrame(
+            parent=frame,
+            frameColor=self.white_color,
+            frameSize=(0, 2, 0, self.driver_frame_height - title_frame_height),
+            pos=Point3(80, 0, height - title_frame_height - (self.driver_frame_height - title_frame_height) - 10),
+        )
+
+        # Y-axis lines
+        for i in range(15, 151, 15):
+            offset = (self.driver_frame_height - title_frame_height) / 150
+
+            DirectFrame(
+                parent=frame,
+                frameColor=self.dark_gray_color,
+                frameSize=(0, width - 90, 0, 1),
+                pos=Point3(75, 0, height - title_frame_height - (self.driver_frame_height - title_frame_height - (offset * i)) - 10),
+            )
+
+            minutes = i // 60
+            seconds = i % 60
+
+            OnscreenText(
+                parent=frame,
+                text=f"{minutes}:{seconds:02d}.000",
+                align=TextNode.ALeft,
+                scale=11,
+                font=self.app.text_font,
+                fg=self.white_color,
+                pos=(10, height - title_frame_height - (self.driver_frame_height - title_frame_height - (offset * i)) - 15, 0),
+            )
+
+        # X-axis
+        DirectFrame(
+            parent=frame,
+            frameColor=self.white_color,
+            frameSize=(0, width - 90, 0, 2),
+            pos=Point3(80, 0, height - title_frame_height - (self.driver_frame_height - title_frame_height) - 10),
+        )
+
+        # X-axis lines
+        for i in range(5, self.total_laps + 1, 5):
+            offset = (width - 90) / self.total_laps
+
+            DirectFrame(
+                parent=frame,
+                frameColor=self.dark_gray_color,
+                frameSize=(0, 1, 0, self.driver_frame_height - title_frame_height + 5),
+                pos=Point3(80 + (offset * i), 0, height - title_frame_height - (self.driver_frame_height - title_frame_height) - 15),
+            )
+
+            OnscreenText(
+                parent=frame,
+                text=f"{i}",
+                align=TextNode.ACenter,
+                scale=12,
+                font=self.app.text_font,
+                fg=self.white_color,
+                pos=(80 + (offset * i), height - title_frame_height - (self.driver_frame_height - title_frame_height) - 30, 0),
+            )
+
+        # Draw Lap Times Line
+        lap_times = self.driver_laps[["LapNumber", "LapTime"]].sort_values("LapNumber").rename(columns={"LapTime": "Time"})
+        self.draw_chart_line(frame, height, title_frame_height, width, lap_times, self.blue_color)
+        # Draw S1 Times Line
+        s1_times = self.driver_laps[["LapNumber", "Sector1Time"]].sort_values("LapNumber").rename(columns={"Sector1Time": "Time"})
+        self.draw_chart_line(frame, height, title_frame_height, width, s1_times, self.gray_color)
+        # Draw S2 Times Line
+        s2_times = self.driver_laps[["LapNumber", "Sector2Time"]].sort_values("LapNumber").rename(columns={"Sector2Time": "Time"})
+        self.draw_chart_line(frame, height, title_frame_height, width, s2_times, self.red_color)
+        # Draw S3 Times Line
+        s3_times = self.driver_laps[["LapNumber", "Sector3Time"]].sort_values("LapNumber").rename(columns={"Sector3Time": "Time"})
+        self.draw_chart_line(frame, height, title_frame_height, width, s3_times, self.green_color)
+
+    def make_laps_widget(self) -> None:
+        width = 510
+        height = self.height - 20
+        frame_z = -(self.height - (self.height - height - 10))
+        frame = DirectFrame(
+            parent=self.pixel2d,
+            frameColor=(0.2, 0.2, 0.2, 0.7),
+            frameSize=(0, width, 0, height),
+            pos=Point3(10, 0, frame_z),
+            sortOrder=0,
+        )
+
+        title_frame_height = 30
+        title_frame = DirectFrame(
+            parent=frame,
+            frameColor=(0.15, 0.15, 0.15, 0.7),
+            frameSize=(0, width, 0, title_frame_height),
+            pos=Point3(0, 0, height - title_frame_height),
+            sortOrder=10,
+        )
+
+        OnscreenText(
+            parent=title_frame,
+            text="LAPS",
+            align=TextNode.ACenter,
+            scale=16,
+            font=self.app.text_font,
+            fg=self.white_color,
+            pos=(width / 2, title_frame_height - 21, 0),
+        )
+
+        self.draw_lap_time_chart(frame, height, width, title_frame_height)
+        #
+        # OnscreenText(
+        #     parent=frame,
+        #     text="#",
+        #     align=TextNode.ALeft,
+        #     scale=11,
+        #     font=self.app.text_font,
+        #     fg=self.white_color,
+        #     pos=(10, height - title_frame_height - 21, 0),
+        # )
+        #
+        # OnscreenText(
+        #     parent=frame,
+        #     text="Tires",
+        #     align=TextNode.ALeft,
+        #     scale=11,
+        #     font=self.app.text_font,
+        #     fg=self.white_color,
+        #     pos=(30, height - title_frame_height - 21, 0),
+        # )
+        #
+        # OnscreenText(
+        #     parent=frame,
+        #     text="S1",
+        #     align=TextNode.ALeft,
+        #     scale=11,
+        #     font=self.app.text_font,
+        #     fg=self.white_color,
+        #     pos=(70, height - title_frame_height - 21, 0),
+        # )
+        #
+        # OnscreenText(
+        #     parent=frame,
+        #     text="S2",
+        #     align=TextNode.ALeft,
+        #     scale=11,
+        #     font=self.app.text_font,
+        #     fg=self.white_color,
+        #     pos=(110, height - title_frame_height - 21, 0),
+        # )
+        #
+        # OnscreenText(
+        #     parent=frame,
+        #     text="S3",
+        #     align=TextNode.ALeft,
+        #     scale=11,
+        #     font=self.app.text_font,
+        #     fg=self.white_color,
+        #     pos=(140, height - title_frame_height - 21, 0),
+        # )
+        #
+        # OnscreenText(
+        #     parent=frame,
+        #     text="Time",
+        #     align=TextNode.ALeft,
+        #     scale=11,
+        #     font=self.app.text_font,
+        #     fg=self.white_color,
+        #     pos=(170, height - title_frame_height - 21, 0),
+        # )
+        #
+        # OnscreenText(
+        #     parent=frame,
+        #     text="S1 Speed",
+        #     align=TextNode.ALeft,
+        #     scale=11,
+        #     font=self.app.text_font,
+        #     fg=self.white_color,
+        #     pos=(200, height - title_frame_height - 21, 0),
+        # )
+        #
+        # OnscreenText(
+        #     parent=frame,
+        #     text="S2 Speed",
+        #     align=TextNode.ALeft,
+        #     scale=11,
+        #     font=self.app.text_font,
+        #     fg=self.white_color,
+        #     pos=(230, height - title_frame_height - 21, 0),
+        # )
+        #
+        # OnscreenText(
+        #     parent=frame,
+        #     text="FL Speed",
+        #     align=TextNode.ALeft,
+        #     scale=11,
+        #     font=self.app.text_font,
+        #     fg=self.white_color,
+        #     pos=(260, height - title_frame_height - 21, 0),
+        # )
+        #
+        # for lap_number in range(1, int(self.total_laps) + 1):
+        #     self.draw_lap(height, title_frame_height, frame, lap_number)
+
     def update_standings(self, position_index: int, lap: float, total_laps: float) -> None:
         if self.position.text != f"{position_index + 1}":
             self.position["text"] = f"{position_index + 1}"
@@ -703,6 +1050,7 @@ class DriverWindow(DirectObject):
         self.make_camera_region()
         self.make_telemetry_widget()
         self.make_tire_strategy_widget()
+        self.make_laps_widget()
 
     def close(self) -> None:
         self.is_open = False
