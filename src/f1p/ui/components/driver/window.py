@@ -18,7 +18,7 @@ from panda3d.core import (
     Vec4,
     WindowProperties, LineSegs,
 )
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from f1p.services.data_extractor.service import DataExtractorService
 
@@ -56,6 +56,8 @@ class DriverWindow(DirectObject):
 
         self._strategy: dict[int, dict[str, str | int]] | None = None
         self._driver_laps: DataFrame | None = None
+        self._slowest_non_pit_lap: Series | None = None
+        self._normalized_driver_laps: DataFrame | None = None
         self._window_properties: WindowProperties | None = None
         self._window: GraphicsWindow | None = None
 
@@ -103,9 +105,38 @@ class DriverWindow(DirectObject):
     @property
     def driver_laps(self) -> DataFrame:
         if self._driver_laps is None:
-            self._driver_laps = self.data_extractor.laps[self.data_extractor.laps["DriverNumber"] == self.driver_number]
+            df = self.data_extractor.laps[self.data_extractor.laps["DriverNumber"] == self.driver_number]
+
+            df.loc[:, "S2LapTime"] = df["Sector2SessionTime"] - df["LapStartTime"]
+
+            self._driver_laps = df
 
         return self._driver_laps
+
+    @property
+    def slowest_non_pit_lap(self) -> Series:
+        if self._slowest_non_pit_lap is None:
+            df = self.driver_laps.copy()
+
+            self._slowest_non_pit_lap = df[
+                df["PitInTimeMilliseconds"].isna() & df["PitOutTimeMilliseconds"].isna() & (df["TrackStatus"] == "1")
+            ].sort_values("LapTime", ascending=False).iloc[0]
+
+        return self._slowest_non_pit_lap
+
+    @property
+    def normalized_driver_laps(self) -> DataFrame:
+        if self._normalized_driver_laps is None:
+            df = self.driver_laps.copy()
+            slowest_time = self.slowest_non_pit_lap["LapTime"].total_seconds()
+
+            df["NormalizedLapTime"] = df["LapTime"].dt.total_seconds() / slowest_time
+            df["NormalizedS1Time"] = df["Sector1Time"].dt.total_seconds() / slowest_time
+            df["NormalizedS2Time"] = df["S2LapTime"].dt.total_seconds() / slowest_time
+
+            self._normalized_driver_laps = df
+
+        return self._normalized_driver_laps
 
     @property
     def window_properties(self) -> WindowProperties:
@@ -721,6 +752,8 @@ class DriverWindow(DirectObject):
     def draw_chart_line(
         self,
         frame: DirectFrame,
+        chart_height: float,
+        top_gap: float,
         height: float,
         title_frame_height: float,
         width: float,
@@ -728,14 +761,14 @@ class DriverWindow(DirectObject):
         color: tuple[float, float, float, float],
     ) -> None:
         offset_x = (width - 90) / self.total_laps
-        offset_y = (self.driver_frame_height - title_frame_height) / 150
+        offset_y = chart_height
 
         points = []
         for lap in times.itertuples():
             i = int(lap.LapNumber)
-            lap_time = lap.Time.total_seconds()
             x = 80 + (offset_x * i)
-            y = height - title_frame_height - (self.driver_frame_height - title_frame_height - (offset_y * lap_time)) - 10
+            y = height - title_frame_height - chart_height - top_gap + (offset_y * lap.Time)
+
             points.append(Point3(x, 0, y))
 
         line_segments = LineSegs()
@@ -750,36 +783,36 @@ class DriverWindow(DirectObject):
         node_path.reparentTo(frame)
 
     def draw_lap_time_chart(self, frame: DirectFrame, height: float, width: float, title_frame_height: float) -> None:
+        chart_height = height - title_frame_height - 200
+        top_gap = 10
+
         # Y-axis
         DirectFrame(
             parent=frame,
             frameColor=self.white_color,
-            frameSize=(0, 2, 0, self.driver_frame_height - title_frame_height),
-            pos=Point3(80, 0, height - title_frame_height - (self.driver_frame_height - title_frame_height) - 10),
+            frameSize=(0, 2, 0, chart_height),
+            pos=Point3(80, 0, height - title_frame_height - chart_height - top_gap),
         )
 
         # Y-axis lines
-        for i in range(15, 151, 15):
-            offset = (self.driver_frame_height - title_frame_height) / 150
+        for i in range(10, 101, 10):
+            offset = chart_height / 100
 
             DirectFrame(
                 parent=frame,
                 frameColor=self.dark_gray_color,
                 frameSize=(0, width - 90, 0, 1),
-                pos=Point3(75, 0, height - title_frame_height - (self.driver_frame_height - title_frame_height - (offset * i)) - 10),
+                pos=Point3(75, 0, height - title_frame_height - chart_height - top_gap + (offset * i)),
             )
-
-            minutes = i // 60
-            seconds = i % 60
 
             OnscreenText(
                 parent=frame,
-                text=f"{minutes}:{seconds:02d}.000",
+                text=f"{i}.00%",
                 align=TextNode.ALeft,
                 scale=11,
                 font=self.app.text_font,
                 fg=self.white_color,
-                pos=(10, height - title_frame_height - (self.driver_frame_height - title_frame_height - (offset * i)) - 15, 0),
+                pos=(10, height - title_frame_height - chart_height - top_gap + (offset * i) - 3, 0),
             )
 
         # X-axis
@@ -787,7 +820,7 @@ class DriverWindow(DirectObject):
             parent=frame,
             frameColor=self.white_color,
             frameSize=(0, width - 90, 0, 2),
-            pos=Point3(80, 0, height - title_frame_height - (self.driver_frame_height - title_frame_height) - 10),
+            pos=Point3(80, 0, height - title_frame_height - chart_height - top_gap),
         )
 
         # X-axis lines
@@ -797,8 +830,8 @@ class DriverWindow(DirectObject):
             DirectFrame(
                 parent=frame,
                 frameColor=self.dark_gray_color,
-                frameSize=(0, 1, 0, self.driver_frame_height - title_frame_height + 5),
-                pos=Point3(80 + (offset * i), 0, height - title_frame_height - (self.driver_frame_height - title_frame_height) - 15),
+                frameSize=(0, 1, -5, chart_height),
+                pos=Point3(80 + (offset * i), 0, height - title_frame_height - chart_height - top_gap),
             )
 
             OnscreenText(
@@ -808,21 +841,24 @@ class DriverWindow(DirectObject):
                 scale=12,
                 font=self.app.text_font,
                 fg=self.white_color,
-                pos=(80 + (offset * i), height - title_frame_height - (self.driver_frame_height - title_frame_height) - 30, 0),
+                pos=(80 + (offset * i), height - title_frame_height - chart_height - top_gap - 20, 0),
             )
 
+        # TODO
+        #  - the charts should be filled in and stacked
+        #  - deal with outlier laps (aka exclude them)
+        #  - shift s1 points left by 2/3 of a lap
+        #  - shift s2 points left by 1/3 of a lap
         # Draw Lap Times Line
-        lap_times = self.driver_laps[["LapNumber", "LapTime"]].sort_values("LapNumber").rename(columns={"LapTime": "Time"})
-        self.draw_chart_line(frame, height, title_frame_height, width, lap_times, self.blue_color)
+        lap_times = self.normalized_driver_laps[["LapNumber", "NormalizedLapTime"]].sort_values("LapNumber").rename(columns={"NormalizedLapTime": "Time"})
+        self.draw_chart_line(frame, chart_height, top_gap, height, title_frame_height, width, lap_times, self.blue_color)
         # Draw S1 Times Line
-        s1_times = self.driver_laps[["LapNumber", "Sector1Time"]].sort_values("LapNumber").rename(columns={"Sector1Time": "Time"})
-        self.draw_chart_line(frame, height, title_frame_height, width, s1_times, self.gray_color)
+        s1_times = self.normalized_driver_laps[["LapNumber", "NormalizedS1Time"]].sort_values("LapNumber").rename(columns={"NormalizedS1Time": "Time"})
+        self.draw_chart_line(frame, chart_height, top_gap, height, title_frame_height, width, s1_times, self.gray_color)
         # Draw S2 Times Line
-        s2_times = self.driver_laps[["LapNumber", "Sector2Time"]].sort_values("LapNumber").rename(columns={"Sector2Time": "Time"})
-        self.draw_chart_line(frame, height, title_frame_height, width, s2_times, self.red_color)
-        # Draw S3 Times Line
-        s3_times = self.driver_laps[["LapNumber", "Sector3Time"]].sort_values("LapNumber").rename(columns={"Sector3Time": "Time"})
-        self.draw_chart_line(frame, height, title_frame_height, width, s3_times, self.green_color)
+        s2_times = self.normalized_driver_laps[["LapNumber", "NormalizedS2Time"]].sort_values("LapNumber").rename(columns={"NormalizedS2Time": "Time"})
+        self.draw_chart_line(frame, chart_height, top_gap, height, title_frame_height, width, s2_times, self.red_color)
+
 
     def make_laps_widget(self) -> None:
         width = 510
@@ -856,6 +892,13 @@ class DriverWindow(DirectObject):
         )
 
         self.draw_lap_time_chart(frame, height, width, title_frame_height)
+        # TODO
+        #  - Personal Best
+        #  - Personal Slowest
+        #  - Averages
+        #  - Current
+        #  - Deal with drivers with no laps or crashed drivers
+
         #
         # OnscreenText(
         #     parent=frame,
