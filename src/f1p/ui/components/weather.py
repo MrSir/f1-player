@@ -55,6 +55,8 @@ class WeatherBoard(DirectObject):
         self.wind_speed: OnscreenText | None = None
         self.wind_direction_text: OnscreenText | None = None
 
+        self.highlighter_yellow_color = (0.8, 1, 0, 1)
+
     def render_frame(self) -> None:
         self.frame = DirectFrame(
             parent=self.pixel2d,
@@ -94,7 +96,7 @@ class WeatherBoard(DirectObject):
             parent=self.frame,
             pos=(5, -64),
             scale=self.width / 7,
-            fg=(0.8, 1, 0, 0.7),
+            fg=self.highlighter_yellow_color,
             font=self.symbols_font,
             align=TextNode.A_left,
             text="🌣",
@@ -104,7 +106,7 @@ class WeatherBoard(DirectObject):
             parent=self.frame,
             pos=(30, -65),
             scale=self.width / 8,
-            fg=(0.8, 1, 0, 0.7),
+            fg=self.highlighter_yellow_color,
             font=self.text_font,
             align=TextNode.A_left,
             text="WEATHER",
@@ -135,7 +137,7 @@ class WeatherBoard(DirectObject):
             parent=self.frame,
             pos=(5, -105),
             scale=self.width / 13,
-            fg=(0.8, 1, 0, 0.7),
+            fg=self.highlighter_yellow_color,
             font=self.text_font,
             align=TextNode.A_left,
             text="TRACK TEMP",
@@ -176,7 +178,7 @@ class WeatherBoard(DirectObject):
             parent=self.frame,
             pos=(5, -145),
             scale=self.width / 13,
-            fg=(0.8, 1, 0, 0.7),
+            fg=self.highlighter_yellow_color,
             font=self.text_font,
             align=TextNode.A_left,
             text="HUMIDITY",
@@ -207,7 +209,7 @@ class WeatherBoard(DirectObject):
             parent=self.frame,
             pos=(5, -185),
             scale=self.width / 13,
-            fg=(0.8, 1, 0, 0.7),
+            fg=self.highlighter_yellow_color,
             font=self.text_font,
             align=TextNode.A_left,
             text="AIR PRESSURE",
@@ -228,7 +230,7 @@ class WeatherBoard(DirectObject):
             parent=self.frame,
             pos=(5, -225),
             scale=self.width / 13,
-            fg=(0.8, 1, 0, 0.7),
+            fg=self.highlighter_yellow_color,
             font=self.text_font,
             align=TextNode.A_left,
             text="WIND",

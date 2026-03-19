@@ -1,5 +1,5 @@
-from datetime import timedelta
 from decimal import Decimal
+from math import ceil
 
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.OnscreenText import OnscreenText
@@ -8,6 +8,7 @@ from direct.showbase.ShowBase import ShowBase
 from panda3d.core import (
     Camera,
     GraphicsWindow,
+    LineSegs,
     LVecBase4f,
     NodePath,
     PerspectiveLens,
@@ -16,11 +17,13 @@ from panda3d.core import (
     TextNode,
     VBase4,
     Vec4,
-    WindowProperties, LineSegs,
+    WindowProperties,
 )
 from pandas import DataFrame, Series
 
 from f1p.services.data_extractor.service import DataExtractorService
+from f1p.ui.enums import Colors
+from f1p.utils.timedelta import td_to_min_n_sec
 
 
 class DriverWindow(DirectObject):
@@ -42,6 +45,7 @@ class DriverWindow(DirectObject):
         self.height = height
         self.driver_frame_height = 380
         self.telemetry_frame_height = 225
+        self.laps_widget_width = 510
 
         self.driver_number = driver_number
         self.first_name = first_name
@@ -57,6 +61,8 @@ class DriverWindow(DirectObject):
         self._strategy: dict[int, dict[str, str | int]] | None = None
         self._driver_laps: DataFrame | None = None
         self._slowest_non_pit_lap: Series | None = None
+        self._slowest_driver_lap: Series | None = None
+        self._fastest_driver_lap: Series | None = None
         self._normalized_driver_laps: DataFrame | None = None
         self._window_properties: WindowProperties | None = None
         self._window: GraphicsWindow | None = None
@@ -85,6 +91,7 @@ class DriverWindow(DirectObject):
         self.drs: OnscreenText | None = None
         self.brake: DirectFrame | None = None
         self.throttle: DirectFrame | None = None
+        self.lap_time_line: DirectFrame | None = None
 
         self.blue_color = (103 / 255, 190 / 255, 217 / 255, 1)
         self.green_color = (102 / 255, 217 / 255, 126 / 255, 1)
@@ -92,22 +99,27 @@ class DriverWindow(DirectObject):
         self.white_color = (1, 1, 1, 1)
         self.gray_color = (0.7, 0.7, 0.7, 1)
         self.dark_gray_color = (0.5, 0.5, 0.5, 1)
+        self.purple_color = (1, 0, 1, 0.6)
+        self.highlighter_yellow_color = (0.8, 1, 0, 1)
 
         self.accept(f"closeDriver{self.driver_number}", self.close)
 
     @property
     def strategy(self) -> dict[int, dict[str, str | int]]:
         if self._strategy is None:
-            self._strategy = self.data_extractor.extract_tire_strategy(self.driver_number)
+            self._strategy = self.data_extractor.extract_tire_strategy(
+                self.driver_number
+            )
 
         return self._strategy
 
     @property
     def driver_laps(self) -> DataFrame:
         if self._driver_laps is None:
-            df = self.data_extractor.laps[self.data_extractor.laps["DriverNumber"] == self.driver_number]
+            df = self.data_extractor.laps.copy()
+            df = df[df["DriverNumber"] == self.driver_number].copy()
 
-            df.loc[:, "S2LapTime"] = df["Sector2SessionTime"] - df["LapStartTime"]
+            df["S2LapTime"] = df["Sector2SessionTime"] - df["LapStartTime"]
 
             self._driver_laps = df
 
@@ -116,13 +128,53 @@ class DriverWindow(DirectObject):
     @property
     def slowest_non_pit_lap(self) -> Series:
         if self._slowest_non_pit_lap is None:
-            df = self.driver_laps.copy()
+            df = self.data_extractor.laps.copy()
 
-            self._slowest_non_pit_lap = df[
-                df["PitInTimeMilliseconds"].isna() & df["PitOutTimeMilliseconds"].isna() & (df["TrackStatus"] == "1")
-            ].sort_values("LapTime", ascending=False).iloc[0]
+            self._slowest_non_pit_lap = (
+                df[
+                    df["PitInTimeMilliseconds"].isna()
+                    & df["PitOutTimeMilliseconds"].isna()
+                    & (df["TrackStatus"] == "1")
+                ]
+                .sort_values("LapTime", ascending=False)
+                .iloc[0]
+            )
 
         return self._slowest_non_pit_lap
+
+    @property
+    def slowest_driver_lap(self) -> Series:
+        if self._slowest_driver_lap is None:
+            df = self.driver_laps.copy()
+
+            self._slowest_driver_lap = (
+                df[
+                    df["PitInTimeMilliseconds"].isna()
+                    & df["PitOutTimeMilliseconds"].isna()
+                    & (df["TrackStatus"] == "1")
+                ]
+                .sort_values("LapTime", ascending=False)
+                .iloc[0]
+            )
+
+        return self._slowest_driver_lap
+
+    @property
+    def fastest_driver_lap(self) -> Series:
+        if self._fastest_driver_lap is None:
+            df = self.driver_laps.copy()
+
+            self._fastest_driver_lap = (
+                df[
+                    df["PitInTimeMilliseconds"].isna()
+                    & df["PitOutTimeMilliseconds"].isna()
+                    & (df["TrackStatus"] == "1")
+                ]
+                .sort_values("LapTime", ascending=True)
+                .iloc[0]
+            )
+
+        return self._fastest_driver_lap
 
     @property
     def normalized_driver_laps(self) -> DataFrame:
@@ -131,8 +183,11 @@ class DriverWindow(DirectObject):
             slowest_time = self.slowest_non_pit_lap["LapTime"].total_seconds()
 
             df["NormalizedLapTime"] = df["LapTime"].dt.total_seconds() / slowest_time
+            df.loc[df["NormalizedLapTime"] > 1, "NormalizedLapTime"] = 1.0
             df["NormalizedS1Time"] = df["Sector1Time"].dt.total_seconds() / slowest_time
+            df.loc[df["NormalizedS1Time"] > 1, "NormalizedS1Time"] = 1.0
             df["NormalizedS2Time"] = df["S2LapTime"].dt.total_seconds() / slowest_time
+            df.loc[df["NormalizedS2Time"] > 1, "NormalizedS2Time"] = 1.0
 
             self._normalized_driver_laps = df
 
@@ -144,14 +199,18 @@ class DriverWindow(DirectObject):
             self._window_properties = WindowProperties()
             self._window_properties.setSize(self.width, self.height)
             self._window_properties.setFixedSize(True)
-            self._window_properties.setTitle(f"Driver {self.driver_number} - {self.first_name} {self.last_name}")
+            self._window_properties.setTitle(
+                f"Driver {self.driver_number} - {self.first_name} {self.last_name}"
+            )
 
         return self._window_properties
 
     @property
     def window(self) -> GraphicsWindow:
         if self._window is None:
-            self._window = self.app.openWindow(props=self.window_properties, makeCamera=False)
+            self._window = self.app.openWindow(
+                props=self.window_properties, makeCamera=False
+            )
             self._window.setCloseRequestEvent(f"closeDriver{self.driver_number}")
             self._window.setClearColor(VBase4(0.3, 0.3, 0.3, 1))
 
@@ -172,7 +231,9 @@ class DriverWindow(DirectObject):
     @property
     def pixel2d(self) -> NodePath:
         if self._pixel2d is None:
-            self._pixel2d = self.render2d.attachNewNode(PGTop(f"pixel2d{self.driver_number}"))
+            self._pixel2d = self.render2d.attachNewNode(
+                PGTop(f"pixel2d{self.driver_number}")
+            )
             self._pixel2d.setPos(-1, 0, 1)
             width, height = self.window.getSize()
             self._pixel2d.setScale(2.0 / width, 1.0, 2.0 / height)
@@ -216,7 +277,9 @@ class DriverWindow(DirectObject):
             parent=self.pixel2d,
             frameColor=(0.2, 0.2, 0.2, 0.7),
             frameSize=(0, 260, 0, self.driver_frame_height),
-            pos=Point3(530, 0, -(self.height - (self.height - self.driver_frame_height - 10))),
+            pos=Point3(
+                530, 0, -(self.height - (self.height - self.driver_frame_height - 10))
+            ),
             sortOrder=0,
         )
 
@@ -273,7 +336,7 @@ class DriverWindow(DirectObject):
             align=TextNode.ALeft,
             scale=13,
             font=self.app.text_font,
-            fg=(0.8, 1, 0, 0.7),
+            fg=self.highlighter_yellow_color,
             pos=(10, self.driver_frame_height - title_frame_height - 70, 0),
         )
 
@@ -293,7 +356,7 @@ class DriverWindow(DirectObject):
             align=TextNode.ALeft,
             scale=13,
             font=self.app.text_font,
-            fg=(0.8, 1, 0, 0.7),
+            fg=self.highlighter_yellow_color,
             pos=(100, self.driver_frame_height - title_frame_height - 70, 0),
         )
 
@@ -309,7 +372,15 @@ class DriverWindow(DirectObject):
 
     def make_telemetry_widget(self) -> None:
         width = 260
-        frame_z = -(self.height - (self.height - self.telemetry_frame_height - self.driver_frame_height - 20))
+        frame_z = -(
+            self.height
+            - (
+                self.height
+                - self.telemetry_frame_height
+                - self.driver_frame_height
+                - 20
+            )
+        )
         frame = DirectFrame(
             parent=self.pixel2d,
             frameColor=(0.2, 0.2, 0.2, 0.7),
@@ -344,7 +415,7 @@ class DriverWindow(DirectObject):
             align=TextNode.ACenter,
             scale=13,
             font=self.app.text_font,
-            fg=self.white_color,
+            fg=self.highlighter_yellow_color,
             pos=(width / 2, self.telemetry_frame_height - title_frame_height - 20, 0),
         )
 
@@ -357,7 +428,11 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.green_color,
-            pos=(initial_space, self.telemetry_frame_height - title_frame_height - 40, 0),
+            pos=(
+                initial_space,
+                self.telemetry_frame_height - title_frame_height - 40,
+                0,
+            ),
         )
 
         self.gear_1 = OnscreenText(
@@ -367,7 +442,11 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 1), self.telemetry_frame_height - title_frame_height - 40, 0),
+            pos=(
+                initial_space + (gear_spacer * 1),
+                self.telemetry_frame_height - title_frame_height - 40,
+                0,
+            ),
         )
 
         self.gear_2 = OnscreenText(
@@ -377,7 +456,11 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 2), self.telemetry_frame_height - title_frame_height - 40, 0),
+            pos=(
+                initial_space + (gear_spacer * 2),
+                self.telemetry_frame_height - title_frame_height - 40,
+                0,
+            ),
         )
 
         self.gear_3 = OnscreenText(
@@ -387,7 +470,11 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 3), self.telemetry_frame_height - title_frame_height - 40, 0),
+            pos=(
+                initial_space + (gear_spacer * 3),
+                self.telemetry_frame_height - title_frame_height - 40,
+                0,
+            ),
         )
 
         self.gear_4 = OnscreenText(
@@ -397,7 +484,11 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 4), self.telemetry_frame_height - title_frame_height - 40, 0),
+            pos=(
+                initial_space + (gear_spacer * 4),
+                self.telemetry_frame_height - title_frame_height - 40,
+                0,
+            ),
         )
 
         self.gear_5 = OnscreenText(
@@ -407,7 +498,11 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 5), self.telemetry_frame_height - title_frame_height - 40, 0),
+            pos=(
+                initial_space + (gear_spacer * 5),
+                self.telemetry_frame_height - title_frame_height - 40,
+                0,
+            ),
         )
 
         self.gear_6 = OnscreenText(
@@ -417,7 +512,11 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 6), self.telemetry_frame_height - title_frame_height - 40, 0),
+            pos=(
+                initial_space + (gear_spacer * 6),
+                self.telemetry_frame_height - title_frame_height - 40,
+                0,
+            ),
         )
 
         self.gear_7 = OnscreenText(
@@ -427,7 +526,11 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 7), self.telemetry_frame_height - title_frame_height - 40, 0),
+            pos=(
+                initial_space + (gear_spacer * 7),
+                self.telemetry_frame_height - title_frame_height - 40,
+                0,
+            ),
         )
 
         self.gear_8 = OnscreenText(
@@ -437,7 +540,11 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(initial_space + (gear_spacer * 8), self.telemetry_frame_height - title_frame_height - 40, 0),
+            pos=(
+                initial_space + (gear_spacer * 8),
+                self.telemetry_frame_height - title_frame_height - 40,
+                0,
+            ),
         )
 
         rpm_frame = DirectFrame(
@@ -460,7 +567,7 @@ class DriverWindow(DirectObject):
             align=TextNode.ALeft,
             scale=11,
             font=self.app.text_font,
-            fg=self.white_color,
+            fg=self.highlighter_yellow_color,
             pos=(10, self.telemetry_frame_height - title_frame_height - 70, 0),
         )
 
@@ -470,7 +577,7 @@ class DriverWindow(DirectObject):
             align=TextNode.ARight,
             scale=11,
             font=self.app.text_font,
-            fg=self.white_color,
+            fg=self.highlighter_yellow_color,
             pos=(width - 10, self.telemetry_frame_height - title_frame_height - 70, 0),
         )
 
@@ -480,7 +587,7 @@ class DriverWindow(DirectObject):
             align=TextNode.ACenter,
             scale=11,
             font=self.app.text_font,
-            fg=self.white_color,
+            fg=self.highlighter_yellow_color,
             pos=(width / 2, self.telemetry_frame_height - title_frame_height - 70, 0),
         )
 
@@ -503,7 +610,7 @@ class DriverWindow(DirectObject):
             align=TextNode.ACenter,
             scale=13,
             font=self.app.text_font,
-            fg=self.white_color,
+            fg=self.highlighter_yellow_color,
             pos=(60, self.telemetry_frame_height - title_frame_height - 185, 0),
         )
 
@@ -561,7 +668,9 @@ class DriverWindow(DirectObject):
             parent=frame,
             frameColor=self.gray_color,
             frameSize=(-10, 10, 0, 100),
-            pos=Point3(width - 60, 0, self.telemetry_frame_height - title_frame_height - 170),
+            pos=Point3(
+                width - 60, 0, self.telemetry_frame_height - title_frame_height - 170
+            ),
         )
         self.throttle = DirectFrame(
             parent=throttle_frame,
@@ -576,14 +685,23 @@ class DriverWindow(DirectObject):
             align=TextNode.ACenter,
             scale=13,
             font=self.app.text_font,
-            fg=self.white_color,
+            fg=self.highlighter_yellow_color,
             pos=(width - 60, self.telemetry_frame_height - title_frame_height - 185, 0),
         )
 
     def make_tire_strategy_widget(self) -> None:
         height = 90
         width = 260
-        frame_z = -(self.height - (self.height - height - self.driver_frame_height - self.telemetry_frame_height - 30))
+        frame_z = -(
+            self.height
+            - (
+                self.height
+                - height
+                - self.driver_frame_height
+                - self.telemetry_frame_height
+                - 30
+            )
+        )
         frame = DirectFrame(
             parent=self.pixel2d,
             frameColor=(0.2, 0.2, 0.2, 0.7),
@@ -640,7 +758,7 @@ class DriverWindow(DirectObject):
                 align=TextNode.ACenter,
                 scale=11,
                 font=self.app.text_font,
-                fg=self.white_color,
+                fg=self.highlighter_yellow_color,
                 pos=(end, height - title_frame_height - 50, 0),
             )
             start = end
@@ -651,11 +769,17 @@ class DriverWindow(DirectObject):
             align=TextNode.ACenter,
             scale=11,
             font=self.app.text_font,
-            fg=self.white_color,
+            fg=self.highlighter_yellow_color,
             pos=(10, height - title_frame_height - 50, 0),
         )
 
-    def draw_lap(self, height: float, title_frame_height: float, frame: DirectFrame, lap_number: int) -> None:
+    def draw_lap(
+        self,
+        height: float,
+        title_frame_height: float,
+        frame: DirectFrame,
+        lap_number: int,
+    ) -> None:
         offset = lap_number * 15
         text_scale = 9
 
@@ -756,18 +880,24 @@ class DriverWindow(DirectObject):
         top_gap: float,
         height: float,
         title_frame_height: float,
-        width: float,
         times: DataFrame,
         color: tuple[float, float, float, float],
+        shift_x: float = 0,
     ) -> None:
-        offset_x = (width - 90) / self.total_laps
+        offset_x = (self.laps_widget_width - 90) / self.total_laps
         offset_y = chart_height
 
         points = []
         for lap in times.itertuples():
             i = int(lap.LapNumber)
-            x = 80 + (offset_x * i)
-            y = height - title_frame_height - chart_height - top_gap + (offset_y * lap.Time)
+            x = 80 + (offset_x * i) - (shift_x * offset_x)
+            y = (
+                height
+                - title_frame_height
+                - chart_height
+                - top_gap
+                + (offset_y * lap.Time)
+            )
 
             points.append(Point3(x, 0, y))
 
@@ -782,7 +912,12 @@ class DriverWindow(DirectObject):
         node_path = NodePath(line_segments.create(False))
         node_path.reparentTo(frame)
 
-    def draw_lap_time_chart(self, frame: DirectFrame, height: float, width: float, title_frame_height: float) -> None:
+    def draw_lap_time_chart(
+        self,
+        frame: DirectFrame,
+        height: float,
+        title_frame_height: float,
+    ) -> None:
         chart_height = height - title_frame_height - 200
         top_gap = 10
 
@@ -794,44 +929,66 @@ class DriverWindow(DirectObject):
             pos=Point3(80, 0, height - title_frame_height - chart_height - top_gap),
         )
 
+        slowest_lap_time = self.slowest_non_pit_lap["LapTime"].total_seconds()
+
         # Y-axis lines
-        for i in range(10, 101, 10):
-            offset = chart_height / 100
+        for i in range(5, ceil(slowest_lap_time) + 1, 5):
+            offset = chart_height / slowest_lap_time
 
             DirectFrame(
                 parent=frame,
                 frameColor=self.dark_gray_color,
-                frameSize=(0, width - 90, 0, 1),
-                pos=Point3(75, 0, height - title_frame_height - chart_height - top_gap + (offset * i)),
+                frameSize=(0, self.laps_widget_width - 85, 0, 1),
+                pos=Point3(
+                    75,
+                    0,
+                    height - title_frame_height - chart_height - top_gap + (offset * i),
+                ),
             )
+
+            minutes = i // 60
+            seconds = i % 60
 
             OnscreenText(
                 parent=frame,
-                text=f"{i}.00%",
+                text=f"{minutes}:{seconds:02d}.000",
                 align=TextNode.ALeft,
                 scale=11,
                 font=self.app.text_font,
                 fg=self.white_color,
-                pos=(10, height - title_frame_height - chart_height - top_gap + (offset * i) - 3, 0),
+                pos=(
+                    10,
+                    height
+                    - title_frame_height
+                    - chart_height
+                    - top_gap
+                    + (offset * i)
+                    - 3,
+                    0,
+                ),
             )
 
         # X-axis
         DirectFrame(
             parent=frame,
             frameColor=self.white_color,
-            frameSize=(0, width - 90, 0, 2),
+            frameSize=(0, self.laps_widget_width - 90, 0, 2),
             pos=Point3(80, 0, height - title_frame_height - chart_height - top_gap),
         )
 
         # X-axis lines
         for i in range(5, self.total_laps + 1, 5):
-            offset = (width - 90) / self.total_laps
+            offset = (self.laps_widget_width - 90) / self.total_laps
 
             DirectFrame(
                 parent=frame,
                 frameColor=self.dark_gray_color,
                 frameSize=(0, 1, -5, chart_height),
-                pos=Point3(80 + (offset * i), 0, height - title_frame_height - chart_height - top_gap),
+                pos=Point3(
+                    80 + (offset * i),
+                    0,
+                    height - title_frame_height - chart_height - top_gap,
+                ),
             )
 
             OnscreenText(
@@ -840,34 +997,173 @@ class DriverWindow(DirectObject):
                 align=TextNode.ACenter,
                 scale=12,
                 font=self.app.text_font,
-                fg=self.white_color,
-                pos=(80 + (offset * i), height - title_frame_height - chart_height - top_gap - 20, 0),
+                fg=self.highlighter_yellow_color,
+                pos=(
+                    80 + (offset * i),
+                    height - title_frame_height - chart_height - top_gap - 20,
+                    0,
+                ),
             )
 
-        # TODO
-        #  - the charts should be filled in and stacked
-        #  - deal with outlier laps (aka exclude them)
-        #  - shift s1 points left by 2/3 of a lap
-        #  - shift s2 points left by 1/3 of a lap
         # Draw Lap Times Line
-        lap_times = self.normalized_driver_laps[["LapNumber", "NormalizedLapTime"]].sort_values("LapNumber").rename(columns={"NormalizedLapTime": "Time"})
-        self.draw_chart_line(frame, chart_height, top_gap, height, title_frame_height, width, lap_times, self.blue_color)
+        lap_times = (
+            self.normalized_driver_laps[["LapNumber", "NormalizedLapTime"]]
+            .sort_values("LapNumber")
+            .rename(columns={"NormalizedLapTime": "Time"})
+        )
+        self.draw_chart_line(
+            frame,
+            chart_height,
+            top_gap,
+            height,
+            title_frame_height,
+            lap_times,
+            self.blue_color,
+        )
         # Draw S1 Times Line
-        s1_times = self.normalized_driver_laps[["LapNumber", "NormalizedS1Time"]].sort_values("LapNumber").rename(columns={"NormalizedS1Time": "Time"})
-        self.draw_chart_line(frame, chart_height, top_gap, height, title_frame_height, width, s1_times, self.gray_color)
+        s1_times = (
+            self.normalized_driver_laps[["LapNumber", "NormalizedS1Time"]]
+            .sort_values("LapNumber")
+            .rename(columns={"NormalizedS1Time": "Time"})
+        )
+        self.draw_chart_line(
+            frame,
+            chart_height,
+            top_gap,
+            height,
+            title_frame_height,
+            s1_times,
+            self.gray_color,
+            shift_x=2 / 3,
+        )
         # Draw S2 Times Line
-        s2_times = self.normalized_driver_laps[["LapNumber", "NormalizedS2Time"]].sort_values("LapNumber").rename(columns={"NormalizedS2Time": "Time"})
-        self.draw_chart_line(frame, chart_height, top_gap, height, title_frame_height, width, s2_times, self.red_color)
+        s2_times = (
+            self.normalized_driver_laps[["LapNumber", "NormalizedS2Time"]]
+            .sort_values("LapNumber")
+            .rename(columns={"NormalizedS2Time": "Time"})
+        )
+        self.draw_chart_line(
+            frame,
+            chart_height,
+            top_gap,
+            height,
+            title_frame_height,
+            s2_times,
+            self.red_color,
+            shift_x=1 / 3,
+        )
 
+        self.lap_time_line = DirectFrame(
+            parent=frame,
+            frameColor=self.highlighter_yellow_color,
+            frameSize=(0, 1, -5, chart_height),
+            pos=Point3(
+                80,
+                0,
+                height - title_frame_height - chart_height - top_gap,
+            ),
+        )
+
+    def draw_lap_stats_header(
+        self,
+        frame: DirectFrame,
+        height: float,
+        title_frame_height: float,
+    ) -> None:
+        chart_height = height - title_frame_height - 200
+        top_gap = 60
+        y = height - title_frame_height - chart_height - top_gap
+        x = 80
+
+        columns = {
+            "#": 0,
+            "Tires": 30,
+            "S1": 80,
+            "S2": 150,
+            "S3": 220,
+            "Time": 320,
+        }
+
+        for label, offset in columns.items():
+            OnscreenText(
+                parent=frame,
+                text=label,
+                align=TextNode.ACenter,
+                scale=11,
+                font=self.app.text_font,
+                fg=self.white_color,
+                pos=(x + offset, y, 0),
+            )
+
+    def draw_lap_stats(
+        self,
+        frame: DirectFrame,
+        height: float,
+        title_frame_height: float,
+        heading: str,
+        top_gap: int,
+        lap: Series,
+    ) -> None:
+        chart_height = height - title_frame_height - 200
+        y = height - title_frame_height - chart_height - top_gap
+        x = 80
+
+        columns = [
+            {
+                "label": heading,
+                "offset": -40,
+                "color": Colors.HIGHLIGHTER_YELLOW,
+            },
+            {
+                "label": str(int(lap["LapNumber"])),
+                "offset": 0,
+                "color": Colors.WHITE,
+            },
+            {
+                "label": f"{lap['Compound']}({int(lap['TyreLife'])})",
+                "offset": 30,
+                "color": lap["CompoundColor"],
+            },
+            {
+                "label": td_to_min_n_sec(lap["Sector1Time"]),
+                "offset": 80,
+                "color": Colors.GREEN,
+            },
+            {
+                "label": td_to_min_n_sec(lap["Sector2Time"]),
+                "offset": 150,
+                "color": Colors.GREEN,
+            },
+            {
+                "label": td_to_min_n_sec(lap["Sector3Time"]),
+                "offset": 220,
+                "color": Colors.PURPLE,
+            },
+            {
+                "label": f"{td_to_min_n_sec(lap['LapTime'])}(104.9%)",
+                "offset": 320,
+                "color": Colors.PURPLE,
+            },
+        ]
+
+        for column in columns:
+            OnscreenText(
+                parent=frame,
+                text=column["label"],
+                align=TextNode.ACenter,
+                scale=11,
+                font=self.app.text_font,
+                fg=column["color"],
+                pos=(x + column["offset"], y, 0),
+            )
 
     def make_laps_widget(self) -> None:
-        width = 510
         height = self.height - 20
         frame_z = -(self.height - (self.height - height - 10))
         frame = DirectFrame(
             parent=self.pixel2d,
             frameColor=(0.2, 0.2, 0.2, 0.7),
-            frameSize=(0, width, 0, height),
+            frameSize=(0, self.laps_widget_width, 0, height),
             pos=Point3(10, 0, frame_z),
             sortOrder=0,
         )
@@ -876,7 +1172,7 @@ class DriverWindow(DirectObject):
         title_frame = DirectFrame(
             parent=frame,
             frameColor=(0.15, 0.15, 0.15, 0.7),
-            frameSize=(0, width, 0, title_frame_height),
+            frameSize=(0, self.laps_widget_width, 0, title_frame_height),
             pos=Point3(0, 0, height - title_frame_height),
             sortOrder=10,
         )
@@ -888,112 +1184,39 @@ class DriverWindow(DirectObject):
             scale=16,
             font=self.app.text_font,
             fg=self.white_color,
-            pos=(width / 2, title_frame_height - 21, 0),
+            pos=(self.laps_widget_width / 2, title_frame_height - 21, 0),
         )
 
-        self.draw_lap_time_chart(frame, height, width, title_frame_height)
-        # TODO
-        #  - Personal Best
-        #  - Personal Slowest
-        #  - Averages
-        #  - Current
-        #  - Deal with drivers with no laps or crashed drivers
+        self.draw_lap_time_chart(frame, height, title_frame_height)
+        self.draw_lap_stats_header(frame, height, title_frame_height)
+        self.draw_lap_stats(
+            frame,
+            height,
+            title_frame_height,
+            "Slowest",
+            80,
+            self.slowest_driver_lap,
+        )
+        self.draw_lap_stats(
+            frame,
+            height,
+            title_frame_height,
+            "Fastest",
+            100,
+            self.fastest_driver_lap,
+        )
+        self.draw_lap_stats(
+            frame,
+            height,
+            title_frame_height,
+            "Current",
+            120,
+            self.fastest_driver_lap,
+        )
 
-        #
-        # OnscreenText(
-        #     parent=frame,
-        #     text="#",
-        #     align=TextNode.ALeft,
-        #     scale=11,
-        #     font=self.app.text_font,
-        #     fg=self.white_color,
-        #     pos=(10, height - title_frame_height - 21, 0),
-        # )
-        #
-        # OnscreenText(
-        #     parent=frame,
-        #     text="Tires",
-        #     align=TextNode.ALeft,
-        #     scale=11,
-        #     font=self.app.text_font,
-        #     fg=self.white_color,
-        #     pos=(30, height - title_frame_height - 21, 0),
-        # )
-        #
-        # OnscreenText(
-        #     parent=frame,
-        #     text="S1",
-        #     align=TextNode.ALeft,
-        #     scale=11,
-        #     font=self.app.text_font,
-        #     fg=self.white_color,
-        #     pos=(70, height - title_frame_height - 21, 0),
-        # )
-        #
-        # OnscreenText(
-        #     parent=frame,
-        #     text="S2",
-        #     align=TextNode.ALeft,
-        #     scale=11,
-        #     font=self.app.text_font,
-        #     fg=self.white_color,
-        #     pos=(110, height - title_frame_height - 21, 0),
-        # )
-        #
-        # OnscreenText(
-        #     parent=frame,
-        #     text="S3",
-        #     align=TextNode.ALeft,
-        #     scale=11,
-        #     font=self.app.text_font,
-        #     fg=self.white_color,
-        #     pos=(140, height - title_frame_height - 21, 0),
-        # )
-        #
-        # OnscreenText(
-        #     parent=frame,
-        #     text="Time",
-        #     align=TextNode.ALeft,
-        #     scale=11,
-        #     font=self.app.text_font,
-        #     fg=self.white_color,
-        #     pos=(170, height - title_frame_height - 21, 0),
-        # )
-        #
-        # OnscreenText(
-        #     parent=frame,
-        #     text="S1 Speed",
-        #     align=TextNode.ALeft,
-        #     scale=11,
-        #     font=self.app.text_font,
-        #     fg=self.white_color,
-        #     pos=(200, height - title_frame_height - 21, 0),
-        # )
-        #
-        # OnscreenText(
-        #     parent=frame,
-        #     text="S2 Speed",
-        #     align=TextNode.ALeft,
-        #     scale=11,
-        #     font=self.app.text_font,
-        #     fg=self.white_color,
-        #     pos=(230, height - title_frame_height - 21, 0),
-        # )
-        #
-        # OnscreenText(
-        #     parent=frame,
-        #     text="FL Speed",
-        #     align=TextNode.ALeft,
-        #     scale=11,
-        #     font=self.app.text_font,
-        #     fg=self.white_color,
-        #     pos=(260, height - title_frame_height - 21, 0),
-        # )
-        #
-        # for lap_number in range(1, int(self.total_laps) + 1):
-        #     self.draw_lap(height, title_frame_height, frame, lap_number)
-
-    def update_standings(self, position_index: int, lap: float, total_laps: float) -> None:
+    def update_standings(
+        self, position_index: int, lap: float, total_laps: float
+    ) -> None:
         if self.position.text != f"{position_index + 1}":
             self.position["text"] = f"{position_index + 1}"
 
@@ -1065,8 +1288,16 @@ class DriverWindow(DirectObject):
         self.camera_np.setZ(z + 5)
         self.camera_np.lookAt(x, y, z)
 
+    def update_lap_time_line(self, laps_completed: float) -> None:
+        offset = (self.laps_widget_width - 90) / self.total_laps
+        self.lap_time_line.setX(80 + (offset * laps_completed))
+
     def update(self, current_record: dict) -> None:
-        self.update_standings(current_record["PositionIndex"], current_record["LapNumber"], current_record["TotalLaps"])
+        self.update_standings(
+            current_record["PositionIndex"],
+            current_record["LapNumber"],
+            current_record["TotalLaps"],
+        )
 
         self.update_telemetry(
             current_record["nGear"],
@@ -1083,6 +1314,8 @@ class DriverWindow(DirectObject):
         y = Decimal(current_record["Y"]).quantize(precision)
         z = Decimal(current_record["Z"]).quantize(precision)
         self.update_camera_position(x, y, z)
+
+        self.update_lap_time_line(current_record["LapsCompletion"])
 
     def open(self) -> None:
         if self.is_open:

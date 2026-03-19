@@ -52,7 +52,7 @@ class Driver(DirectObject):
     @property
     def pos_data(self) -> DataFrame:
         if self._pos_data is None:
-            self._pos_data =  self.data_extractor.processed_pos_data[
+            self._pos_data = self.data_extractor.processed_pos_data[
                 self.data_extractor.processed_pos_data["DriverNumber"] == self.number
             ]
 
