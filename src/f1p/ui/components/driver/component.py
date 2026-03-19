@@ -61,7 +61,9 @@ class Driver(DirectObject):
     @property
     def ticks(self) -> dict[Hashable, dict[Hashable, Any]]:
         if self._ticks is None:
-            self._ticks = self.pos_data.set_index("SessionTimeTick").to_dict(orient="index")
+            self._ticks = self.pos_data.set_index("SessionTimeTick").to_dict(
+                orient="index"
+            )
 
         return self._ticks
 
@@ -70,7 +72,7 @@ class Driver(DirectObject):
         if self._driver_window is None:
             self._driver_window = DriverWindow(
                 800,
-                800,
+                735,
                 self.number,
                 self.first_name,
                 self.last_name,
@@ -87,7 +89,9 @@ class Driver(DirectObject):
         return self.node_path.getColor()
 
     @staticmethod
-    def create_node_path(parent: NodePath, team_color: tuple[float, float, float, float]) -> NodePath:
+    def create_node_path(
+        parent: NodePath, team_color: tuple[float, float, float, float]
+    ) -> NodePath:
         sphere_maker = SphereMaker(
             radius=0.10,
         )
@@ -147,4 +151,6 @@ class Driver(DirectObject):
         self.driver_window.open()
 
         driver_pos = self.node_path.getPos()
-        self.driver_window.update_camera_position(driver_pos.x, driver_pos.y, driver_pos.z)
+        self.driver_window.update_camera_position(
+            driver_pos.x, driver_pos.y, driver_pos.z
+        )

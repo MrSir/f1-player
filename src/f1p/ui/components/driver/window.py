@@ -1,6 +1,7 @@
 from decimal import Decimal
 from math import ceil
 
+import pandas as pd
 from direct.gui.DirectFrame import DirectFrame
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
@@ -92,6 +93,14 @@ class DriverWindow(DirectObject):
         self.brake: DirectFrame | None = None
         self.throttle: DirectFrame | None = None
         self.lap_time_line: DirectFrame | None = None
+
+        self.current_lap_identifier: OnscreenText | None = None
+        self.current_lap_number: OnscreenText | None = None
+        self.current_lap_tires: OnscreenText | None = None
+        self.current_lap_s1: OnscreenText | None = None
+        self.current_lap_s2: OnscreenText | None = None
+        self.current_lap_s3: OnscreenText | None = None
+        self.current_lap_time: OnscreenText | None = None
 
         self.blue_color = (103 / 255, 190 / 255, 217 / 255, 1)
         self.green_color = (102 / 255, 217 / 255, 126 / 255, 1)
@@ -266,7 +275,12 @@ class DriverWindow(DirectObject):
         return self._camera_np
 
     def make_camera_region(self) -> None:
-        dr = self.window.makeDisplayRegion(0.675, 0.975, 0.525, 0.825)
+        dr = self.window.makeDisplayRegion(
+            (self.width - 260) / self.width,
+            (self.width - 20) / self.width,
+            355 / self.height,
+            595 / self.height,
+        )
         dr.setSort(10)
         dr.setClearColorActive(True)
         dr.setClearColor(Vec4(0.3, 0.3, 0.3, 1))
@@ -917,8 +931,8 @@ class DriverWindow(DirectObject):
         frame: DirectFrame,
         height: float,
         title_frame_height: float,
+        chart_height: float,
     ) -> None:
-        chart_height = height - title_frame_height - 200
         top_gap = 10
 
         # Y-axis
@@ -1069,19 +1083,19 @@ class DriverWindow(DirectObject):
         frame: DirectFrame,
         height: float,
         title_frame_height: float,
+        chart_height: float,
     ) -> None:
-        chart_height = height - title_frame_height - 200
         top_gap = 60
         y = height - title_frame_height - chart_height - top_gap
         x = 80
 
         columns = {
             "#": 0,
-            "Tires": 30,
-            "S1": 80,
-            "S2": 150,
-            "S3": 220,
-            "Time": 320,
+            "Tires": 40,
+            "S1": 95,
+            "S2": 165,
+            "S3": 235,
+            "Time": 335,
         }
 
         for label, offset in columns.items():
@@ -1100,54 +1114,62 @@ class DriverWindow(DirectObject):
         frame: DirectFrame,
         height: float,
         title_frame_height: float,
+        chart_height: float,
         heading: str,
         top_gap: int,
         lap: Series,
+        updateable: bool = False,
     ) -> None:
-        chart_height = height - title_frame_height - 200
         y = height - title_frame_height - chart_height - top_gap
         x = 80
 
         columns = [
             {
+                "field": "identifier",
                 "label": heading,
-                "offset": -40,
-                "color": Colors.HIGHLIGHTER_YELLOW,
+                "offset": -45,
+                "color": Colors.WHITE,
             },
             {
+                "field": "number",
                 "label": str(int(lap["LapNumber"])),
                 "offset": 0,
                 "color": Colors.WHITE,
             },
             {
+                "field": "tires",
                 "label": f"{lap['Compound']}({int(lap['TyreLife'])})",
-                "offset": 30,
+                "offset": 40,
                 "color": lap["CompoundColor"],
             },
             {
+                "field": "s1",
                 "label": td_to_min_n_sec(lap["Sector1Time"]),
-                "offset": 80,
-                "color": Colors.GREEN,
+                "offset": 95,
+                "color": lap["Sector1Color"],
             },
             {
+                "field": "s2",
                 "label": td_to_min_n_sec(lap["Sector2Time"]),
-                "offset": 150,
-                "color": Colors.GREEN,
+                "offset": 165,
+                "color": lap["Sector2Color"],
             },
             {
+                "field": "s3",
                 "label": td_to_min_n_sec(lap["Sector3Time"]),
-                "offset": 220,
-                "color": Colors.PURPLE,
+                "offset": 235,
+                "color": lap["Sector3Color"],
             },
             {
-                "label": f"{td_to_min_n_sec(lap['LapTime'])}(104.9%)",
-                "offset": 320,
-                "color": Colors.PURPLE,
+                "field": "time",
+                "label": f"{td_to_min_n_sec(lap['LapTime'])}({lap['LapTimeRatio']:.3f}%)",
+                "offset": 335,
+                "color": lap["LapTimeColor"],
             },
         ]
 
         for column in columns:
-            OnscreenText(
+            text = OnscreenText(
                 parent=frame,
                 text=column["label"],
                 align=TextNode.ACenter,
@@ -1156,6 +1178,9 @@ class DriverWindow(DirectObject):
                 fg=column["color"],
                 pos=(x + column["offset"], y, 0),
             )
+
+            if updateable:
+                setattr(self, f"current_lap_{column['field']}", text)
 
     def make_laps_widget(self) -> None:
         height = self.height - 20
@@ -1187,12 +1212,19 @@ class DriverWindow(DirectObject):
             pos=(self.laps_widget_width / 2, title_frame_height - 21, 0),
         )
 
-        self.draw_lap_time_chart(frame, height, title_frame_height)
-        self.draw_lap_stats_header(frame, height, title_frame_height)
+        chart_height = height - title_frame_height - 135
+
+        pd.set_option("display.max_colwidth", None)
+        pd.set_option("display.width", 370)
+        pd.set_option("display.max_columns", None)
+
+        self.draw_lap_time_chart(frame, height, title_frame_height, chart_height)
+        self.draw_lap_stats_header(frame, height, title_frame_height, chart_height)
         self.draw_lap_stats(
             frame,
             height,
             title_frame_height,
+            chart_height,
             "Slowest",
             80,
             self.slowest_driver_lap,
@@ -1201,6 +1233,7 @@ class DriverWindow(DirectObject):
             frame,
             height,
             title_frame_height,
+            chart_height,
             "Fastest",
             100,
             self.fastest_driver_lap,
@@ -1209,9 +1242,11 @@ class DriverWindow(DirectObject):
             frame,
             height,
             title_frame_height,
+            chart_height,
             "Current",
             120,
-            self.fastest_driver_lap,
+            self.driver_laps[self.driver_laps["LapNumber"] == 1].iloc[0],
+            updateable=True,
         )
 
     def update_standings(
@@ -1292,6 +1327,46 @@ class DriverWindow(DirectObject):
         offset = (self.laps_widget_width - 90) / self.total_laps
         self.lap_time_line.setX(80 + (offset * laps_completed))
 
+    def update_current_lap(self, current_record: dict):
+        lap_number = str(int(current_record["LapNumber"]))
+        if self.current_lap_number["text"] != lap_number:
+            self.current_lap_number["text"] = lap_number
+
+        tires = f"{current_record['Compound']}({int(current_record['TyreLife'])})"
+        if self.current_lap_tires["text"] != tires:
+            self.current_lap_tires["text"] = tires
+        current_tires_color = self.current_lap_tires.textNode.getTextColor()
+        if current_tires_color != current_record["CompoundColor"]:
+            self.current_lap_tires["fg"] = current_record["CompoundColor"]
+
+        s1_time = td_to_min_n_sec(current_record["Sector1Time"])
+        if self.current_lap_s1["text"] != s1_time:
+            self.current_lap_s1["text"] = s1_time
+        current_s1_color = self.current_lap_s1.textNode.getTextColor()
+        if current_s1_color != current_record["Sector1Color"]:
+            self.current_lap_s1["fg"] = current_record["Sector1Color"]
+
+        s2_time = td_to_min_n_sec(current_record["Sector2Time"])
+        if self.current_lap_s2["text"] != s2_time:
+            self.current_lap_s2["text"] = s2_time
+        current_s2_color = self.current_lap_s2.textNode.getTextColor()
+        if current_s2_color != current_record["Sector2Color"]:
+            self.current_lap_s2["fg"] = current_record["Sector2Color"]
+
+        s3_time = td_to_min_n_sec(current_record["Sector3Time"])
+        if self.current_lap_s3["text"] != s3_time:
+            self.current_lap_s3["text"] = s3_time
+        current_s3_color = self.current_lap_s3.textNode.getTextColor()
+        if current_s3_color != current_record["Sector3Color"]:
+            self.current_lap_s3["fg"] = current_record["Sector3Color"]
+
+        lap_time = f"{td_to_min_n_sec(current_record['LapTime'])}({current_record['LapTimeRatio']:.3f}%)"
+        if self.current_lap_time["text"] != lap_time:
+            self.current_lap_time["text"] = lap_time
+        current_time_color = self.current_lap_time.textNode.getTextColor()
+        if current_time_color != current_record["LapTimeColor"]:
+            self.current_lap_time["fg"] = current_record["LapTimeColor"]
+
     def update(self, current_record: dict) -> None:
         self.update_standings(
             current_record["PositionIndex"],
@@ -1316,6 +1391,7 @@ class DriverWindow(DirectObject):
         self.update_camera_position(x, y, z)
 
         self.update_lap_time_line(current_record["LapsCompletion"])
+        self.update_current_lap(current_record)
 
     def open(self) -> None:
         if self.is_open:
