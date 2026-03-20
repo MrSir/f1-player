@@ -72,7 +72,7 @@ class Driver(DirectObject):
         if self._driver_window is None:
             self._driver_window = DriverWindow(
                 800,
-                735,
+                900,
                 self.number,
                 self.first_name,
                 self.last_name,
