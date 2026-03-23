@@ -39,11 +39,14 @@ class LeaderboardProcessor:
         self.has_fastest_lap = has_fastest_lap
         self.data_extractor = data_extractor
 
-    def update_driver(self, driver: Driver, current_record: Series, index: int) -> None: ...
+    def update_driver(self, driver: Driver, current_record: Series, index: int) -> None:
+        ...
 
     def update(self, session_time_tick: int) -> None:
         total_laps = self.data_extractor.total_laps
-        current_lap_number = self.data_extractor.get_current_lap_number(session_time_tick)
+        current_lap_number = self.data_extractor.get_current_lap_number(
+            session_time_tick
+        )
 
         if self.lap_counter["text"] != f"LAP {current_lap_number}/{total_laps}":
             self.lap_counter["text"] = f"LAP {current_lap_number}/{total_laps}"
@@ -157,10 +160,17 @@ class IntervalLeaderboardProcessor(LeaderboardProcessor):
         if current_color != default_color:
             self.driver_times[index]["fg"] = default_color
 
-        if self.driver_times[index]["text"] != f"+{current_record['DiffToCarInFront']:.3f}":
-            self.driver_times[index]["text"] = f"+{current_record['DiffToCarInFront']:.3f}"
+        if (
+            self.driver_times[index]["text"]
+            != f"+{current_record['DiffToCarInFront']:.3f}"
+        ):
+            self.driver_times[index][
+                "text"
+            ] = f"+{current_record['DiffToCarInFront']:.3f}"
 
-    def update_tire_compound(self, driver: Driver, current_record: Series, index: int) -> None:
+    def update_tire_compound(
+        self, driver: Driver, current_record: Series, index: int
+    ) -> None:
         if driver.is_dnf:
             if self.driver_tires[index]["text"] != "":
                 self.driver_tires[index]["text"] = ""
@@ -168,10 +178,10 @@ class IntervalLeaderboardProcessor(LeaderboardProcessor):
             return
 
         tire_compound: str = current_record["Compound"]
-        tire_compound__color = current_record["CompoundColor"]
+        tire_compound_color = current_record["CompoundColor"]
         current_tire_compound_color = self.driver_tires[index].textNode.getTextColor()
-        if current_tire_compound_color != tire_compound__color:
-            self.driver_tires[index]["fg"] = tire_compound__color
+        if current_tire_compound_color != tire_compound_color:
+            self.driver_tires[index]["fg"] = tire_compound_color
 
         if self.driver_tires[index]["text"] != tire_compound:
             self.driver_tires[index]["text"] = tire_compound

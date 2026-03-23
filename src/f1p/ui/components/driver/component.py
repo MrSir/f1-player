@@ -8,6 +8,7 @@ from pandas import DataFrame, Series
 
 from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.components.driver.window import DriverWindow
+from f1p.utils.performance import timeit
 from procedural3d import SphereMaker
 
 
@@ -47,7 +48,7 @@ class Driver(DirectObject):
 
         self._driver_window: DriverWindow | None = None
 
-        self.accept("updateDrivers", self.update)
+        self.accept("updateDrivers", self.queue_update)
 
     @property
     def pos_data(self) -> DataFrame:
@@ -119,6 +120,14 @@ class Driver(DirectObject):
             team_name=driver_sr["TeamName"],
             data_extractor=data_extractor,
             node_path=cls.create_node_path(parent, driver_sr["TeamColor"]),
+        )
+
+    def queue_update(self, session_time_tick: int) -> None:
+        self.app.taskMgr.add(
+            self.update,
+            "updateDriver",
+            extraArgs=[session_time_tick],
+            taskChain="updating",
         )
 
     def update(self, session_time_tick: int) -> None:

@@ -24,7 +24,9 @@ class F1PlayerApp(ShowBase):
     ):
         super().__init__(self)
 
-        self.symbols_font = self.loader.loadFont("./src/f1p/ui/fonts/NotoSansSymbols2-Regular.ttf")
+        self.symbols_font = self.loader.loadFont(
+            "./src/f1p/ui/fonts/NotoSansSymbols2-Regular.ttf"
+        )
         self.text_font = self.loader.loadFont("./src/f1p/ui/fonts/f1_font.ttf")
 
         self.width = width
@@ -35,6 +37,7 @@ class F1PlayerApp(ShowBase):
         self.setBackgroundColor(0.3, 0.3, 0.3, 1)
 
         self.taskMgr.setupTaskChain("loadingData", numThreads=1)
+        self.taskMgr.setupTaskChain("updating", numThreads=5)
 
         self.ui_components: list = []
 
@@ -73,7 +76,15 @@ class F1PlayerApp(ShowBase):
         return self
 
     def draw_menu(self) -> Self:
-        menu = Menu(self.pixel2d, self.taskMgr, self.messenger, self.width, 40, self.text_font, self.data_extractor)
+        menu = Menu(
+            self.pixel2d,
+            self.taskMgr,
+            self.messenger,
+            self.width,
+            40,
+            self.text_font,
+            self.data_extractor,
+        )
         menu.render()
 
         return self

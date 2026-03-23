@@ -20,6 +20,8 @@ from pandas import DataFrame, Series, Timedelta
 from f1p.ui.enums import Colors
 from f1p.utils.color import hex_to_rgb_saturation
 from f1p.utils.geometry import center_pos_data, find_center, resize_pos_data
+from f1p.utils.performance import timeit
+from f1p.utils.timedelta import td_series_to_min_n_sec
 
 
 class DataExtractorService(DirectObject):
@@ -152,9 +154,12 @@ class DataExtractorService(DirectObject):
 
     def get_current_lap_number(self, session_time_tick: int) -> int:
         df = self.processed_pos_data
-        df = df[df["SessionTimeTick"] == session_time_tick]
 
-        return int(math.ceil(df["LapsCompletion"].max()))
+        return int(
+            math.ceil(
+                df[df["SessionTimeTick"] == session_time_tick]["LapsCompletion"].max()
+            )
+        )
 
     @property
     def slowest_non_pit_lap(self) -> Series:
@@ -176,7 +181,13 @@ class DataExtractorService(DirectObject):
     @property
     def fastest_lap(self) -> Series:
         if self._fastest_lap is None:
-            self._fastest_lap = self.laps.pick_fastest()
+            df = self.laps.copy()
+
+            self._fastest_lap = (
+                df[df["LapTimeMilliseconds"].notna() & df["LapTimeMilliseconds"] > 0]
+                .sort_values("LapTimeMilliseconds", ascending=True)
+                .iloc[0]
+            )
 
         return self._fastest_lap
 
@@ -433,13 +444,13 @@ class DataExtractorService(DirectObject):
         return self
 
     def add_session_time_in_milliseconds(self) -> Self:
-        session_time_in_milliseconds = (
-            self.processed_pos_data["SessionTime"].dt.total_seconds() * 1e3
-        )
+        df = self.processed_pos_data.copy()
 
-        self.processed_pos_data[
-            "SessionTimeMilliseconds"
-        ] = session_time_in_milliseconds.astype("int64")
+        df["SessionTimeMilliseconds"] = (
+            df["SessionTime"].dt.total_seconds() * 1e3
+        ).astype("int64")
+
+        self.processed_pos_data = df
 
         self.update_loading(1)
 
@@ -486,6 +497,10 @@ class DataExtractorService(DirectObject):
             "int64"
         )
 
+        laps[f"Sector{sector}TimeFormatted"] = td_series_to_min_n_sec(
+            laps[f"Sector{sector}TimeMilliseconds"]
+        )
+
         laps[f"S{sector}DiffToCarAhead"] = (
             laps.sort_values(
                 by=[f"Sector{sector}SessionTimeMilliseconds"], ascending=[True]
@@ -495,21 +510,21 @@ class DataExtractorService(DirectObject):
         )
         sector_time_sr = laps[f"Sector{sector}TimeMilliseconds"]
         laps[f"Sector{sector}Best"] = sector_time_sr[sector_time_sr > 0].min()
-        laps[f"Sector{sector}PersonalBest"] = (
+
+        laps[f"FastestSector{sector}TimeMillisecondsSoFar"] = (
             laps[
                 laps[f"Sector{sector}TimeMilliseconds"].gt(0)
                 & laps[f"Sector{sector}TimeMilliseconds"].notna()
             ]
             .groupby("DriverNumber")[f"Sector{sector}TimeMilliseconds"]
-            .transform("min")
-            .astype("int64")
+            .cummin()
         )
 
         laps[f"Sector{sector}ColorCode"] = "Y"
         laps.loc[
             (
                 laps[f"Sector{sector}TimeMilliseconds"]
-                <= laps[f"Sector{sector}PersonalBest"]
+                <= laps[f"FastestSector{sector}TimeMillisecondsSoFar"]
             )
             & (laps[f"Sector{sector}TimeMilliseconds"].gt(0))
             & (laps[f"Sector{sector}TimeMilliseconds"].notna()),
@@ -548,13 +563,14 @@ class DataExtractorService(DirectObject):
         laps["LapStartTimeMilliseconds"] = lap_start_time_in_milliseconds.astype(
             "int64"
         )
-
         laps.loc[
             laps["LapTime"].notna(),
             "LapTimeMilliseconds",
         ] = (
             laps.loc[laps["LapTime"].notna(), "LapTime"].dt.total_seconds() * 1e3
         )
+
+        laps["LapTimeFormatted"] = td_series_to_min_n_sec(laps["LapTimeMilliseconds"])
 
         laps["LapEndTimeMilliseconds"] = (
             laps["LapStartTimeMilliseconds"] + laps["LapTimeMilliseconds"]
@@ -608,7 +624,7 @@ class DataExtractorService(DirectObject):
         )
         laps["LapTimeColorCode"] = "Y"
         laps.loc[
-            (laps["LapTimeMilliseconds"] <= laps["LapTimePersonalBestMilliseconds"])
+            (laps["LapTimeMilliseconds"] <= laps["FastestLapTimeMillisecondsSoFar"])
             & (laps["LapTimeMilliseconds"].gt(0))
             & (laps["LapTimeMilliseconds"].notna()),
             "LapTimeColorCode",
@@ -629,9 +645,7 @@ class DataExtractorService(DirectObject):
         self._laps = laps
 
         laps["LapTimeRatio"] = (
-            laps["LapTimeMilliseconds"]
-            / self.slowest_non_pit_lap["LapTimeMilliseconds"]
-            * 100
+            laps["LapTimeMilliseconds"] / self.fastest_lap["LapTimeMilliseconds"] * 100
         )
 
         self._laps = laps
@@ -697,8 +711,25 @@ class DataExtractorService(DirectObject):
 
         return self
 
+    @staticmethod
+    def compute_elapsed_time(
+        df: DataFrame, start_column: str, column_name: str
+    ) -> None:
+        df[column_name] = df["SessionTime"] - df[start_column]
+        time_in_milliseconds = (
+            df.loc[df[column_name].notna(), column_name].dt.total_seconds() * 1e3
+        )
+        df.loc[
+            df[column_name].notna(), f"{column_name}Milliseconds"
+        ] = time_in_milliseconds.astype("int64")
+
     def compute_lap_completion(self) -> Self:
         df = self.processed_pos_data.copy()
+
+        self.compute_elapsed_time(df, "LapStartTime", "S1ElapsedLapTime")
+        self.compute_elapsed_time(df, "Sector1SessionTime", "S2ElapsedLapTime")
+        self.compute_elapsed_time(df, "Sector2SessionTime", "S3ElapsedLapTime")
+        self.compute_elapsed_time(df, "LapStartTime", "ElapsedLapTime")
 
         df["LapStartTimeMilliseconds"] = df.groupby("DriverNumber")[
             "LapStartTimeMilliseconds"
@@ -804,6 +835,26 @@ class DataExtractorService(DirectObject):
 
         return self
 
+    def compute_formatted_times(self) -> Self:
+        df = self.processed_pos_data.copy()
+
+        df["S1ElapsedLapTimeFormatted"] = td_series_to_min_n_sec(
+            df["S1ElapsedLapTimeMilliseconds"]
+        )
+        df["S2ElapsedLapTimeFormatted"] = td_series_to_min_n_sec(
+            df["S2ElapsedLapTimeMilliseconds"]
+        )
+        df["S3ElapsedLapTimeFormatted"] = td_series_to_min_n_sec(
+            df["S3ElapsedLapTimeMilliseconds"]
+        )
+        df["ElapsedLapTimeFormatted"] = td_series_to_min_n_sec(
+            df["ElapsedLapTimeMilliseconds"]
+        )
+
+        self.processed_pos_data = df
+
+        return self
+
     def compute_diff_to_car_in_front(self) -> Self:
         df = self.processed_pos_data.copy()
         df.loc[
@@ -890,23 +941,20 @@ class DataExtractorService(DirectObject):
         car_data_df = car_data_df[car_data_df["SessionTime"] >= self.session_start_time]
         car_data_df = car_data_df[car_data_df["SessionTime"] <= self.session_end_time]
 
-        session_time_df = (
-            car_data_df[["SessionTime"]].drop_duplicates(keep="first").copy()
+        df_sorted = (
+            df.groupby("SessionTime", sort=True)["SessionTimeTick"]
+            .max()
+            .reset_index()
+            .sort_values("SessionTime")
         )
-        session_time_df["ID"] = range(1, 1 + len(session_time_df))
-
-        for record in session_time_df.itertuples():
-            session_time_df.loc[
-                session_time_df["ID"] == record.ID, "SessionTimeTick"
-            ] = df.loc[
-                df["SessionTime"] <= record.SessionTime,
-                "SessionTimeTick",
-            ].max()
-        session_time_df["SessionTimeTick"] = session_time_df["SessionTimeTick"].fillna(
-            1
+        times = df_sorted["SessionTime"].values  # sorted datetime64 array
+        ticks = df_sorted["SessionTimeTick"].values
+        indices = (
+            np.searchsorted(times, car_data_df["SessionTime"].values, side="right") - 1
         )
-
-        car_data_df = car_data_df.merge(session_time_df, on=["SessionTime"], how="left")
+        valid = indices >= 0
+        result = np.where(valid, ticks[np.clip(indices, 0, len(ticks) - 1)], np.nan)
+        car_data_df["SessionTimeTick"] = result
 
         # DRS
         # 0 - DRS DEACTIVATED (CLOSED)
@@ -929,7 +977,7 @@ class DataExtractorService(DirectObject):
             columns=[
                 "Time",
                 "SessionTime",
-                "ID",
+                # "ID",
                 "Date",
                 "Source",
             ],
@@ -1184,19 +1232,20 @@ class DataExtractorService(DirectObject):
         self.update_loading(10)
 
         (
-            self.process_fastest_lap()
-            .combine_position_data()
+            self.combine_position_data()
             .remove_records_before_session_start_time()
-            .normalize_position_data()
             .add_session_time_in_milliseconds()
             .add_session_time_tick()
             .process_laps()
+            .process_fastest_lap()
+            .normalize_position_data()
             .merge_pos_and_laps()
             .compute_lap_completion()
             .compute_is_dnf()
             .compute_is_finished()
             .compute_position_index()
             .compute_fastest_lap()
+            .compute_formatted_times()
             .compute_diff_to_car_in_front()
             .compute_diff_to_leader()
             .compute_in_pit()
