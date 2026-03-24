@@ -37,9 +37,9 @@ The bottom section displays the details of the current lap. This is the more dyn
 ### Previous Lap 
 
 This shows the details of the lap that just completed. The sector and lap time colors are represantative of the drivers pace thus far in the race:
-- <span style="color: #ffff00">YELLOW</span> indicates slower than the fastest time done so far by the driver
-- <span style="color: #66d97f">GREEN</span> indicates current personal best time done by the driver
-- <span style="color: #ff00ff">PURPLE</span> indicates a time faster than any other driver
+- $\color{#ffff00">YELLOW}$ indicates slower than the fastest time done so far by the driver
+- $\color{#66d97f">GREEN}$ indicates current personal best time done by the driver
+- $\color{#ff00ff">PURPLE}$ indicates a time faster than any other driver
 
 The percentage shown below the lap time in this section is an indicator of the overall pace of the driver as it compares to the fastest lap done during the race by any driver. 100% would indicate that this lap was the fastest lap. Values >100% indicate how much slower this lap was. This is very much inline with how the Qualification times are capped at 107%.
 
@@ -56,32 +56,32 @@ The main chart shows:
 - X-axis is lap number
 
 The chart contains 3 graph lines:
-- <span style="color: #67d9b9">LIGHT BLUE</span>: Sector 1 time from the start of the lap
-- <span style="color: #6793d9">BLUE</span>: Sector 2 Time from the start of the lap
-- <span style="color: #3f61e8">DARK BLUE</span>: Sector 3/Lap Time from the start of the lap
+- $\color{#67d9b9}{LIGHT BLUE}$: Sector 1 time from the start of the lap
+- $\color{#6793d9}{BLUE}$: Sector 2 Time from the start of the lap
+- $\color{#3f61e8}{DARK BLUE}$: Sector 3/Lap Time from the start of the lap
 
-The distance between the x-axis and the <span style="color: #67d9b9">LIGHT BLUE</span> line is the Sector 1 delta time.
+The distance between the x-axis and the $\color{#67d9b9}{LIGHT BLUE}$ line is the Sector 1 delta time.
 
-The distance between the <span style="color: #67d9b9">LIGHT BLUE</span> line and the <span style="color: #6793d9">BLUE</span> line is the Sector 2 delta time.
+The distance between the $\color{#67d9b9}{LIGHT BLUE}$ line and the $\color{#6793d9}{BLUE}$ line is the Sector 2 delta time.
 
-The distance between the <span style="color: #6793d9">BLUE</span> line and <span style="color: #3f61e8">DARK BLUE</span> line is the Sector 3 delta time.
+The distance between the $\color{#6793d9}{BLUE}$ line and $\color{#3f61e8}{DARK BLUE}$ line is the Sector 3 delta time.
 
 On top of the 3 graph lines there 4 additional lines shown:
-- <span style="color: #ff00ff">PURPLE</span> (horizontal) displays the lap time for the fastest lap during the race by any driver. The time itself is also displayed just below the line
-- <span style="color: #d96e66">LIGHT RED</span> (vertical) displays the lap during which the driver did their slowest non pit lap done under green flag
-- <span style="color: #ff0000">RED</span> (vertical) displays the lap during which the driver did their fastest lap
-- <span style="color: #ccff00">HIGHLIGHTER YELLOW</span> the current lap the driver is on. (This moves as the timeline progresses)
+- $\color{#ff00ff}{PURPLE}$ (horizontal) displays the lap time for the fastest lap during the race by any driver. The time itself is also displayed just below the line
+- $\color{#d96e66}{LIGHT RED}$ (vertical) displays the lap during which the driver did their slowest non pit lap done under green flag
+- $\color{#ff0000}{RED}$ (vertical) displays the lap during which the driver did their fastest lap
+- $\color{#ccff00}{HIGHLIGHTER YELLOW}$ the current lap the driver is on. (This moves as the timeline progresses)
 
 ### Stats
 
 The section below the chart displays more details on the laps done by the driver.
 
-The <span style="color: #d96e66">SLOWEST</span> and <span style="color: #ff0000">FASTEST</span> lap details are shown, including:
+The $\color{#d96e66}{SLOWEST}$ and $\color{#ff0000}{FASTEST}$ lap details are shown, including:
 - Lap Number
 - Tire Compound (Tire Age)
-- <span style="color: #67d9b9">Sector 1</span> delta time
-- <span style="color: #6793d9">Sector 2</span> delta time
-- <span style="color: #3f61e8">Sector 3</span> delta time
+- $\color{#67d9b9}{Sector 1}$ delta time
+- $\color{#6793d9}{Sector 2}$ delta time
+- $\color{#3f61e8}{Sector 3}$ delta time
 - Lap Time (percentage compared to the fastest lap during the race by any driver)
 
 Below those are shown the averages for the 4 times for the entire race by the driver. These only include non pit laps done under a green flag. The idea here is to view the drivers overall pace during the race as an average.
