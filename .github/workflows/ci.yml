@@ -4,7 +4,6 @@ on:
   push:
     branches:
     - main
-    - wiki_tests
   pull_request:
     branches:
     - main
@@ -152,8 +151,3 @@ jobs:
           junitxml-path: ./pytest.xml
           github-token: ${{ secrets.GITHUB_TOKEN }}
           create-new-comment: true
-  wiki:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: Andrew-Chen-Wang/github-wiki-action@v5

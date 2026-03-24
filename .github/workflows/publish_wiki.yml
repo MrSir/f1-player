@@ -1,0 +1,24 @@
+name: Publish WIKI
+
+on:
+  push:
+    branches:
+      - main
+      - wiki_tests
+    paths:
+      - wiki/**
+      - .github/workflows/publish-wiki.yml
+
+concurrency:
+  group: publish-wiki
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: Andrew-Chen-Wang/github-wiki-action@v5
