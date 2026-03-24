@@ -839,7 +839,6 @@ class DataExtractorService(DirectObject):
             columns=[
                 "Time",
                 "SessionTime",
-                # "ID",
                 "Date",
                 "Source",
             ],
@@ -863,6 +862,7 @@ class DataExtractorService(DirectObject):
         combined_df["Throttle"] = combined_df.groupby("DriverNumber")["Throttle"].ffill()
         combined_df["Brake"] = combined_df.groupby("DriverNumber")["Brake"].ffill()
         combined_df["DRS"] = combined_df.groupby("DriverNumber")["DRS"].ffill()
+        combined_df["DRS"] = combined_df["DRS"].fillna(0)
         combined_df["DRS"] = combined_df["DRS"].astype("int64")
 
         self.processed_pos_data = combined_df
