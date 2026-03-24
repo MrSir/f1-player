@@ -66,7 +66,7 @@ class DataExtractorService(DirectObject):
         self._green_flag_track_status: DataFrame | None = None
         self._track_statuses: DataFrame | None = None
         self._total_laps: int | None = None
-        self._laps: Laps | None = None
+        self._laps: DataFrame | None = None
 
         self._slowest_non_pit_lap: Series | None = None
         self._fastest_lap: Series | None = None
@@ -146,7 +146,7 @@ class DataExtractorService(DirectObject):
         return self._car_data
 
     @property
-    def laps(self) -> Laps:
+    def laps(self) -> DataFrame:
         if self._laps is None:
             self._laps = self.session.laps
 
@@ -467,7 +467,7 @@ class DataExtractorService(DirectObject):
 
         return self
 
-    def compute_sector_columns(self, sector: int) -> DataFrame:
+    def compute_sector_columns(self, sector: int) -> None:
         laps = self.laps.copy()
 
         laps.loc[

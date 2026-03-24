@@ -24,7 +24,7 @@ from pandas import DataFrame, Series
 
 from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.enums import Colors
-from f1p.utils.timedelta import td_to_min_n_sec
+from f1p.utils.timedelta import td_to_min_n_sec, td_series_to_min_n_sec
 
 
 class DriverWindow(DirectObject):
@@ -62,6 +62,7 @@ class DriverWindow(DirectObject):
 
         self._strategy: dict[int, dict[str, str | int]] | None = None
         self._driver_laps: DataFrame | None = None
+        self._lap_averages: Series | None = None
         self._slowest_non_pit_lap: Series | None = None
         self._slowest_driver_lap: Series | None = None
         self._fastest_driver_lap: Series | None = None
@@ -137,6 +138,70 @@ class DriverWindow(DirectObject):
             self._driver_laps = df
 
         return self._driver_laps
+
+    @property
+    def lap_averages(self) -> Series:
+        if self._lap_averages is None:
+            df = self.driver_laps.copy()
+
+            df = df.loc[
+                df["PitInTimeMilliseconds"].isna()
+                & df["PitOutTimeMilliseconds"].isna()
+                & (df["TrackStatus"] == "1"),
+                [
+                    "Sector1TimeMilliseconds",
+                    "Sector2TimeMilliseconds",
+                    "Sector3TimeMilliseconds",
+                    "LapTimeMilliseconds",
+                ],
+            ]
+
+            sr = Series(
+                [
+                    "",
+                    "",
+                    Colors.WHITE,
+                    Colors.WHITE,
+                    Colors.WHITE,
+                    Colors.WHITE,
+                    Colors.WHITE,
+                    df["Sector1TimeMilliseconds"].mean(),
+                    df["Sector2TimeMilliseconds"].mean(),
+                    df["Sector3TimeMilliseconds"].mean(),
+                    df["LapTimeMilliseconds"].mean(),
+                ],
+                index=[
+                    "LapNumber",
+                    "Compound",
+                    "CompoundColor",
+                    "Sector1Color",
+                    "Sector2Color",
+                    "Sector3Color",
+                    "LapTimeColor",
+                    "Sector1Time",
+                    "Sector2Time",
+                    "Sector3Time",
+                    "LapTime",
+                ],
+            )
+
+            sr["Sector1TimeFormatted"] = td_series_to_min_n_sec(
+                Series([sr["Sector1Time"]])
+            ).iloc[0]
+            sr["Sector2TimeFormatted"] = td_series_to_min_n_sec(
+                Series([sr["Sector2Time"]])
+            ).iloc[0]
+            sr["Sector3TimeFormatted"] = td_series_to_min_n_sec(
+                Series([sr["Sector3Time"]])
+            ).iloc[0]
+            sr["LapTimeFormatted"] = td_series_to_min_n_sec(
+                Series([sr["LapTime"]])
+            ).iloc[0]
+            sr["LapTimeRatio"] = sr["LapTime"] / self.data_extractor.fastest_lap["LapTimeMilliseconds"] * 100
+
+            self._lap_averages = sr
+
+        return self._lap_averages
 
     @property
     def slowest_non_pit_lap(self) -> Series:
@@ -1300,13 +1365,13 @@ class DriverWindow(DirectObject):
             },
             {
                 "field": "number",
-                "label": str(int(lap["LapNumber"])),
+                "label": str(int(lap["LapNumber"])) if lap["LapNumber"] != "" else "",
                 "offset": 0,
                 "color": Colors.WHITE,
             },
             {
                 "field": "tires",
-                "label": f"{lap['Compound']}({int(lap['TyreLife'])})",
+                "label": f"{lap['Compound']}({int(lap['TyreLife'])})" if lap["Compound"] != "" else "",
                 "offset": 40,
                 "color": lap["CompoundColor"],
             },
@@ -1405,6 +1470,7 @@ class DriverWindow(DirectObject):
             100,
             self.fastest_driver_lap,
         )
+
         self.draw_lap_stats(
             frame,
             height,
@@ -1413,7 +1479,7 @@ class DriverWindow(DirectObject):
             "AVERAGE",
             Colors.WHITE,
             120,
-            self.driver_laps[self.driver_laps["LapNumber"] == 1].iloc[0],
+            self.lap_averages,
         )
 
     def update_gear_indicator(self, indicator: str, gear: str) -> None:
