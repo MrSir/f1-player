@@ -1,10 +1,12 @@
 from decimal import Decimal
+from typing import Any, Hashable
 
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import LVecBase4f, NodePath
 from pandas import DataFrame, Series
 
+from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.components.driver.window import DriverWindow
 from procedural3d import SphereMaker
 
@@ -19,8 +21,7 @@ class Driver(DirectObject):
         broadcast_name: str,
         abbreviation: str,
         team_name: str,
-        pos_data: DataFrame,
-        strategy: dict[int, dict[str, str | int]],
+        data_extractor: DataExtractorService,
         node_path: NodePath = None,
     ):
         super().__init__()
@@ -32,33 +33,50 @@ class Driver(DirectObject):
         self.broadcast_name = broadcast_name
         self.abbreviation = abbreviation
         self.team_name = team_name
-        self.pos_data = pos_data
-        self.ticks = self.pos_data.set_index("SessionTimeTick").to_dict(orient="index")
-        self.strategy = strategy
+        self.data_extractor = data_extractor
         self.node_path = node_path
+
+        self._pos_data: DataFrame | None = None
+        self._ticks: dict[Hashable, dict[Hashable, Any]] | None = None
+        self._strategy: dict[int, dict[str, str | int]] | None = None
+        self._driver_window: DriverWindow | None = None
 
         self.in_pit: bool = False
         self.is_dnf: bool = False
         self.is_finished: bool = False
         self.has_fastest_lap: bool = False
 
-        self._driver_window: DriverWindow | None = None
+        self.accept("updateDrivers", self.queue_update)
 
-        self.accept("updateDrivers", self.update)
+    @property
+    def pos_data(self) -> DataFrame:
+        if self._pos_data is None:
+            self._pos_data = self.data_extractor.processed_pos_data[
+                self.data_extractor.processed_pos_data["DriverNumber"] == self.number
+            ]
+
+        return self._pos_data
+
+    @property
+    def ticks(self) -> dict[Hashable, dict[Hashable, Any]]:
+        if self._ticks is None:
+            self._ticks = self.pos_data.set_index("SessionTimeTick").to_dict(orient="index")
+
+        return self._ticks
 
     @property
     def driver_window(self) -> DriverWindow:
         if self._driver_window is None:
             self._driver_window = DriverWindow(
                 800,
-                800,
+                900,
                 self.number,
                 self.first_name,
                 self.last_name,
                 self.team_color_obj,
                 self.team_name,
                 self.app,
-                self.strategy,
+                self.data_extractor,
             )
 
         return self._driver_window
@@ -83,9 +101,8 @@ class Driver(DirectObject):
         cls,
         app: ShowBase,
         parent: NodePath,
+        data_extractor: DataExtractorService,
         driver_sr: Series,
-        pos_data: DataFrame,
-        strategy: dict[int, dict[str, str | int]],
     ) -> Driver:
         return Driver(
             app=app,
@@ -95,9 +112,16 @@ class Driver(DirectObject):
             broadcast_name=driver_sr["BroadcastName"],
             abbreviation=driver_sr["Abbreviation"],
             team_name=driver_sr["TeamName"],
-            pos_data=pos_data,
-            strategy=strategy,
+            data_extractor=data_extractor,
             node_path=cls.create_node_path(parent, driver_sr["TeamColor"]),
+        )
+
+    def queue_update(self, session_time_tick: int) -> None:
+        self.app.taskMgr.add(
+            self.update,
+            "updateDriver",
+            extraArgs=[session_time_tick],
+            taskChain="updating",
         )
 
     def update(self, session_time_tick: int) -> None:

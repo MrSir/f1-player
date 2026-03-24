@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -6,7 +7,7 @@ from direct.task.Task import TaskManager
 from fastf1.core import Telemetry
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f, NodePath, StaticTextFont
-from pandas import DataFrame, Timedelta
+from pandas import DataFrame, Series, Timedelta
 from pytest_mock import MockerFixture
 
 from f1p.services.data_extractor.service import DataExtractorService
@@ -257,3 +258,40 @@ def pos_data_for_session_time_tick() -> DataFrame:
         "Z": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         "DriverNumber": [1, 1, 1, 2, 2, 2],
     })
+
+
+@pytest.fixture()
+def laps_df() -> DataFrame:
+    return DataFrame(
+        data={
+            "DriverNumber": [1, 1, 1, 1, 1],
+            "LapNumber": [1, 2, 3, 4, 5],
+            "LapTime": [
+                pd.NaT,
+                timedelta(milliseconds=0),
+                timedelta(minutes=1, seconds=32, milliseconds=50),
+                timedelta(minutes=1, seconds=32, milliseconds=400),
+                timedelta(minutes=1, seconds=32, milliseconds=450),
+            ],
+            "LapTimeMilliseconds": [
+                pd.NA,
+                0,
+                92050,
+                92400,
+                92450,
+            ],
+        },
+    )
+
+
+@pytest.fixture()
+def fastest_lap() -> Series:
+    return Series(
+        [1, 3, timedelta(minutes=1, seconds=32, milliseconds=50), 92050],
+        index=[
+            "DriverNumber",
+            "LapNumber",
+            "LapTime",
+            "LapTimeMilliseconds",
+        ],
+    )

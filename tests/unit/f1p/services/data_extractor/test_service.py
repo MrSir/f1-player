@@ -8,7 +8,7 @@ from fastf1.core import Lap, Laps, Session, Telemetry
 from fastf1.events import Event, EventSchedule
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f
-from pandas import DataFrame, Timedelta
+from pandas import DataFrame, Series, Timedelta
 from pandas._testing import assert_frame_equal
 from pytest_mock import MockerFixture
 
@@ -322,17 +322,16 @@ def test_fastest_lap_returns_cached_value(data_extractor_service: DataExtractorS
     assert result == mock_lap
 
 
-def test_fastest_lap_fetches_and_caches(data_extractor_service: DataExtractorService, mocker: MockerFixture) -> None:
-    mock_laps = mocker.MagicMock(spec=Laps)
-    mock_fastest_lap = mocker.MagicMock(spec=Lap)
-    mock_laps.pick_fastest.return_value = mock_fastest_lap
-    data_extractor_service._laps = mock_laps
-
+def test_fastest_lap_fetches_and_caches(
+    data_extractor_service: DataExtractorService,
+    laps_df: DataFrame,
+    fastest_lap: Series,
+) -> None:
+    data_extractor_service._laps = laps_df
     result = data_extractor_service.fastest_lap
 
-    assert result == mock_fastest_lap
-    mock_laps.pick_fastest.assert_called_once()
-    assert data_extractor_service._fastest_lap == mock_fastest_lap
+    assert fastest_lap.equals(result)
+    assert fastest_lap.equals(data_extractor_service._fastest_lap)
 
 
 def test_lowest_z_coordinate(data_extractor_service: DataExtractorService) -> None:

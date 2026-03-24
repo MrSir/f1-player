@@ -103,18 +103,15 @@ def strategy() -> dict[int, dict[str, str | int]]:
 def driver(
     mock_f1p_app: MagicMock,
     mock_parent: MagicMock,
+    mock_data_extractor: MagicMock,
     driver_sr: Series,
-    pos_data: DataFrame,
-    strategy: dict[int, dict[str, str | int]],
 ) -> Driver:
-    return Driver.from_df(mock_f1p_app, mock_parent, driver_sr, pos_data, strategy)
+    return Driver.from_df(mock_f1p_app, mock_parent, mock_data_extractor, driver_sr)
 
 
 def test_initialization(
     mock_f1p_app: MagicMock,
-    pos_data: DataFrame,
-    ticks: dict,
-    strategy: dict[int, dict[str, str | int]],
+    mock_data_extractor: MagicMock,
     mocker: MockerFixture,
 ) -> None:
     number = "1"
@@ -135,8 +132,7 @@ def test_initialization(
         broadcast_name,
         abbreviation,
         team_name,
-        pos_data,
-        strategy,
+        mock_data_extractor,
     )
 
     assert isinstance(driver, DirectObject)
@@ -147,17 +143,20 @@ def test_initialization(
     assert broadcast_name == driver.broadcast_name
     assert abbreviation == driver.abbreviation
     assert team_name == driver.team_name
-    assert pos_data.equals(driver.pos_data)
-    assert strategy == driver.strategy
-    assert ticks == driver.ticks
-
+    assert mock_data_extractor == driver.data_extractor
     assert driver.node_path is None
+
+    assert driver._pos_data is None
+    assert driver._ticks is None
+    assert driver._strategy is None
+    assert driver._driver_window is None
+
     assert driver.in_pit is False
     assert driver.is_dnf is False
     assert driver.is_finished is False
     assert driver.has_fastest_lap is False
 
-    mock_accept.assert_called_once_with("updateDrivers", driver.update)
+    mock_accept.assert_called_once_with("updateDrivers", driver.queue_update)
 
 
 def test_driver_window_lazy_initialization(
@@ -173,14 +172,14 @@ def test_driver_window_lazy_initialization(
     assert mock_driver_window == result
     mock_driver_window_class.assert_called_once_with(
         800,
-        800,
+        900,
         driver.number,
         driver.first_name,
         driver.last_name,
         driver.team_color_obj,
         driver.team_name,
         driver.app,
-        driver.strategy,
+        driver.data_extractor,
     )
 
 
@@ -231,12 +230,10 @@ def test_create_node_path(mock_parent: MagicMock, mocker: MockerFixture) -> None
 def test_from_df(
     mock_parent: MagicMock,
     driver_sr: Series,
-    pos_data: DataFrame,
-    ticks: dict,
     mock_f1p_app: MagicMock,
-    strategy: dict[int, dict[str, str | int]],
+    mock_data_extractor: MagicMock,
 ) -> None:
-    driver = Driver.from_df(mock_f1p_app, mock_parent, driver_sr, pos_data, strategy)
+    driver = Driver.from_df(mock_f1p_app, mock_parent, mock_data_extractor, driver_sr)
 
     assert isinstance(driver, DirectObject)
     assert mock_f1p_app == driver.app
@@ -246,11 +243,14 @@ def test_from_df(
     assert driver_sr["BroadcastName"] == driver.broadcast_name
     assert driver_sr["Abbreviation"] == driver.abbreviation
     assert driver_sr["TeamName"] == driver.team_name
-    assert pos_data.equals(driver.pos_data)
-    assert strategy == driver.strategy
-    assert ticks == driver.ticks
-
+    assert mock_data_extractor == driver.data_extractor
     assert mock_parent.attachNewNode.return_value == driver.node_path
+
+    assert driver._pos_data is None
+    assert driver._ticks is None
+    assert driver._strategy is None
+    assert driver._driver_window is None
+
     assert driver.in_pit is False
     assert driver.is_dnf is False
     assert driver.is_finished is False
@@ -277,6 +277,7 @@ def test_update(
     is_finished: bool,
     has_fastest_lap: bool,
     driver: Driver,
+    ticks: dict,
     mocker: MockerFixture,
 ) -> None:
     mock_pos = mocker.MagicMock()
@@ -286,6 +287,7 @@ def test_update(
     node_path = mocker.MagicMock(spec=NodePath)
     node_path.getPos.return_value = mock_pos
     driver.node_path = node_path
+    driver._ticks = ticks
 
     driver.update(session_time_tick)
 
@@ -304,7 +306,7 @@ def test_update(
         node_path.setPos.assert_called_once_with(parsed_x, parsed_y, parsed_z)
 
 
-def test_update_with_open_window(driver: Driver, mocker: MockerFixture) -> None:
+def test_update_with_open_window(driver: Driver, ticks: dict, mocker: MockerFixture) -> None:
     mock_pos = mocker.MagicMock()
     mock_pos.x = 1
     mock_pos.y = 1
@@ -312,6 +314,7 @@ def test_update_with_open_window(driver: Driver, mocker: MockerFixture) -> None:
     node_path = mocker.MagicMock(spec=NodePath)
     node_path.getPos.return_value = mock_pos
     driver.node_path = node_path
+    driver._ticks = ticks
 
     mock_driver_window = mocker.MagicMock(spec=DriverWindow)
     mock_driver_window.is_open = True

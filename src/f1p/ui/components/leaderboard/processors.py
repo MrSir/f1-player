@@ -168,10 +168,10 @@ class IntervalLeaderboardProcessor(LeaderboardProcessor):
             return
 
         tire_compound: str = current_record["Compound"]
-        tire_compound__color = current_record["CompoundColor"]
+        tire_compound_color = current_record["CompoundColor"]
         current_tire_compound_color = self.driver_tires[index].textNode.getTextColor()
-        if current_tire_compound_color != tire_compound__color:
-            self.driver_tires[index]["fg"] = tire_compound__color
+        if current_tire_compound_color != tire_compound_color:
+            self.driver_tires[index]["fg"] = tire_compound_color
 
         if self.driver_tires[index]["text"] != tire_compound:
             self.driver_tires[index]["text"] = tire_compound
