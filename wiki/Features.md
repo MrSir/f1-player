@@ -64,7 +64,14 @@ The Leaderboard functions very much like the infographic in the televised F1 Rac
 
 At the top one sees the Current Lap number and total number of Laps.
 
-Below that we see the current track status, which changes in color and text. The same color border around the top left corner of the leaderboard also changes in the same color.
+Below that we see the current track status, which changes in color and text. The same color border around the top left corner of the leaderboard also changes in the same color. Track Statuses:
+- $\color{#00ff00}{Green Flag}$
+- $\color{#ffff00}{Yellow Flag}$
+- $\color{#ffff00}{Safety Car}$
+- $\color{#ff0000}{Red Flag}$
+- $\color{#ffae00}{VSC Deployed}$
+- $\color{#ffae00}{VSC Ending}$
+
 
 Below that we see the actual standings complete with:
 - Finished Status (shows as a checkered flag on the left of the leaderboard next to the specific driver)
