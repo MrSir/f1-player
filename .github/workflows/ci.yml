@@ -12,6 +12,10 @@ permissions:
   contents: read        # For checkout and comparing commits
   pull-requests: write  # For creating/updating PR comments
 
+concurrency:
+  group: ci
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
