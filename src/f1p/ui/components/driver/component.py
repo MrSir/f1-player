@@ -39,13 +39,13 @@ class Driver(DirectObject):
         self._pos_data: DataFrame | None = None
         self._ticks: dict[Hashable, dict[Hashable, Any]] | None = None
         self._strategy: dict[int, dict[str, str | int]] | None = None
+        self._driver_window: DriverWindow | None = None
 
         self.in_pit: bool = False
         self.is_dnf: bool = False
         self.is_finished: bool = False
         self.has_fastest_lap: bool = False
 
-        self._driver_window: DriverWindow | None = None
 
         self.accept("updateDrivers", self.queue_update)
 

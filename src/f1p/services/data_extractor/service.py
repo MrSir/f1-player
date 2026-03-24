@@ -174,11 +174,10 @@ class DataExtractorService(DirectObject):
         if self._fastest_lap is None:
             df = self.laps.copy()
 
-            self._fastest_lap = (
-                df[df["LapTimeMilliseconds"].notna() & df["LapTimeMilliseconds"] > 0]
-                .sort_values("LapTimeMilliseconds", ascending=True)
-                .iloc[0]
-            )
+            eligible_laps = df[df["LapTimeMilliseconds"].notna() & (df["LapTimeMilliseconds"] > 0)]
+            eligible_laps.sort_values("LapTimeMilliseconds", ascending=True)
+
+            self._fastest_lap = eligible_laps.iloc[0]
 
         return self._fastest_lap
 
