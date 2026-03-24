@@ -1,13 +1,12 @@
-name: Publish WIKI
+name: WIKI
 
 on:
   push:
     branches:
       - main
-      - wiki_tests
     paths:
       - wiki/**
-      - .github/workflows/publish-wiki.yml
+      - .github/workflows/wiki.yml
 
 concurrency:
   group: publish-wiki
@@ -17,7 +16,7 @@ permissions:
   contents: write
 
 jobs:
-  publish-wiki:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
