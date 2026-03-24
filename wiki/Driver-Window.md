@@ -1,4 +1,4 @@
-![Year Selector](../img/driver_window.png)
+![Year Selector](./img/driver_window.png)
 
 The Driver Window is packed with extra information on the specific driver.
 
