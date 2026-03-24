@@ -1,3 +1,5 @@
+![Year Selector](./img/main_window.png)
+
 ## Session Selection
 
 The user interface begins with the selection for the session. This is done by choosing from the cascading dropdowns.
@@ -15,7 +17,7 @@ This is a list of short names for the Grand Prix of the selected year.
 ![Year Selector](./img/menu_session.png)
 > Note: Currently only `Sprint` and `Race` sessions are supported
 
-After selecting the session a Loading Screen will be shown.
+After selecting the session a Loading Screen will be shown. Once loading is complete the main user interface will be displayed:
 
 ## Weather
 ![Year Selector](./img/weather.png)
