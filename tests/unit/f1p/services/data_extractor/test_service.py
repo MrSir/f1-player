@@ -8,7 +8,7 @@ from fastf1.core import Lap, Laps, Session, Telemetry
 from fastf1.events import Event, EventSchedule
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f
-from pandas import DataFrame, Timedelta, Series
+from pandas import DataFrame, Series, Timedelta
 from pandas._testing import assert_frame_equal
 from pytest_mock import MockerFixture
 

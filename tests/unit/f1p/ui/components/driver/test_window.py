@@ -46,7 +46,7 @@ def driver_window(
         800,
         900,
         "1",
-        f"Joe",
+        "Joe",
         "Shmoe",
         team_color,
         "Team 1",
@@ -919,7 +919,7 @@ def test_update_gear_indicator_does_not_update_when_color_same(
     ("drs", "expected_color"),
     [
         (0, Colors.GRAY),
-        (1,  Colors.LIGHT_RED),
+        (1, Colors.LIGHT_RED),
         (14, Colors.GREEN),
     ],
 )

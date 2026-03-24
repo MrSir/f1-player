@@ -46,7 +46,6 @@ class Driver(DirectObject):
         self.is_finished: bool = False
         self.has_fastest_lap: bool = False
 
-
         self.accept("updateDrivers", self.queue_update)
 
     @property

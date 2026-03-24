@@ -230,8 +230,6 @@ def test_create_node_path(mock_parent: MagicMock, mocker: MockerFixture) -> None
 def test_from_df(
     mock_parent: MagicMock,
     driver_sr: Series,
-    pos_data: DataFrame,
-    ticks: dict,
     mock_f1p_app: MagicMock,
     mock_data_extractor: MagicMock,
 ) -> None:

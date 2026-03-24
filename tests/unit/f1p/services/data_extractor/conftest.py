@@ -7,7 +7,7 @@ from direct.task.Task import TaskManager
 from fastf1.core import Telemetry
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f, NodePath, StaticTextFont
-from pandas import DataFrame, Timedelta, Series
+from pandas import DataFrame, Series, Timedelta
 from pytest_mock import MockerFixture
 
 from f1p.services.data_extractor.service import DataExtractorService
@@ -280,7 +280,7 @@ def laps_df() -> DataFrame:
                 92400,
                 92450,
             ],
-        }
+        },
     )
 
 
