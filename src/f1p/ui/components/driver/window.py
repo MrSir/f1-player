@@ -24,7 +24,7 @@ from pandas import DataFrame, Series
 
 from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.enums import Colors
-from f1p.utils.timedelta import td_to_min_n_sec, td_series_to_min_n_sec
+from f1p.utils.timedelta import td_series_to_min_n_sec, td_to_min_n_sec
 
 
 class DriverWindow(DirectObject):
@@ -121,9 +121,7 @@ class DriverWindow(DirectObject):
     @property
     def strategy(self) -> dict[int, dict[str, str | int]]:
         if self._strategy is None:
-            self._strategy = self.data_extractor.extract_tire_strategy(
-                self.driver_number
-            )
+            self._strategy = self.data_extractor.extract_tire_strategy(self.driver_number)
 
         return self._strategy
 
@@ -145,9 +143,7 @@ class DriverWindow(DirectObject):
             df = self.driver_laps.copy()
 
             df = df.loc[
-                df["PitInTimeMilliseconds"].isna()
-                & df["PitOutTimeMilliseconds"].isna()
-                & (df["TrackStatus"] == "1"),
+                df["PitInTimeMilliseconds"].isna() & df["PitOutTimeMilliseconds"].isna() & (df["TrackStatus"] == "1"),
                 [
                     "Sector1TimeMilliseconds",
                     "Sector2TimeMilliseconds",
@@ -185,18 +181,10 @@ class DriverWindow(DirectObject):
                 ],
             )
 
-            sr["Sector1TimeFormatted"] = td_series_to_min_n_sec(
-                Series([sr["Sector1Time"]])
-            ).iloc[0]
-            sr["Sector2TimeFormatted"] = td_series_to_min_n_sec(
-                Series([sr["Sector2Time"]])
-            ).iloc[0]
-            sr["Sector3TimeFormatted"] = td_series_to_min_n_sec(
-                Series([sr["Sector3Time"]])
-            ).iloc[0]
-            sr["LapTimeFormatted"] = td_series_to_min_n_sec(
-                Series([sr["LapTime"]])
-            ).iloc[0]
+            sr["Sector1TimeFormatted"] = td_series_to_min_n_sec(Series([sr["Sector1Time"]])).iloc[0]
+            sr["Sector2TimeFormatted"] = td_series_to_min_n_sec(Series([sr["Sector2Time"]])).iloc[0]
+            sr["Sector3TimeFormatted"] = td_series_to_min_n_sec(Series([sr["Sector3Time"]])).iloc[0]
+            sr["LapTimeFormatted"] = td_series_to_min_n_sec(Series([sr["LapTime"]])).iloc[0]
             sr["LapTimeRatio"] = sr["LapTime"] / self.data_extractor.fastest_lap["LapTimeMilliseconds"] * 100
 
             self._lap_averages = sr
@@ -260,18 +248,14 @@ class DriverWindow(DirectObject):
             self._window_properties = WindowProperties()
             self._window_properties.setSize(self.width, self.height)
             self._window_properties.setFixedSize(True)
-            self._window_properties.setTitle(
-                f"Driver {self.driver_number} - {self.first_name} {self.last_name}"
-            )
+            self._window_properties.setTitle(f"Driver {self.driver_number} - {self.first_name} {self.last_name}")
 
         return self._window_properties
 
     @property
     def window(self) -> GraphicsWindow:
         if self._window is None:
-            self._window = self.app.openWindow(
-                props=self.window_properties, makeCamera=False
-            )
+            self._window = self.app.openWindow(props=self.window_properties, makeCamera=False)
             self._window.setCloseRequestEvent(f"closeDriver{self.driver_number}")
             self._window.setClearColor(VBase4(0.3, 0.3, 0.3, 1))
 
@@ -292,9 +276,7 @@ class DriverWindow(DirectObject):
     @property
     def pixel2d(self) -> NodePath:
         if self._pixel2d is None:
-            self._pixel2d = self.render2d.attachNewNode(
-                PGTop(f"pixel2d{self.driver_number}")
-            )
+            self._pixel2d = self.render2d.attachNewNode(PGTop(f"pixel2d{self.driver_number}"))
             self._pixel2d.setPos(-1, 0, 1)
             width, height = self.window.getSize()
             self._pixel2d.setScale(2.0 / width, 1.0, 2.0 / height)
@@ -347,9 +329,7 @@ class DriverWindow(DirectObject):
             parent=self.pixel2d,
             frameColor=Colors.DARKER_GRAY,
             frameSize=(0, 260, 0, self.driver_frame_height),
-            pos=Point3(
-                530, 0, -(self.height - (self.height - self.driver_frame_height - 10))
-            ),
+            pos=Point3(530, 0, -(self.height - (self.height - self.driver_frame_height - 10))),
             sortOrder=0,
         )
 
@@ -402,15 +382,7 @@ class DriverWindow(DirectObject):
 
     def make_telemetry_widget(self) -> None:
         width = 260
-        frame_z = -(
-            self.height
-            - (
-                self.height
-                - self.telemetry_frame_height
-                - self.driver_frame_height
-                - 20
-            )
-        )
+        frame_z = -(self.height - (self.height - self.telemetry_frame_height - self.driver_frame_height - 20))
         frame = DirectFrame(
             parent=self.pixel2d,
             frameColor=Colors.DARKER_GRAY,
@@ -698,9 +670,7 @@ class DriverWindow(DirectObject):
             parent=frame,
             frameColor=Colors.GRAY,
             frameSize=(-10, 10, 0, 100),
-            pos=Point3(
-                width - 60, 0, self.telemetry_frame_height - title_frame_height - 170
-            ),
+            pos=Point3(width - 60, 0, self.telemetry_frame_height - title_frame_height - 170),
         )
         self.throttle = DirectFrame(
             parent=throttle_frame,
@@ -723,13 +693,7 @@ class DriverWindow(DirectObject):
         width = 260
         frame_z = -(
             self.height
-            - (
-                self.height
-                - self.tire_strategy_height
-                - self.driver_frame_height
-                - self.telemetry_frame_height
-                - 30
-            )
+            - (self.height - self.tire_strategy_height - self.driver_frame_height - self.telemetry_frame_height - 30)
         )
         frame = DirectFrame(
             parent=self.pixel2d,
@@ -1023,12 +987,8 @@ class DriverWindow(DirectObject):
             pos=(width / 2, title_frame_height - 21, 0),
         )
         sector_frame_width = (width - 40) / 3
-        self.make_previous_lap(
-            frame, height, title_frame_height, width, sector_frame_width
-        )
-        self.make_current_lap(
-            frame, height, title_frame_height, width, sector_frame_width
-        )
+        self.make_previous_lap(frame, height, title_frame_height, width, sector_frame_width)
+        self.make_current_lap(frame, height, title_frame_height, width, sector_frame_width)
 
     def draw_chart_line(
         self,
@@ -1049,13 +1009,7 @@ class DriverWindow(DirectObject):
         for lap in times.itertuples():
             i = int(lap.LapNumber)
             x = 80 + (offset_x * i) - (shift_x * offset_x)
-            y = (
-                height
-                - title_frame_height
-                - chart_height
-                - top_gap
-                + (offset_y * (lap.Time.total_seconds() - 15))
-            )
+            y = height - title_frame_height - chart_height - top_gap + (offset_y * (lap.Time.total_seconds() - 15))
 
             points.append(Point3(x, 0, y))
 
@@ -1099,11 +1053,7 @@ class DriverWindow(DirectObject):
                 pos=Point3(
                     75,
                     0,
-                    height
-                    - title_frame_height
-                    - chart_height
-                    - top_gap
-                    + (y_axis_offset * (i - 15)),
+                    height - title_frame_height - chart_height - top_gap + (y_axis_offset * (i - 15)),
                 ),
             )
 
@@ -1119,12 +1069,7 @@ class DriverWindow(DirectObject):
                 fg=Colors.WHITE,
                 pos=(
                     10,
-                    height
-                    - title_frame_height
-                    - chart_height
-                    - top_gap
-                    + (y_axis_offset * (i - 15))
-                    - 3,
+                    height - title_frame_height - chart_height - top_gap + (y_axis_offset * (i - 15)) - 3,
                     0,
                 ),
             )
@@ -1168,9 +1113,7 @@ class DriverWindow(DirectObject):
         # TODO Need to normalize the times to not exceed the graph
         # Draw Lap Times Line
         lap_times = (
-            self.driver_laps[["LapNumber", "LapTime"]]
-            .sort_values("LapNumber")
-            .rename(columns={"LapTime": "Time"})
+            self.driver_laps[["LapNumber", "LapTime"]].sort_values("LapNumber").rename(columns={"LapTime": "Time"})
         )
         self.draw_chart_line(
             frame,
@@ -1199,9 +1142,7 @@ class DriverWindow(DirectObject):
         )
         # Draw S2 Times Line
         s2_times = (
-            self.driver_laps[["LapNumber", "S2LapTime"]]
-            .sort_values("LapNumber")
-            .rename(columns={"S2LapTime": "Time"})
+            self.driver_laps[["LapNumber", "S2LapTime"]].sort_values("LapNumber").rename(columns={"S2LapTime": "Time"})
         )
         self.draw_chart_line(
             frame,
@@ -1557,7 +1498,7 @@ class DriverWindow(DirectObject):
 
         lap = self.previous_lap
 
-        lap_number_formatted = f"{int(lap["LapNumber"])}/{self.total_laps}"
+        lap_number_formatted = f"{int(lap['LapNumber'])}/{self.total_laps}"
         if self.previous_lap_number["text"] != lap_number_formatted:
             self.previous_lap_number["text"] = lap_number_formatted
 

@@ -24,9 +24,7 @@ class F1PlayerApp(ShowBase):
     ):
         super().__init__(self)
 
-        self.symbols_font = self.loader.loadFont(
-            "./src/f1p/ui/fonts/NotoSansSymbols2-Regular.ttf"
-        )
+        self.symbols_font = self.loader.loadFont("./src/f1p/ui/fonts/NotoSansSymbols2-Regular.ttf")
         self.text_font = self.loader.loadFont("./src/f1p/ui/fonts/f1_font.ttf")
 
         self.width = width

@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Hashable, Any
+from typing import Any, Hashable
 
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.ShowBase import ShowBase
@@ -8,7 +8,6 @@ from pandas import DataFrame, Series
 
 from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.components.driver.window import DriverWindow
-from f1p.utils.performance import timeit
 from procedural3d import SphereMaker
 
 
@@ -62,9 +61,7 @@ class Driver(DirectObject):
     @property
     def ticks(self) -> dict[Hashable, dict[Hashable, Any]]:
         if self._ticks is None:
-            self._ticks = self.pos_data.set_index("SessionTimeTick").to_dict(
-                orient="index"
-            )
+            self._ticks = self.pos_data.set_index("SessionTimeTick").to_dict(orient="index")
 
         return self._ticks
 
@@ -90,9 +87,7 @@ class Driver(DirectObject):
         return self.node_path.getColor()
 
     @staticmethod
-    def create_node_path(
-        parent: NodePath, team_color: tuple[float, float, float, float]
-    ) -> NodePath:
+    def create_node_path(parent: NodePath, team_color: tuple[float, float, float, float]) -> NodePath:
         sphere_maker = SphereMaker(
             radius=0.10,
         )
@@ -160,6 +155,4 @@ class Driver(DirectObject):
         self.driver_window.open()
 
         driver_pos = self.node_path.getPos()
-        self.driver_window.update_camera_position(
-            driver_pos.x, driver_pos.y, driver_pos.z
-        )
+        self.driver_window.update_camera_position(driver_pos.x, driver_pos.y, driver_pos.z)
