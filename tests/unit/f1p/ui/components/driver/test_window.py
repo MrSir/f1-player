@@ -20,6 +20,7 @@ from panda3d.core import (
 from pytest_mock import MockerFixture
 
 from f1p.ui.components.driver.window import DriverWindow
+from f1p.ui.enums import Colors
 
 
 @pytest.fixture
@@ -39,25 +40,25 @@ def strategy() -> dict[int, dict[str, str | int]]:
 def driver_window(
     mock_f1p_app: MagicMock,
     team_color: LVecBase4f,
-    strategy: dict[int, dict[str, str | int]],
+    mock_data_extractor: MagicMock,
 ) -> DriverWindow:
     return DriverWindow(
-        width=800,
-        height=600,
-        driver_number="1",
-        first_name="Joe",
-        last_name="Shmoe",
-        team_color_obj=team_color,
-        team_name="Team 1",
-        app=mock_f1p_app,
-        strategy=strategy,
+        800,
+        900,
+        "1",
+        f"Joe",
+        "Shmoe",
+        team_color,
+        "Team 1",
+        mock_f1p_app,
+        mock_data_extractor,
     )
 
 
 def test_init(
     mock_f1p_app: MagicMock,
     team_color: LVecBase4f,
-    strategy: dict[int, dict[str, str | int]],
+    mock_data_extractor: MagicMock,
     mocker: MockerFixture,
 ) -> None:
     width = 800
@@ -71,30 +72,41 @@ def test_init(
     mocker.patch("f1p.ui.components.driver.window.DriverWindow.accept", mock_accept)
 
     driver_window = DriverWindow(
-        width=width,
-        height=height,
-        driver_number=driver_number,
-        first_name=first_name,
-        last_name=last_name,
-        team_color_obj=team_color,
-        team_name=team_name,
-        app=mock_f1p_app,
-        strategy=strategy,
+        width,
+        height,
+        driver_number,
+        first_name,
+        last_name,
+        team_color,
+        team_name,
+        mock_f1p_app,
+        mock_data_extractor,
     )
 
     assert driver_window.width == width
     assert driver_window.height == height
-    assert driver_window.driver_frame_height == 380
+    assert driver_window.driver_frame_height == 345
     assert driver_window.telemetry_frame_height == 225
+    assert driver_window.tire_strategy_height == 90
+    assert driver_window.laps_widget_width == 510
+
     assert driver_window.driver_number == driver_number
     assert driver_window.first_name == first_name
     assert driver_window.last_name == last_name
     assert driver_window.team_color_obj == team_color
     assert driver_window.team_name == team_name
     assert driver_window.app is mock_f1p_app
-    assert driver_window.strategy == strategy
+    assert driver_window.data_extractor == mock_data_extractor
+
+    assert mock_data_extractor.total_laps == driver_window.total_laps
     assert driver_window.is_open is False
 
+    assert driver_window._strategy is None
+    assert driver_window._driver_laps is None
+    assert driver_window._lap_averages is None
+    assert driver_window._slowest_non_pit_lap is None
+    assert driver_window._slowest_driver_lap is None
+    assert driver_window._fastest_driver_lap is None
     assert driver_window._window_properties is None
     assert driver_window._window is None
 
@@ -122,13 +134,28 @@ def test_init(
     assert driver_window.drs is None
     assert driver_window.brake is None
     assert driver_window.throttle is None
+    assert driver_window.lap_time_line is None
 
-    assert driver_window.blue_color == (103 / 255, 190 / 255, 217 / 255, 1)
-    assert driver_window.green_color == (102 / 255, 217 / 255, 126 / 255, 1)
-    assert driver_window.red_color == (217 / 255, 110 / 255, 102 / 255, 1)
-    assert driver_window.white_color == (1, 1, 1, 1)
-    assert driver_window.gray_color == (0.7, 0.7, 0.7, 1)
-    assert driver_window.dark_gray_color == (0.5, 0.5, 0.5, 1)
+    assert driver_window.previous_lap_number is None
+    assert driver_window.previous_s1_frame is None
+    assert driver_window.previous_s1_time is None
+    assert driver_window.previous_s2_frame is None
+    assert driver_window.previous_s2_time is None
+    assert driver_window.previous_s3_frame is None
+    assert driver_window.previous_s3_time is None
+    assert driver_window.previous_lap_time is None
+    assert driver_window.previous_lap_time_percent is None
+
+    assert driver_window.lap_number == 0
+    assert driver_window.previous_lap is None
+    assert driver_window.current_lap_number is None
+    assert driver_window.current_s1_frame is None
+    assert driver_window.current_s1_time is None
+    assert driver_window.current_s2_frame is None
+    assert driver_window.current_s2_time is None
+    assert driver_window.current_s3_frame is None
+    assert driver_window.current_s3_time is None
+    assert driver_window.current_lap_time is None
 
     assert isinstance(driver_window, DirectObject)
     mock_accept.assert_called_once_with(f"closeDriver{driver_number}", driver_window.close)
@@ -144,7 +171,7 @@ def test_window_properties_creates_properties_on_first_access(
 
     width, height = props.getSize()
     assert width == 800
-    assert height == 600
+    assert height == 900
 
     assert props.getFixedSize() is True
     assert "Driver 1 - Joe Shmoe" in props.getTitle()
@@ -346,7 +373,17 @@ def test_make_camera_region(
 
     driver_window.make_camera_region()
 
-    mock_window.makeDisplayRegion.assert_called_once_with(0.675, 0.975, 0.525, 0.825)
+    width = 240
+    padding_x = 10
+    height = 240
+    padding_y = 105
+
+    mock_window.makeDisplayRegion.assert_called_once_with(
+        (driver_window.width - width - (padding_x * 2)) / driver_window.width,
+        (driver_window.width - (padding_x * 2)) / driver_window.width,
+        (driver_window.height - padding_y - height) / driver_window.height,
+        (driver_window.height - padding_y) / driver_window.height,
+    )
     mock_display_region.setSort.assert_called_once_with(10)
     mock_display_region.setClearColorActive.assert_called_once_with(True)
     mock_display_region.setClearColor.assert_called_once_with(Vec4(0.3, 0.3, 0.3, 1))
@@ -373,14 +410,11 @@ def test_make_driver_widget(
 
     driver_window.make_driver_widget()
 
-    assert driver_window.position is not None
-    assert driver_window.laps is not None
-
     title_frame_height = 30
     mock_direct_frame_class.assert_has_calls([
         mocker.call(
             parent=mock_pixel2d,
-            frameColor=(0.2, 0.2, 0.2, 0.7),
+            frameColor=Colors.DARKER_GRAY,
             frameSize=(0, 260, 0, driver_window.driver_frame_height),
             pos=Point3(
                 530,
@@ -391,7 +425,7 @@ def test_make_driver_widget(
         ),
         mocker.call(
             parent=mock_direct_frame,
-            frameColor=(0.15, 0.15, 0.15, 0.7),
+            frameColor=Colors.BLACK,
             frameSize=(0, 260, 0, title_frame_height),
             pos=Point3(0, 0, driver_window.driver_frame_height - title_frame_height),
             sortOrder=10,
@@ -411,7 +445,7 @@ def test_make_driver_widget(
             align=TextNode.ACenter,
             scale=16,
             font=driver_window.app.text_font,
-            fg=(1, 1, 1, 1),
+            fg=Colors.WHITE,
             pos=(260 / 2, title_frame_height - 20, 0),
         ),
         mocker.call(
@@ -420,7 +454,7 @@ def test_make_driver_widget(
             align=TextNode.ALeft,
             scale=16,
             font=driver_window.app.text_font,
-            fg=(1, 1, 1, 1),
+            fg=Colors.WHITE,
             pos=(10, driver_window.driver_frame_height - title_frame_height - 25, 0),
         ),
         mocker.call(
@@ -429,44 +463,8 @@ def test_make_driver_widget(
             align=TextNode.ALeft,
             scale=16,
             font=driver_window.app.text_font,
-            fg=(1, 1, 1, 1),
+            fg=Colors.WHITE,
             pos=(33, driver_window.driver_frame_height - title_frame_height - 50, 0),
-        ),
-        mocker.call(
-            parent=mock_direct_frame,
-            text="POSITION",
-            align=TextNode.ALeft,
-            scale=13,
-            font=driver_window.app.text_font,
-            fg=(0.8, 1, 0, 0.7),
-            pos=(10, driver_window.driver_frame_height - title_frame_height - 70, 0),
-        ),
-        mocker.call(
-            parent=mock_direct_frame,
-            text="TBD",
-            align=TextNode.ALeft,
-            scale=16,
-            font=driver_window.app.text_font,
-            fg=(1, 1, 1, 0.8),
-            pos=(10, driver_window.driver_frame_height - title_frame_height - 90, 0),
-        ),
-        mocker.call(
-            parent=mock_direct_frame,
-            text="LAPS",
-            align=TextNode.ALeft,
-            scale=13,
-            font=driver_window.app.text_font,
-            fg=(0.8, 1, 0, 0.7),
-            pos=(100, driver_window.driver_frame_height - title_frame_height - 70, 0),
-        ),
-        mocker.call(
-            parent=mock_direct_frame,
-            text="TBD",
-            align=TextNode.ACenter,
-            scale=16,
-            font=driver_window.app.text_font,
-            fg=(1, 1, 1, 0.8),
-            pos=(120, driver_window.driver_frame_height - title_frame_height - 90, 0),
         ),
     ])
 
@@ -503,51 +501,51 @@ def test_make_telemetry_widget(
     mock_direct_frame_class.assert_has_calls([
         mocker.call(
             parent=mock_pixel2d,
-            frameColor=(0.2, 0.2, 0.2, 0.7),
+            frameColor=Colors.DARKER_GRAY,
             frameSize=(0, width, 0, driver_window.telemetry_frame_height),
             pos=Point3(530, 0, frame_z),
             sortOrder=0,
         ),
         mocker.call(
             parent=mock_direct_frame,
-            frameColor=(0.15, 0.15, 0.15, 0.7),
+            frameColor=Colors.BLACK,
             frameSize=(0, width, 0, title_frame_height),
             pos=Point3(0, 0, driver_window.telemetry_frame_height - title_frame_height),
             sortOrder=10,
         ),
         mocker.call(
             parent=mock_direct_frame,
-            frameColor=driver_window.gray_color,
+            frameColor=Colors.GRAY,
             frameSize=(0, 240, 0, 10),
             pos=Point3(10, 0, driver_window.telemetry_frame_height - title_frame_height - 60),
         ),
         mocker.call(
             parent=mock_direct_frame,
-            frameColor=driver_window.blue_color,
+            frameColor=Colors.LIGHT_BLUE,
             frameSize=(0, 0, 0, 10),
             pos=Point3(0, 0, 0),
         ),
         mocker.call(
             parent=mock_direct_frame,
-            frameColor=driver_window.gray_color,
+            frameColor=Colors.GRAY,
             frameSize=(-10, 10, 0, 100),
             pos=Point3(60, 0, driver_window.telemetry_frame_height - title_frame_height - 170),
         ),
         mocker.call(
             parent=mock_direct_frame,
-            frameColor=driver_window.red_color,
+            frameColor=Colors.LIGHT_RED,
             frameSize=(-10, 10, 0, 0),
             pos=Point3(0, 0, 0),
         ),
         mocker.call(
             parent=mock_direct_frame,
-            frameColor=driver_window.gray_color,
+            frameColor=Colors.GRAY,
             frameSize=(-10, 10, 0, 100),
             pos=Point3(width - 60, 0, driver_window.telemetry_frame_height - title_frame_height - 170),
         ),
         mocker.call(
             parent=mock_direct_frame,
-            frameColor=driver_window.green_color,
+            frameColor=Colors.GREEN,
             frameSize=(-10, 10, 0, 0),
             pos=Point3(0, 0, 0),
         ),
@@ -560,7 +558,7 @@ def test_make_telemetry_widget(
             align=TextNode.ACenter,
             scale=16,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.WHITE,
             pos=(width / 2, title_frame_height - 21, 0),
         ),
         mocker.call(
@@ -569,7 +567,7 @@ def test_make_telemetry_widget(
             align=TextNode.ACenter,
             scale=13,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.HIGHLIGHTER_YELLOW,
             pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 20, 0),
         ),
         mocker.call(
@@ -578,7 +576,7 @@ def test_make_telemetry_widget(
             align=TextNode.ALeft,
             scale=16,
             font=driver_window.app.text_font,
-            fg=driver_window.green_color,
+            fg=Colors.GREEN,
             pos=(initial_space, driver_window.telemetry_frame_height - title_frame_height - 40, 0),
         ),
         mocker.call(
@@ -587,7 +585,7 @@ def test_make_telemetry_widget(
             align=TextNode.ALeft,
             scale=16,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.WHITE,
             pos=(initial_space + (gear_spacer * 1), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
         ),
         mocker.call(
@@ -596,7 +594,7 @@ def test_make_telemetry_widget(
             align=TextNode.ALeft,
             scale=16,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.WHITE,
             pos=(initial_space + (gear_spacer * 2), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
         ),
         mocker.call(
@@ -605,7 +603,7 @@ def test_make_telemetry_widget(
             align=TextNode.ALeft,
             scale=16,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.WHITE,
             pos=(initial_space + (gear_spacer * 3), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
         ),
         mocker.call(
@@ -614,7 +612,7 @@ def test_make_telemetry_widget(
             align=TextNode.ALeft,
             scale=16,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.WHITE,
             pos=(initial_space + (gear_spacer * 4), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
         ),
         mocker.call(
@@ -623,7 +621,7 @@ def test_make_telemetry_widget(
             align=TextNode.ALeft,
             scale=16,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.WHITE,
             pos=(initial_space + (gear_spacer * 5), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
         ),
         mocker.call(
@@ -632,7 +630,7 @@ def test_make_telemetry_widget(
             align=TextNode.ALeft,
             scale=16,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.WHITE,
             pos=(initial_space + (gear_spacer * 6), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
         ),
         mocker.call(
@@ -641,7 +639,7 @@ def test_make_telemetry_widget(
             align=TextNode.ALeft,
             scale=16,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.WHITE,
             pos=(initial_space + (gear_spacer * 7), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
         ),
         mocker.call(
@@ -650,7 +648,7 @@ def test_make_telemetry_widget(
             align=TextNode.ALeft,
             scale=16,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.WHITE,
             pos=(initial_space + (gear_spacer * 8), driver_window.telemetry_frame_height - title_frame_height - 40, 0),
         ),
         mocker.call(
@@ -659,7 +657,7 @@ def test_make_telemetry_widget(
             align=TextNode.ALeft,
             scale=11,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.HIGHLIGHTER_YELLOW,
             pos=(10, driver_window.telemetry_frame_height - title_frame_height - 70, 0),
         ),
         mocker.call(
@@ -668,7 +666,7 @@ def test_make_telemetry_widget(
             align=TextNode.ARight,
             scale=11,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.HIGHLIGHTER_YELLOW,
             pos=(width - 10, driver_window.telemetry_frame_height - title_frame_height - 70, 0),
         ),
         mocker.call(
@@ -677,7 +675,7 @@ def test_make_telemetry_widget(
             align=TextNode.ACenter,
             scale=11,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.HIGHLIGHTER_YELLOW,
             pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 70, 0),
         ),
         mocker.call(
@@ -686,7 +684,7 @@ def test_make_telemetry_widget(
             align=TextNode.ACenter,
             scale=13,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.HIGHLIGHTER_YELLOW,
             pos=(60, driver_window.telemetry_frame_height - title_frame_height - 185, 0),
         ),
         mocker.call(
@@ -695,7 +693,7 @@ def test_make_telemetry_widget(
             align=TextNode.ACenter,
             scale=15,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.WHITE,
             pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 90, 0),
         ),
         mocker.call(
@@ -704,7 +702,7 @@ def test_make_telemetry_widget(
             align=TextNode.ACenter,
             scale=18,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.WHITE,
             pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 110, 0),
         ),
         mocker.call(
@@ -713,7 +711,7 @@ def test_make_telemetry_widget(
             align=TextNode.ACenter,
             scale=14,
             font=driver_window.app.text_font,
-            fg=driver_window.blue_color,
+            fg=Colors.GRAY,
             pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 132, 0),
         ),
         mocker.call(
@@ -722,7 +720,7 @@ def test_make_telemetry_widget(
             align=TextNode.ACenter,
             scale=16,
             font=driver_window.app.text_font,
-            fg=driver_window.dark_gray_color,
+            fg=Colors.DARK_GRAY,
             pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 155, 0),
         ),
         mocker.call(
@@ -731,7 +729,7 @@ def test_make_telemetry_widget(
             align=TextNode.ACenter,
             scale=13,
             font=driver_window.app.text_font,
-            fg=driver_window.dark_gray_color,
+            fg=Colors.DARK_GRAY,
             pos=(width / 2, driver_window.telemetry_frame_height - title_frame_height - 170, 0),
         ),
         mocker.call(
@@ -740,7 +738,7 @@ def test_make_telemetry_widget(
             align=TextNode.ACenter,
             scale=13,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.HIGHLIGHTER_YELLOW,
             pos=(width - 60, driver_window.telemetry_frame_height - title_frame_height - 185, 0),
         ),
     ])
@@ -749,6 +747,7 @@ def test_make_telemetry_widget(
 def test_make_tire_strategy_widget(
     driver_window: DriverWindow,
     mock_f1p_app: MagicMock,
+    strategy: dict,
     mocker: MockerFixture,
 ) -> None:
     mock_f1p_app.text_font = mocker.MagicMock()
@@ -764,16 +763,17 @@ def test_make_tire_strategy_widget(
     mock_onscreen_text_class = mocker.MagicMock(return_value=mock_onscreen_text)
     mocker.patch("f1p.ui.components.driver.window.OnscreenText", mock_onscreen_text_class)
 
+    driver_window._strategy = strategy
+
     driver_window.make_tire_strategy_widget()
 
-    height = 90
     width = 260
     title_frame_height = 30
     frame_z = -(
         driver_window.height
         - (
             driver_window.height
-            - height
+            - driver_window.tire_strategy_height
             - driver_window.driver_frame_height
             - driver_window.telemetry_frame_height
             - 30
@@ -787,16 +787,16 @@ def test_make_tire_strategy_widget(
     expected_direct_frame_calls = [
         mocker.call(
             parent=mock_pixel2d,
-            frameColor=(0.2, 0.2, 0.2, 0.7),
-            frameSize=(0, width, 0, height),
+            frameColor=Colors.DARKER_GRAY,
+            frameSize=(0, width, 0, driver_window.tire_strategy_height),
             pos=Point3(530, 0, frame_z),
             sortOrder=0,
         ),
         mocker.call(
             parent=mock_direct_frame,
-            frameColor=(0.15, 0.15, 0.15, 0.7),
+            frameColor=Colors.BLACK,
             frameSize=(0, width, 0, title_frame_height),
-            pos=Point3(0, 0, height - title_frame_height),
+            pos=Point3(0, 0, driver_window.tire_strategy_height - title_frame_height),
             sortOrder=10,
         ),
     ]
@@ -810,7 +810,7 @@ def test_make_tire_strategy_widget(
                 parent=mock_direct_frame,
                 frameColor=(0.4, 0.4, 0.4, 1),
                 frameSize=(start, end, 0, 30),
-                pos=Point3(0, 0, height - title_frame_height - 40),
+                pos=Point3(0, 0, driver_window.tire_strategy_height - title_frame_height - 40),
             ),
         )
         expected_direct_frame_calls.append(
@@ -818,14 +818,13 @@ def test_make_tire_strategy_widget(
                 parent=mock_direct_frame,
                 frameColor=info["CompoundColor"],
                 frameSize=(start + 1, end - 1, 1, 29),
-                pos=Point3(1, 0, height - title_frame_height - 41),
+                pos=Point3(1, 0, driver_window.tire_strategy_height - title_frame_height - 41),
             ),
         )
         start = end
 
     mock_direct_frame_class.assert_has_calls(expected_direct_frame_calls)
 
-    start = padding
     expected_onscreen_text_calls = [
         mocker.call(
             parent=mock_direct_frame,
@@ -833,7 +832,7 @@ def test_make_tire_strategy_widget(
             align=TextNode.ACenter,
             scale=16,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
+            fg=Colors.WHITE,
             pos=(width / 2, title_frame_height - 21, 0),
         ),
     ]
@@ -849,8 +848,8 @@ def test_make_tire_strategy_widget(
                 align=TextNode.ACenter,
                 scale=11,
                 font=driver_window.app.text_font,
-                fg=driver_window.white_color,
-                pos=(end, height - title_frame_height - 50, 0),
+                fg=Colors.HIGHLIGHTER_YELLOW,
+                pos=(end, driver_window.tire_strategy_height - title_frame_height - 50, 0),
             ),
         )
 
@@ -861,63 +860,12 @@ def test_make_tire_strategy_widget(
             align=TextNode.ACenter,
             scale=11,
             font=driver_window.app.text_font,
-            fg=driver_window.white_color,
-            pos=(10, height - title_frame_height - 50, 0),
+            fg=Colors.HIGHLIGHTER_YELLOW,
+            pos=(10, driver_window.tire_strategy_height - title_frame_height - 50, 0),
         ),
     )
 
     mock_onscreen_text_class.assert_has_calls(expected_onscreen_text_calls)
-
-
-@pytest.mark.parametrize(
-    ("position_index", "lap", "total_laps", "expected_position", "expected_laps"),
-    [
-        (0, 1.0, 60.0, "1", "1/60"),
-        (5, 10.5, 60.0, "6", "10/60"),
-        (9, 30.7, 75.0, "10", "30/75"),
-    ],
-)
-def test_update_standings_updates_text_when_values_change(
-    driver_window: DriverWindow,
-    mocker: MockerFixture,
-    position_index: int,
-    lap: float,
-    total_laps: float,
-    expected_position: str,
-    expected_laps: str,
-) -> None:
-    mock_position = mocker.MagicMock(spec=OnscreenText)
-    mock_position.text = "TBD"
-    mock_laps = mocker.MagicMock(spec=OnscreenText)
-    mock_laps.text = "TBD"
-
-    driver_window.position = mock_position
-    driver_window.laps = mock_laps
-
-    driver_window.update_standings(position_index, lap, total_laps)
-
-    assert mock_position.__setitem__.call_count == 1
-    mock_position.__setitem__.assert_called_with("text", expected_position)
-    assert mock_laps.__setitem__.call_count == 1
-    mock_laps.__setitem__.assert_called_with("text", expected_laps)
-
-
-def test_update_standings_does_not_update_when_values_same(
-    driver_window: DriverWindow,
-    mocker: MockerFixture,
-) -> None:
-    mock_position = mocker.MagicMock(spec=OnscreenText)
-    mock_position.text = "1"
-    mock_laps = mocker.MagicMock(spec=OnscreenText)
-    mock_laps.text = "10/60"
-
-    driver_window.position = mock_position
-    driver_window.laps = mock_laps
-
-    driver_window.update_standings(0, 10.0, 60.0)
-
-    mock_position.__setitem__.assert_not_called()
-    mock_laps.__setitem__.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -970,9 +918,9 @@ def test_update_gear_indicator_does_not_update_when_color_same(
 @pytest.mark.parametrize(
     ("drs", "expected_color"),
     [
-        (0, (103 / 255, 190 / 255, 217 / 255, 1)),
-        (1, (217 / 255, 110 / 255, 102 / 255, 1)),
-        (14, (102 / 255, 217 / 255, 126 / 255, 1)),
+        (0, Colors.GRAY),
+        (1,  Colors.LIGHT_RED),
+        (14, Colors.GREEN),
     ],
 )
 def test_update_drs_indicator_updates_color_when_current_differs(
@@ -997,11 +945,9 @@ def test_update_drs_indicator_does_not_update_when_color_same(
     driver_window: DriverWindow,
     mocker: MockerFixture,
 ) -> None:
-    blue_color = (103 / 255, 190 / 255, 217 / 255, 1)
-
     mock_drs_text = mocker.MagicMock(spec=OnscreenText)
     mock_text_node = mocker.MagicMock()
-    mock_text_node.getTextColor.return_value = blue_color
+    mock_text_node.getTextColor.return_value = Colors.GRAY
     mock_drs_text.textNode = mock_text_node
 
     driver_window.drs = mock_drs_text
@@ -1137,13 +1083,14 @@ def test_update(
 ) -> None:
     from decimal import Decimal
 
-    mock_update_standings = mocker.patch.object(driver_window, "update_standings")
     mock_update_telemetry = mocker.patch.object(driver_window, "update_telemetry")
     mock_update_camera = mocker.patch.object(driver_window, "update_camera_position")
+    mock_update_lap_time_line = mocker.patch.object(driver_window, "update_lap_time_line")
+    mock_update_current_lap = mocker.patch.object(driver_window, "update_current_lap")
 
     current_record = {
         "PositionIndex": 2,
-        "LapNumber": 15.5,
+        "LapNumber": 15,
         "TotalLaps": 60.0,
         "nGear": "3",
         "RPM": 10000.0,
@@ -1155,17 +1102,19 @@ def test_update(
         "X": "10.123",
         "Y": "20.456",
         "Z": "30.789",
+        "LapsCompletion": 14.23,
     }
 
     driver_window.update(current_record)
 
-    mock_update_standings.assert_called_once_with(2, 15.5, 60.0)
     mock_update_telemetry.assert_called_once_with("3", 10000.0, True, 150.0, 0, 93.0, 75.0)
     mock_update_camera.assert_called_once_with(
         Decimal("10.123"),
         Decimal("20.456"),
         Decimal("30.789"),
     )
+    mock_update_lap_time_line.assert_called_once_with(current_record["LapsCompletion"])
+    mock_update_current_lap.assert_called_once_with(current_record)
 
 
 def test_open_calls_make_widgets_and_sets_is_open_true(
@@ -1176,6 +1125,8 @@ def test_open_calls_make_widgets_and_sets_is_open_true(
     mock_make_camera = mocker.patch.object(driver_window, "make_camera_region")
     mock_make_telemetry = mocker.patch.object(driver_window, "make_telemetry_widget")
     mock_make_strategy = mocker.patch.object(driver_window, "make_tire_strategy_widget")
+    mock_make_lap_widget = mocker.patch.object(driver_window, "make_lap_widget")
+    mock_make_laps_widget = mocker.patch.object(driver_window, "make_laps_widget")
 
     driver_window.open()
 
@@ -1184,6 +1135,8 @@ def test_open_calls_make_widgets_and_sets_is_open_true(
     mock_make_camera.assert_called_once()
     mock_make_telemetry.assert_called_once()
     mock_make_strategy.assert_called_once()
+    mock_make_lap_widget.assert_called_once()
+    mock_make_laps_widget.assert_called_once()
 
 
 def test_open_returns_early_if_already_open(
@@ -1194,6 +1147,8 @@ def test_open_returns_early_if_already_open(
     mock_make_camera = mocker.patch.object(driver_window, "make_camera_region")
     mock_make_telemetry = mocker.patch.object(driver_window, "make_telemetry_widget")
     mock_make_strategy = mocker.patch.object(driver_window, "make_tire_strategy_widget")
+    mock_make_lap_widget = mocker.patch.object(driver_window, "make_lap_widget")
+    mock_make_laps_widget = mocker.patch.object(driver_window, "make_laps_widget")
 
     driver_window.is_open = True
 
@@ -1204,6 +1159,8 @@ def test_open_returns_early_if_already_open(
     mock_make_camera.assert_not_called()
     mock_make_telemetry.assert_not_called()
     mock_make_strategy.assert_not_called()
+    mock_make_lap_widget.assert_not_called()
+    mock_make_laps_widget.assert_not_called()
 
 
 def test_close(

@@ -348,7 +348,7 @@ class DriverWindow(DirectObject):
             align=TextNode.ACenter,
             scale=16,
             font=self.app.text_font,
-            fg=(1, 1, 1, 1),
+            fg=Colors.WHITE,
             pos=(260 / 2, title_frame_height - 20, 0),
         )
 
@@ -358,7 +358,7 @@ class DriverWindow(DirectObject):
             align=TextNode.ALeft,
             scale=16,
             font=self.app.text_font,
-            fg=(1, 1, 1, 1),
+            fg=Colors.WHITE,
             pos=(10, self.driver_frame_height - title_frame_height - 25, 0),
         )
 
@@ -376,7 +376,7 @@ class DriverWindow(DirectObject):
             align=TextNode.ALeft,
             scale=16,
             font=self.app.text_font,
-            fg=(1, 1, 1, 1),
+            fg=Colors.WHITE,
             pos=(33, self.driver_frame_height - title_frame_height - 50, 0),
         )
 
