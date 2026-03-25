@@ -1,6 +1,6 @@
 # Formula 1 Player
 
-![home](tbd image)
+![f1p](https://github.com/user-attachments/assets/7cacf4fc-ed9e-4d39-a288-fac5600926f3)
 
 ## Summary
 A tool for watching F1 races from a data perspective.

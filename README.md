@@ -1,6 +1,5 @@
 # F1 Player
 
-
-![f1p](https://github.com/user-attachments/assets/7cacf4fc-ed9e-4d39-a288-fac5600926f3)
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/x8Y5BwFhXwA/0.jpg)](https://www.youtube.com/watch?v=x8Y5BwFhXwA)
 
 See the [WIKI](/MrSir/f1-player/wiki) for more details.
