@@ -63,6 +63,7 @@ class DriverWindow(DirectObject):
         self._strategy: dict[int, dict[str, str | int]] | None = None
         self._driver_laps: DataFrame | None = None
         self._lap_averages: Series | None = None
+        self._normalized_laps: DataFrame | None = None
         self._slowest_non_pit_lap: Series | None = None
         self._slowest_driver_lap: Series | None = None
         self._fastest_driver_lap: Series | None = None
@@ -138,6 +139,30 @@ class DriverWindow(DirectObject):
         return self._driver_laps
 
     @property
+    def slowest_non_pit_lap(self) -> Series:
+        if self._slowest_non_pit_lap is None:
+            self._slowest_non_pit_lap = self.data_extractor.slowest_non_pit_lap
+
+        return self._slowest_non_pit_lap
+
+    @property
+    def normalized_laps(self) -> DataFrame:
+        if self._normalized_laps is None:
+            df = self.driver_laps.copy()
+
+            df.loc[df["LapTime"] > self.slowest_non_pit_lap["LapTime"], "LapTime"] = self.slowest_non_pit_lap["LapTime"]
+            df.loc[df["Sector1Time"] > self.slowest_non_pit_lap["LapTime"], "Sector1Time"] = self.slowest_non_pit_lap[
+                "LapTime"
+            ]
+            df.loc[df["S2LapTime"] > self.slowest_non_pit_lap["LapTime"], "S2LapTime"] = self.slowest_non_pit_lap[
+                "LapTime"
+            ]
+
+            self._normalized_laps = df
+
+        return self._normalized_laps
+
+    @property
     def lap_averages(self) -> Series:
         if self._lap_averages is None:
             df = self.driver_laps.copy()
@@ -190,23 +215,6 @@ class DriverWindow(DirectObject):
             self._lap_averages = sr
 
         return self._lap_averages
-
-    @property
-    def slowest_non_pit_lap(self) -> Series:
-        if self._slowest_non_pit_lap is None:
-            df = self.data_extractor.laps.copy()
-
-            self._slowest_non_pit_lap = (
-                df[
-                    df["PitInTimeMilliseconds"].isna()
-                    & df["PitOutTimeMilliseconds"].isna()
-                    & (df["TrackStatus"] == "1")
-                ]
-                .sort_values("LapTime", ascending=False)
-                .iloc[0]
-            )
-
-        return self._slowest_non_pit_lap
 
     @property
     def slowest_driver_lap(self) -> Series:
@@ -1110,10 +1118,9 @@ class DriverWindow(DirectObject):
                 ),
             )
 
-        # TODO Need to normalize the times to not exceed the graph
         # Draw Lap Times Line
         lap_times = (
-            self.driver_laps[["LapNumber", "LapTime"]].sort_values("LapNumber").rename(columns={"LapTime": "Time"})
+            self.normalized_laps[["LapNumber", "LapTime"]].sort_values("LapNumber").rename(columns={"LapTime": "Time"})
         )
         self.draw_chart_line(
             frame,
@@ -1126,7 +1133,7 @@ class DriverWindow(DirectObject):
         )
         # Draw S1 Times Line
         s1_times = (
-            self.driver_laps[["LapNumber", "Sector1Time"]]
+            self.normalized_laps[["LapNumber", "Sector1Time"]]
             .sort_values("LapNumber")
             .rename(columns={"Sector1Time": "Time"})
         )
@@ -1142,7 +1149,9 @@ class DriverWindow(DirectObject):
         )
         # Draw S2 Times Line
         s2_times = (
-            self.driver_laps[["LapNumber", "S2LapTime"]].sort_values("LapNumber").rename(columns={"S2LapTime": "Time"})
+            self.normalized_laps[["LapNumber", "S2LapTime"]]
+            .sort_values("LapNumber")
+            .rename(columns={"S2LapTime": "Time"})
         )
         self.draw_chart_line(
             frame,

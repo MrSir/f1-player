@@ -2,10 +2,10 @@ from enum import Enum
 
 
 class ConventionalSessionIdentifiers(Enum):
-    FREE_PRACTICE_1 = "Practice 1"
-    FREE_PRACTICE_2 = "Practice 2"
-    FREE_PRACTICE_3 = "Practice 3"
-    QUALIFYING = "Qualifying"
+    # FREE_PRACTICE_1 = "Practice 1"
+    # FREE_PRACTICE_2 = "Practice 2"
+    # FREE_PRACTICE_3 = "Practice 3"
+    # QUALIFYING = "Qualifying"
     RACE = "Race"
 
     @staticmethod
@@ -14,10 +14,10 @@ class ConventionalSessionIdentifiers(Enum):
 
 
 class SprintQualifyingSessionIdentifiers(Enum):
-    FREE_PRACTICE_1 = "Practice 1"
-    SPRINT_QUALIFYING = "Sprint Qualifying"
+    # FREE_PRACTICE_1 = "Practice 1"
+    # SPRINT_QUALIFYING = "Sprint Qualifying"
     SPRINT = "Sprint"
-    QUALIFYING = "Qualifying"
+    # QUALIFYING = "Qualifying"
     RACE = "Race"
 
     @staticmethod
