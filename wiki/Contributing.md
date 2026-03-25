@@ -49,6 +49,6 @@ When formulating your prompt prefix it with the following.
 Analyze and follow the instructions in the `./ai/patterns.md` file first. Then ...
 ```
 
-Make sure to also include the `ai/patterns.md` file into the context for more deterministic results.
+Make sure to also include the [ai/patterns.md](/MrSir/f1-player/blob/main/ai/patterns.md) file into the context for more deterministic results.
 
 AI Slop will not be tolerated.
