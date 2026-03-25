@@ -12,7 +12,6 @@ packages = [{include = "f1p", from = "src"}]
 python = ">=3.14,<3.15"
 fastf1 = "3.8.1"
 panda3d = "1.10.16"
-pandas-stubs = "~=2.3.3"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.12.8"
@@ -24,6 +23,7 @@ pytest-asyncio = "1.1.0"
 mypy = "1.17.0"
 black = "23.12.1"
 isort = "5.13.2"
+pandas-stubs = "~=2.3.3"
 
 [build-system]
 requires = ["poetry-core"]
