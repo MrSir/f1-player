@@ -24,7 +24,7 @@ The merge request MUST comply with these rules:
 4. The MR Description MUST contain a `### WHAT?` heading with a clear and concise description of the major areas being changed/introduced. (bullets are fine)
 5. Commit conventions are up to the author, they WILL be squashed post merge.
 6. The MR MUST NOT contain hundreds of lines of changes or more. (Small incremental changes are what we are looking for.)
-7. THE MR MUST be reviewed and approved by the F1P Author [MrSir](https://github.com/MrSir), or any authorized contributor, before it can be merged.
+7. The MR MUST be reviewed and approved by the F1P Author [MrSir](https://github.com/MrSir), or any authorized contributor, before it can be merged.
 8. The CI checks MUST succeed for the MR to be merged.
  
 
@@ -40,7 +40,7 @@ DO NOT EDIT the WIKI directly in the GitHub UI. The WIKI contents are managed wi
 
 ## Contributing with AI
 
-Using AI to make contributions to the repository is largely discouraged because of the non-deterministic nature of AI systems making it impossible to guarantee compliance with the coding standards. That being said if you want to utilize AI to help speed up some of your code contributions then try to following to reduce the likelihood of rejection.
+Using AI to make contributions to the repository is largely discouraged because of the non-deterministic nature of AI systems making it impossible to guarantee compliance with the coding standards. That being said if you want to utilize AI to help speed up some of your code contributions then try the following to reduce the likelihood of rejection.
 
 As far as models go `Claude` has been the most consistent, I recommend anything above `4.5`.
 

@@ -95,4 +95,4 @@ The driver name abbreviation would be grayed out, and the time switched to `OUT`
 
 ### Driver Window
 
-In order to view more detailed information for each driver the user can click on the specific driver's name abbreviation in the Leaderboard. More on that can be found in the [Driver Window](/MrSir/f1-player/wiki/features/Driver-Window) wiki page.
+In order to view more detailed information for each driver the user can click on the specific driver's name abbreviation in the Leaderboard. More on that can be found in the [Driver Window](/MrSir/f1-player/wiki/Driver-Window) wiki page.
