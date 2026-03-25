@@ -6,3 +6,4 @@ __pycache__/
 .fastf1-cache
 .coverage
 coverage.xml
+pytest.xml
