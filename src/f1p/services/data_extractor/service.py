@@ -157,15 +157,15 @@ class DataExtractorService(DirectObject):
         if self._slowest_non_pit_lap is None:
             df = self.laps.copy()
 
-            self._slowest_non_pit_lap = (
-                df[
-                    df["PitInTimeMilliseconds"].isna()
-                    & df["PitOutTimeMilliseconds"].isna()
-                    & (df["TrackStatus"] == "1")
-                ]
-                .sort_values("LapTime", ascending=False)
-                .iloc[0]
-            )
+            eligible_laps = df[
+                df["PitInTimeMilliseconds"].isna()
+                & df["PitOutTimeMilliseconds"].isna()
+                & (df["TrackStatus"] == "1")
+            ]
+            eligible_laps = eligible_laps.sort_values("LapTime", ascending=False)
+
+            if eligible_laps is not None:
+                self._slowest_non_pit_lap = eligible_laps.iloc[0]
 
         return self._slowest_non_pit_lap
 
