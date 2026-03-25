@@ -158,9 +158,7 @@ class DataExtractorService(DirectObject):
             df = self.laps.copy()
 
             eligible_laps = df[
-                df["PitInTimeMilliseconds"].isna()
-                & df["PitOutTimeMilliseconds"].isna()
-                & (df["TrackStatus"] == "1")
+                df["PitInTimeMilliseconds"].isna() & df["PitOutTimeMilliseconds"].isna() & (df["TrackStatus"] == "1")
             ]
             eligible_laps = eligible_laps.sort_values("LapTime", ascending=False)
 

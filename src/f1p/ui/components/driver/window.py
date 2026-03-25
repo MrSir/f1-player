@@ -151,8 +151,12 @@ class DriverWindow(DirectObject):
             df = self.driver_laps.copy()
 
             df.loc[df["LapTime"] > self.slowest_non_pit_lap["LapTime"], "LapTime"] = self.slowest_non_pit_lap["LapTime"]
-            df.loc[df["Sector1Time"] > self.slowest_non_pit_lap["LapTime"], "Sector1Time"] = self.slowest_non_pit_lap["LapTime"]
-            df.loc[df["S2LapTime"] > self.slowest_non_pit_lap["LapTime"], "S2LapTime"] = self.slowest_non_pit_lap["LapTime"]
+            df.loc[df["Sector1Time"] > self.slowest_non_pit_lap["LapTime"], "Sector1Time"] = self.slowest_non_pit_lap[
+                "LapTime"
+            ]
+            df.loc[df["S2LapTime"] > self.slowest_non_pit_lap["LapTime"], "S2LapTime"] = self.slowest_non_pit_lap[
+                "LapTime"
+            ]
 
             self._normalized_laps = df
 
@@ -1145,7 +1149,9 @@ class DriverWindow(DirectObject):
         )
         # Draw S2 Times Line
         s2_times = (
-            self.normalized_laps[["LapNumber", "S2LapTime"]].sort_values("LapNumber").rename(columns={"S2LapTime": "Time"})
+            self.normalized_laps[["LapNumber", "S2LapTime"]]
+            .sort_values("LapNumber")
+            .rename(columns={"S2LapTime": "Time"})
         )
         self.draw_chart_line(
             frame,
