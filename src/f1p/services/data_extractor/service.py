@@ -17,6 +17,9 @@ from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f, NodePath, Point3, StaticTextFont, deg2Rad
 from pandas import DataFrame, Series, Timedelta
 
+from f1p.services.data_extractor.parsers.session import SessionParser
+from f1p.services.data_extractor.parsers.track import TrackParser
+from f1p.services.data_extractor.parsers.weather import WeatherParser
 from f1p.ui.enums import Colors
 from f1p.utils.color import hex_to_rgb_saturation
 from f1p.utils.geometry import center_pos_data, find_center, resize_pos_data
@@ -24,9 +27,6 @@ from f1p.utils.timedelta import td_series_to_min_n_sec
 
 
 class DataExtractorService(DirectObject):
-    year: int
-    event_name: str
-    session_id: str
     cache_path: Path = Path(__file__).parent.parent.parent.parent.parent / ".fastf1-cache"
 
     def __init__(
@@ -45,24 +45,23 @@ class DataExtractorService(DirectObject):
         self.window_height = window_height
         self.text_font = text_font
 
-        self._event_schedule: EventSchedule | None = None
-        self._event: Event | None = None
-        self._session: Session | None = None
+        self.session_parser: SessionParser | None = None
         self._session_results: DataFrame | None = None
-        self._session_status: DataFrame | None = None
-        self._session_start_time: Timedelta | None = None
-        self._session_end_time: Timedelta | None = None
+
+        self._track_parser: TrackParser | None = None
+        self._processed_corners: DataFrame | None = None
+        self._track_statuses: DataFrame | None = None
+
+        self._weather_parser: WeatherParser | None = None
+
+
         self._pos_data: dict[str, Telemetry] | None = None
         self._car_data: dict[str, Telemetry] | None = None
-        self._circuit_info: CircuitInfo | None = None
-        self._processed_corners: DataFrame | None = None
-        self._track_status: DataFrame | None = None
-        self._weather_data: DataFrame | None = None
-        self.processed_weather_data: DataFrame | None = None
-        self._track_status_colors: DataFrame | None = None
-        self._green_flag_track_status: DataFrame | None = None
-        self._track_statuses: DataFrame | None = None
-        self._total_laps: int | None = None
+
+        self._session_time_ticks_df: DataFrame | None = None
+
+
+
         self._laps: DataFrame | None = None
 
         self._slowest_non_pit_lap: Series | None = None
@@ -85,25 +84,16 @@ class DataExtractorService(DirectObject):
         fastf1.Cache.enable_cache(str(self.cache_path))
 
     @property
-    def event_schedule(self) -> EventSchedule:
-        if self._event_schedule is None:
-            self._event_schedule = fastf1.get_event_schedule(self.year)
-
-        return self._event_schedule
-
-    @property
-    def event(self) -> Event:
-        if self._event is None:
-            self._event = fastf1.get_event(self.year, self.event_name)
-
-        return self._event
-
-    @property
     def session(self) -> Session:
-        if self._session is None:
-            self._session = fastf1.get_session(self.year, self.event_name, self.session_id)
+        return self.session_parser.session
 
-        return self._session
+    @property
+    def session_start_time(self) -> Timedelta:
+        return self.session_parser.session_start_time
+
+    @property
+    def session_end_time(self) -> Timedelta:
+        return self.session_parser.session_end_time
 
     @property
     def session_results(self) -> DataFrame:
@@ -113,18 +103,57 @@ class DataExtractorService(DirectObject):
         return self._session_results
 
     @property
-    def session_status(self) -> DataFrame:
-        if self._session_status is None:
-            self._session_status = self.session.session_status
-
-        return self._session_status
+    def total_laps(self) -> int:
+        return self.session_parser.total_laps
 
     @property
-    def total_laps(self) -> int:
-        if self._total_laps is None:
-            self._total_laps = int(self.session.total_laps)
+    def track_parser(self) -> TrackParser:
+        if self._track_parser is None:
+            self._track_parser = TrackParser(self.session)
 
-        return self._total_laps
+        return self._track_parser
+
+    @property
+    def map_rotation(self) -> float:
+        return self.track_parser.map_rotation
+
+    @property
+    def processed_corners(self) -> DataFrame:
+        if self._processed_corners is None:
+            raise ValueError("Corners are not processed yet.")
+
+        return self._processed_corners
+
+    @property
+    def track_statuses(self) -> DataFrame:
+        if self._track_statuses is None:
+            raise ValueError("Track statuses not processed.")
+
+        return self._track_statuses
+
+    @property
+    def green_flag_track_status_label(self) -> str:
+        return self.track_parser.green_flag_track_status["Label"]
+
+    @property
+    def green_flag_track_status_color(self) -> LVecBase4f:
+        return self.track_parser.green_flag_track_status["Color"]
+
+    @property
+    def green_flag_track_status_text_color(self) -> LVecBase4f:
+        return self.track_parser.green_flag_track_status["TextColor"]
+
+    @property
+    def weather_parser(self) -> WeatherParser:
+        if self._weather_parser is None:
+            self._weather_parser = WeatherParser(self.session)
+
+        return self._weather_parser
+
+
+
+
+
 
     @property
     def pos_data(self) -> dict[str, Telemetry]:
@@ -184,114 +213,6 @@ class DataExtractorService(DirectObject):
     def lowest_z_coordinate(self) -> float:
         return self.processed_pos_data["Z"].min()
 
-    @property
-    def circuit_info(self) -> CircuitInfo:
-        if self._circuit_info is None:
-            self._circuit_info = self.session.get_circuit_info()
-
-        return self._circuit_info
-
-    @property
-    def processed_corners(self) -> DataFrame:
-        if self._processed_corners is None:
-            raise ValueError("Corners are not processed yet.")
-
-        return self._processed_corners
-
-    @property
-    def track_status(self) -> DataFrame:
-        if self._track_status is None:
-            self._track_status = self.session.track_status
-
-        return self._track_status
-
-    @property
-    def track_status_colors(self) -> DataFrame:
-        if self._track_status_colors is None:
-            self._track_status_colors = DataFrame(
-                data={
-                    "Status": [1, 2, 4, 5, 6, 7],
-                    "Label": [
-                        "Green Flag",
-                        "Yellow Flag",
-                        "Safety Car",
-                        "Red Flag",
-                        "VSC Deployed",
-                        "VSC Ending",
-                    ],
-                    "Color": [
-                        LVecBase4f(0, 1, 0, 0.8),
-                        LVecBase4f(1, 1, 0, 0.8),
-                        LVecBase4f(1, 1, 0, 0.8),
-                        LVecBase4f(1, 0, 0, 0.8),
-                        LVecBase4f(1, 0.64, 0, 0.8),
-                        LVecBase4f(1, 0.64, 0, 0.8),
-                    ],
-                    "TextColor": [
-                        LVecBase4f(0, 0, 0, 0.8),
-                        LVecBase4f(0, 0, 0, 0.8),
-                        LVecBase4f(0, 0, 0, 0.8),
-                        LVecBase4f(1, 1, 1, 0.8),
-                        LVecBase4f(0, 0, 0, 0.8),
-                        LVecBase4f(0, 0, 0, 0.8),
-                    ],
-                },
-            )
-
-        return self._track_status_colors
-
-    @property
-    def green_flag_track_status(self) -> DataFrame:
-        if self._green_flag_track_status is None:
-            ts_colors_df = self.track_status_colors
-            self._green_flag_track_status = ts_colors_df[ts_colors_df["Status"] == 1]
-
-        return self._green_flag_track_status
-
-    @property
-    def green_flag_track_status_label(self) -> str:
-        return self.green_flag_track_status["Label"].iloc[0]
-
-    @property
-    def green_flag_track_status_color(self) -> LVecBase4f:
-        return self.green_flag_track_status["Color"].iloc[0]
-
-    @property
-    def green_flag_track_status_text_color(self) -> LVecBase4f:
-        return self.green_flag_track_status["TextColor"].iloc[0]
-
-    @property
-    def weather_data(self) -> DataFrame:
-        if self._weather_data is None:
-            self._weather_data = self.session.weather_data
-
-        return self._weather_data
-
-    @property
-    def map_rotation(self) -> float:
-        return deg2Rad(self.circuit_info.rotation)
-
-    @property
-    def session_start_time(self) -> Timedelta:
-        if self._session_start_time is None:
-            self._session_start_time = self.session_status[self.session_status["Status"] == "Started"].iloc[0]["Time"]
-
-        return self._session_start_time
-
-    @property
-    def session_start_time_milliseconds(self) -> int:
-        return int(self.session_start_time.total_seconds() * 1e3)
-
-    @property
-    def session_end_time(self) -> Timedelta:
-        if self._session_end_time is None:
-            self._session_end_time = self.session_status[self.session_status["Status"] == "Finalised"].iloc[0]["Time"]
-
-        return self._session_end_time
-
-    @property
-    def session_end_time_milliseconds(self) -> int:
-        return int(self.session_end_time.total_seconds() * 1e3)
 
     @property
     def session_ticks(self) -> int:
@@ -302,52 +223,28 @@ class DataExtractorService(DirectObject):
 
         return df.min()
 
-    def process_track_statuses(self, width: int) -> None:
-        df = self.processed_pos_data.copy()
-        df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(keep="first").copy()
-
-        pixel_per_tick = width / self.session_ticks
-
-        df.loc[:, "Pixel"] = (df.loc[:, "SessionTimeTick"] * pixel_per_tick) - pixel_per_tick
-
-        ts_df = self.track_status.copy()
-        ts_df = ts_df[ts_df["Time"] >= self.session_start_time]
-        ts_df = ts_df[ts_df["Time"] <= self.session_end_time]
-
-        ts_df["EndTime"] = ts_df["Time"].shift(-1).fillna(self.session_end_time)
-
-        for record in ts_df.itertuples():
-            ts_df.loc[ts_df["Time"] == record.Time, "SessionTimeTick"] = df.loc[
-                df["SessionTime"] <= record.Time,
-                "SessionTimeTick",
-            ].max()
-            ts_df.loc[ts_df["Time"] == record.Time, "SessionTimeTickEnd"] = df.loc[
-                df["SessionTime"] <= record.EndTime,
-                "SessionTimeTick",
-            ].max()
-
-        ts_df["SessionTimeTick"] = ts_df["SessionTimeTick"].astype("int64")
-        ts_df["SessionTimeTickEnd"] = ts_df["SessionTimeTickEnd"].astype("int64")
-
-        ts_df = ts_df.merge(df, on="SessionTimeTick", how="left")
-        ts_df = ts_df.rename(columns={"Pixel": "PixelStart"}).drop(columns="SessionTime")
-        ts_df = ts_df.merge(df, left_on="SessionTimeTickEnd", right_on="SessionTimeTick", how="left").rename(
-            columns={"SessionTimeTick_x": "SessionTimeTick"},
-        )
-        ts_df = ts_df.rename(columns={"Pixel": "PixelEnd"}).drop(columns=["SessionTime", "SessionTimeTick_y"])
-        ts_df = ts_df.drop(columns=["Time", "EndTime"]).reset_index(drop=True)
-
-        ts_df["Width"] = ts_df["PixelEnd"] - ts_df["PixelStart"]
-        ts_df["Status"] = ts_df["Status"].astype("int64")
-
-        self._track_statuses = ts_df.merge(self.track_status_colors, on="Status", how="left")
-
     @property
-    def track_statuses(self) -> DataFrame:
-        if self._track_statuses is None:
-            raise ValueError("Track statuses not processed.")
+    def session_time_ticks_df(self) -> DataFrame:
+        if self._session_time_ticks_df is None:
+            df = self.processed_pos_data.copy()
+            df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(
+                keep="first",
+            ).copy()
 
-        return self._track_statuses
+            self._session_time_ticks_df = df
+
+        return self._session_time_ticks_df
+
+    def process_track_statuses(self, width: int) -> None:
+        self._track_statuses = self.track_parser.process_track_statuses(
+            width,
+            self.session_ticks,
+            self.session_time_ticks_df,
+            self.session_start_time,
+            self.session_end_time,
+        )
+
+
 
     def get_current_track_status(self, session_time_tick: int) -> Series | None:
         ts_df = self.track_statuses
@@ -361,15 +258,7 @@ class DataExtractorService(DirectObject):
         return ts_df.iloc[0]
 
     def get_current_weather_data(self, session_time_tick: int) -> Series | None:
-        weather_df = self.processed_weather_data
-
-        weather_df = weather_df[weather_df["SessionTimeTick"] <= session_time_tick]
-        weather_df = weather_df.sort_values(by="SessionTimeTick", ascending=False)
-
-        if weather_df.empty:
-            return None
-
-        return weather_df.iloc[0]
+        return self.weather_parser.get_current_weather_data(session_time_tick)
 
     def process_fastest_lap(self) -> Self:
         pos_data = self.fastest_lap.get_pos_data()
@@ -870,146 +759,25 @@ class DataExtractorService(DirectObject):
         return self
 
     def process_weather_data(self) -> Self:
-        df = self.processed_pos_data.copy()
-        df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(keep="first").copy()
-
-        weather_df = self.weather_data.copy()
-        weather_df = weather_df[weather_df["Time"] >= self.session_start_time]
-        weather_df = weather_df[weather_df["Time"] <= self.session_end_time]
-
-        for record in weather_df.itertuples():
-            weather_df.loc[weather_df["Time"] == record.Time, "SessionTimeTick"] = df.loc[
-                df["SessionTime"] <= record.Time,
-                "SessionTimeTick",
-            ].max()
-
-        weather_df["SessionTimeTick"] = weather_df["SessionTimeTick"].astype("int64")
-        weather_df["AirTempF"] = (weather_df["AirTemp"] * 9 / 5) + 32
-        weather_df["TrackTempF"] = (weather_df["TrackTemp"] * 9 / 5) + 32
-        weather_df["Pressure"] = weather_df["Pressure"] / 10
-        weather_df["WindSpeed"] = weather_df["WindSpeed"] * 18 / 5
-        weather_df.loc[weather_df["Rainfall"], "WeatherSymbol"] = "🌧"
-        weather_df.loc[weather_df["Rainfall"], "WeatherText"] = "RAIN"
-        weather_df["WeatherSymbol"] = weather_df["WeatherSymbol"].fillna("🌣")
-        weather_df["WeatherText"] = weather_df["WeatherText"].fillna("SUNNY")
-
-        weather_df.loc[
-            (weather_df["WindDirection"] > 337.5) | (weather_df["WindDirection"] <= 22.5),
-            "WindDirectionSymbol",
-        ] = "🢃"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 337.5) | (weather_df["WindDirection"] <= 22.5),
-            "WindDirectionText",
-        ] = "NORTH"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 22.5) & (weather_df["WindDirection"] <= 67.5),
-            "WindDirectionSymbol",
-        ] = "🢇"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 22.5) & (weather_df["WindDirection"] <= 67.5),
-            "WindDirectionText",
-        ] = "NORTH EAST"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 67.5) & (weather_df["WindDirection"] <= 112.5),
-            "WindDirectionSymbol",
-        ] = "🢀"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 67.5) & (weather_df["WindDirection"] <= 112.5),
-            "WindDirectionText",
-        ] = "EAST"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 112.5) & (weather_df["WindDirection"] <= 157.5),
-            "WindDirectionSymbol",
-        ] = "🢄"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 112.5) & (weather_df["WindDirection"] <= 157.5),
-            "WindDirectionText",
-        ] = "SOUTH EAST"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 157.5) & (weather_df["WindDirection"] <= 202.5),
-            "WindDirectionSymbol",
-        ] = "🢁"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 157.5) & (weather_df["WindDirection"] <= 202.5),
-            "WindDirectionText",
-        ] = "SOUTH"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 202.5) & (weather_df["WindDirection"] <= 247.5),
-            "WindDirectionSymbol",
-        ] = "🢅"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 202.5) & (weather_df["WindDirection"] <= 247.5),
-            "WindDirectionText",
-        ] = "SOUTH WEST"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 247.5) & (weather_df["WindDirection"] <= 292.5),
-            "WindDirectionSymbol",
-        ] = "🢂"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 247.5) & (weather_df["WindDirection"] <= 292.5),
-            "WindDirectionText",
-        ] = "WEST"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 292.5) & (weather_df["WindDirection"] <= 337.5),
-            "WindDirectionSymbol",
-        ] = "🢆"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 292.5) & (weather_df["WindDirection"] <= 337.5),
-            "WindDirectionText",
-        ] = "NORTH WEST"
-
-        weather_df["WindDirectionSymbol"] = weather_df["WindDirectionSymbol"].ffill()
-        weather_df["WindDirectionText"] = weather_df["WindDirectionText"].ffill()
-
-        self.processed_weather_data = weather_df
+        self.weather_parser.process_weather_data(
+            self.processed_pos_data,
+            self.session_start_time,
+            self.session_end_time,
+        )
 
         self.update_loading(10)
 
         return self
 
     def process_corners(self) -> Self:
-        df = self.circuit_info.corners.copy()
-
-        df["Label"] = df["Number"].astype(str) + df["Letter"].astype(str)
-        df["AngleRad"] = df["Angle"].map(lambda d: deg2Rad(d))
-        # Add Z coordinate
-        df["Z"] = 0
-
-        df = resize_pos_data(self.map_rotation, df)
-        df = center_pos_data(self.map_center_coordinate, df)
-
-        # Move Z back to 1
-        df["Z"] = 1
-
-        self._processed_corners = df
+        self._processed_corners = self.track_parser.process_corners(self.map_center_coordinate)
 
         self.update_loading(1)
 
         return self
 
     def process_team_colors(self) -> Self:
-        df = self.session.results.copy()
-
-        df["TeamColorRGBH"] = df["TeamColor"].map(lambda c: hex_to_rgb_saturation(c))
-        df["TeamColorR"] = df["TeamColorRGBH"].map(lambda c: c["rgb"][0] / 255)
-        df["TeamColorG"] = df["TeamColorRGBH"].map(lambda c: c["rgb"][1] / 255)
-        df["TeamColorB"] = df["TeamColorRGBH"].map(lambda c: c["rgb"][2] / 255)
-        df["TeamColorH"] = df["TeamColorRGBH"].map(lambda c: c["saturation_hls"])
-
-        df["TeamColor"] = [
-            (r, g, b, h) for r, g, b, h in zip(df["TeamColorR"], df["TeamColorG"], df["TeamColorB"], df["TeamColorH"])
-        ]
-        df = df.drop(
-            columns=[
-                "TeamColorRGBH",
-                "TeamColorR",
-                "TeamColorG",
-                "TeamColorB",
-                "TeamColorH",
-            ],
-        )
-
-        self._session_results = df
+        self._session_results = self.session_parser.process_team_colors()
 
         self.update_loading(1)
 

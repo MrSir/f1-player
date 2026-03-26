@@ -3,6 +3,7 @@ from typing import Self
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import PStatClient, WindowProperties
 
+from f1p.services.data_extractor.parsers.session import SessionParser
 from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.components.camera.component import MainCamera
 from f1p.ui.components.leaderboard.component import Leaderboard
@@ -30,12 +31,13 @@ class F1PlayerApp(ShowBase):
         self.width = width
         self.height = height
 
+        self._session_parser: SessionParser | None = None
         self._data_extractor: DataExtractorService | None = None
 
         self.setBackgroundColor(0.3, 0.3, 0.3, 1)
 
         self.taskMgr.setupTaskChain("loadingData", numThreads=1)
-        self.taskMgr.setupTaskChain("updating", numThreads=5)
+        self.taskMgr.setupTaskChain("updating", numThreads=7)
 
         self.ui_components: list = []
 
@@ -50,6 +52,13 @@ class F1PlayerApp(ShowBase):
 
         if pstat_debug:
             PStatClient.connect()
+
+    @property
+    def session_parser(self) -> SessionParser:
+        if self._session_parser is None:
+            self._session_parser = SessionParser()
+
+        return self._session_parser
 
     @property
     def data_extractor(self) -> DataExtractorService:
@@ -82,6 +91,7 @@ class F1PlayerApp(ShowBase):
             40,
             self.text_font,
             self.data_extractor,
+            self.session_parser,
         )
         menu.render()
 

@@ -484,14 +484,14 @@ def test_weather_data_fetches_and_caches(data_extractor_service: DataExtractorSe
 
 def test_map_rotation(
     data_extractor_service: DataExtractorService,
-    mock_circuit_info: MagicMock,
+        circuit_info: MagicMock,
     mocker: MockerFixture,
 ) -> None:
     degs = 45.0
     radians = 0.7853981633974483
 
-    mock_circuit_info.rotation = degs
-    data_extractor_service._circuit_info = mock_circuit_info
+    circuit_info.rotation = degs
+    data_extractor_service._circuit_info = circuit_info
 
     mock_deg2rad = mocker.patch("f1p.services.data_extractor.service.deg2Rad", return_value=radians)
 
