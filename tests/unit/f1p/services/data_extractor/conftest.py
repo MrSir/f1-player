@@ -73,14 +73,38 @@ def track_status_colors() -> DataFrame:
 
 
 @pytest.fixture()
+def weather_data() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(milliseconds=1000),
+                Timedelta(milliseconds=2000),
+                Timedelta(milliseconds=3000),
+                Timedelta(milliseconds=4000),
+                Timedelta(milliseconds=5000)
+            ],
+            "AirTemp": [21.0, 23.0, 25.0, 16.0, 15.0],
+            "Humidity": [80.0, 50.0, 0.0, 0.0, 0.0],
+            "Pressure": [1024.6, 1024.6, 1024.6, 1024.6, 1024.6],
+            "Rainfall": [True, True, False, False, False],
+            "TrackTemp": [45.0, 46.0, 47.0, 48.0, 60.0],
+            "WindDirection": [91, 111, 99, 91, 65],
+            "WindSpeed": [2.1, 1.5, 2.0, 1.8, 2.7],
+        },
+    )
+
+
+@pytest.fixture()
 def mock_session(
     circuit_info: CircuitInfo,
     track_status: DataFrame,
+    weather_data: DataFrame,
     mocker: MockerFixture,
 ) -> MagicMock:
     session = mocker.MagicMock(spec=Session)
     session.get_circuit_info = mocker.MagicMock(return_value=circuit_info)
     session.track_status = track_status
+    session.weather_data = weather_data
 
     return session
 
@@ -221,6 +245,27 @@ def processed_track_statuses() -> DataFrame:
         },
     )
 
+
+@pytest.fixture()
+def processed_weather_data() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(milliseconds=1000),
+                Timedelta(milliseconds=2000),
+                Timedelta(milliseconds=3000),
+                Timedelta(milliseconds=4000),
+                Timedelta(milliseconds=5000)
+            ],
+            "AirTemp": [21.0, 23.0, 25.0, 16.0, 15.0],
+            "Humidity": [80.0, 50.0, 0.0, 0.0, 0.0],
+            "Pressure": [1024.6, 1024.6, 1024.6, 1024.6, 1024.6],
+            "Rainfall": [True, True, False, False, False],
+            "TrackTemp": [45.0, 46.0, 47.0, 48.0, 60.0],
+            "WindDirection": [91, 111, 99, 91, 65],
+            "WindSpeed": [2.1, 1.5, 2.0, 1.8, 2.7],
+        },
+    )
 #
 # @pytest.fixture()
 # def mock_parent(mocker: MockerFixture) -> MagicMock:

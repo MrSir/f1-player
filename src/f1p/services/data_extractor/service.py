@@ -760,7 +760,7 @@ class DataExtractorService(DirectObject):
 
     def process_weather_data(self) -> Self:
         self.weather_parser.process_weather_data(
-            self.processed_pos_data,
+            self.session_time_ticks_df,
             self.session_start_time,
             self.session_end_time,
         )

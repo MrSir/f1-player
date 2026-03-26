@@ -27,6 +27,9 @@ def test_initialization(mock_session: MagicMock) -> None:
     assert parser._track_status_colors is None
     assert parser._green_flag_track_status is None
 
+    assert parser._augmented_session_time_ticks_df is None
+    assert parser._processed_track_statuses is None
+
 
 def test_circuit_info_property_fetches(parser: TrackParser, mock_session: MagicMock, circuit_info: CircuitInfo) -> None:
     assert parser._circuit_info is None

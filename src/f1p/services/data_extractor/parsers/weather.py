@@ -1,5 +1,11 @@
+from typing import Self
+
+import numpy as np
+import pandas as pd
 from fastf1.core import Session
 from pandas import DataFrame, Timedelta, Series
+
+from f1p.utils.dataframe import merge_in_session_time_ticks
 
 
 class WeatherParser:
@@ -23,104 +29,146 @@ class WeatherParser:
 
         return self._processed_weather_data
 
+    def _trim_to_session_time(
+        self,
+        session_start_time: Timedelta,
+        session_end_time: Timedelta,
+    ) -> Self:
+        df = self.weather_data.copy()
+        df = df[df["Time"] >= session_start_time]
+        df = df[df["Time"] <= session_end_time]
+
+        self._weather_data = df.reset_index(drop=True)
+
+        return self
+
+    def _add_session_time_ticks(self, session_time_ticks_df: DataFrame) -> Self:
+        df = merge_in_session_time_ticks(self.weather_data, session_time_ticks_df, "Time")
+
+        self._processed_weather_data = df
+
+        return self
+
+    def _convert_air_temp_to_fahrenheit(self) -> Self:
+        df = self._processed_weather_data.copy()
+
+        df["AirTempF"] = (df["AirTemp"] * 9 / 5) + 32
+
+        self._processed_weather_data = df
+
+        return self
+
+    def _convert_track_temp_to_fahrenheit(self) -> Self:
+        df = self._processed_weather_data.copy()
+
+        df["TrackTempF"] = (df["TrackTemp"] * 9 / 5) + 32
+
+        self._processed_weather_data = df
+
+        return self
+
+    def _convert_pressure_to_kilopascal(self) -> Self:
+        df = self._processed_weather_data.copy()
+
+        df["Pressure"] = df["Pressure"] / 10
+
+        self._processed_weather_data = df
+
+        return self
+
+    def _convert_wind_speed_to_km_p_h(self) -> Self:
+        df = self._processed_weather_data.copy()
+
+        df["WindSpeed"] = df["WindSpeed"] * 18 / 5
+
+        self._processed_weather_data = df
+
+        return self
+
+    def _add_weather_symbol(self) -> Self:
+        df = self._processed_weather_data.copy()
+
+        df.loc[df["Rainfall"], "WeatherSymbol"] = "🌧"
+        df["WeatherSymbol"] = df["WeatherSymbol"].fillna("🌣")
+
+        self._processed_weather_data = df
+
+        return self
+
+    def _add_weather_text(self) -> Self:
+        df = self._processed_weather_data.copy()
+
+        df.loc[df["Rainfall"], "WeatherText"] = "RAIN"
+        df["WeatherText"] = df["WeatherText"].fillna("SUNNY")
+
+        self._processed_weather_data = df
+
+        return self
+
+    def _add_weather_direction_symbol(self) -> Self:
+        df = self._processed_weather_data.copy()
+
+        df["WindDirectionSymbol"] = np.select(
+            [
+                ((df["WindDirection"] > 337.5) | (df["WindDirection"] <= 22.5)),
+                ((df["WindDirection"] > 22.5) & (df["WindDirection"] <= 67.5)),
+                ((df["WindDirection"] > 67.5) & (df["WindDirection"] <= 112.5)),
+                ((df["WindDirection"] > 112.5) & (df["WindDirection"] <= 157.5)),
+                ((df["WindDirection"] > 157.5) & (df["WindDirection"] <= 202.5)),
+                ((df["WindDirection"] > 202.5) & (df["WindDirection"] <= 247.5)),
+                ((df["WindDirection"] > 247.5) & (df["WindDirection"] <= 292.5)),
+                ((df["WindDirection"] > 292.5) & (df["WindDirection"] <= 337.5)),
+            ],
+            ["🢃", "🢇", "🢀", "🢄", "🢁", "🢅", "🢂", "🢆"],
+            pd.NA
+        )
+        df["WindDirectionSymbol"] = df["WindDirectionSymbol"].ffill()
+
+        self._processed_weather_data = df
+
+        return self
+
+    def _add_weather_direction_text(self) -> Self:
+        df = self._processed_weather_data.copy()
+
+        df["WindDirectionText"] = np.select(
+            [
+                ((df["WindDirection"] > 337.5) | (df["WindDirection"] <= 22.5)),
+                ((df["WindDirection"] > 22.5) & (df["WindDirection"] <= 67.5)),
+                ((df["WindDirection"] > 67.5) & (df["WindDirection"] <= 112.5)),
+                ((df["WindDirection"] > 112.5) & (df["WindDirection"] <= 157.5)),
+                ((df["WindDirection"] > 157.5) & (df["WindDirection"] <= 202.5)),
+                ((df["WindDirection"] > 202.5) & (df["WindDirection"] <= 247.5)),
+                ((df["WindDirection"] > 247.5) & (df["WindDirection"] <= 292.5)),
+                ((df["WindDirection"] > 292.5) & (df["WindDirection"] <= 337.5)),
+            ],
+            ["NORTH", "NORTH EAST", "EAST", "SOUTH EAST", "SOUTH", "SOUTH WEST", "WEST", "NORTH WEST"],
+            pd.NA
+        )
+        df["WindDirectionText"] = df["WindDirectionText"].ffill()
+
+        self._processed_weather_data = df
+
+        return self
+
     def process_weather_data(
         self,
-        processed_pos_data: DataFrame,
+        session_time_ticks_df: DataFrame,
         session_start_time: Timedelta,
         session_end_time: Timedelta,
     ) -> None:
-        df = processed_pos_data.copy()
-        df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(keep="first").copy()
-
-        weather_df = self.weather_data.copy()
-        weather_df = weather_df[weather_df["Time"] >= session_start_time]
-        weather_df = weather_df[weather_df["Time"] <= session_end_time]
-
-        for record in weather_df.itertuples():
-            weather_df.loc[weather_df["Time"] == record.Time, "SessionTimeTick"] = df.loc[
-                df["SessionTime"] <= record.Time,
-                "SessionTimeTick",
-            ].max()
-
-        weather_df["SessionTimeTick"] = weather_df["SessionTimeTick"].astype("int64")
-        weather_df["AirTempF"] = (weather_df["AirTemp"] * 9 / 5) + 32
-        weather_df["TrackTempF"] = (weather_df["TrackTemp"] * 9 / 5) + 32
-        weather_df["Pressure"] = weather_df["Pressure"] / 10
-        weather_df["WindSpeed"] = weather_df["WindSpeed"] * 18 / 5
-        weather_df.loc[weather_df["Rainfall"], "WeatherSymbol"] = "🌧"
-        weather_df.loc[weather_df["Rainfall"], "WeatherText"] = "RAIN"
-        weather_df["WeatherSymbol"] = weather_df["WeatherSymbol"].fillna("🌣")
-        weather_df["WeatherText"] = weather_df["WeatherText"].fillna("SUNNY")
-
-        weather_df.loc[
-            (weather_df["WindDirection"] > 337.5) | (weather_df["WindDirection"] <= 22.5),
-            "WindDirectionSymbol",
-        ] = "🢃"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 337.5) | (weather_df["WindDirection"] <= 22.5),
-            "WindDirectionText",
-        ] = "NORTH"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 22.5) & (weather_df["WindDirection"] <= 67.5),
-            "WindDirectionSymbol",
-        ] = "🢇"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 22.5) & (weather_df["WindDirection"] <= 67.5),
-            "WindDirectionText",
-        ] = "NORTH EAST"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 67.5) & (weather_df["WindDirection"] <= 112.5),
-            "WindDirectionSymbol",
-        ] = "🢀"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 67.5) & (weather_df["WindDirection"] <= 112.5),
-            "WindDirectionText",
-        ] = "EAST"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 112.5) & (weather_df["WindDirection"] <= 157.5),
-            "WindDirectionSymbol",
-        ] = "🢄"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 112.5) & (weather_df["WindDirection"] <= 157.5),
-            "WindDirectionText",
-        ] = "SOUTH EAST"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 157.5) & (weather_df["WindDirection"] <= 202.5),
-            "WindDirectionSymbol",
-        ] = "🢁"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 157.5) & (weather_df["WindDirection"] <= 202.5),
-            "WindDirectionText",
-        ] = "SOUTH"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 202.5) & (weather_df["WindDirection"] <= 247.5),
-            "WindDirectionSymbol",
-        ] = "🢅"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 202.5) & (weather_df["WindDirection"] <= 247.5),
-            "WindDirectionText",
-        ] = "SOUTH WEST"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 247.5) & (weather_df["WindDirection"] <= 292.5),
-            "WindDirectionSymbol",
-        ] = "🢂"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 247.5) & (weather_df["WindDirection"] <= 292.5),
-            "WindDirectionText",
-        ] = "WEST"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 292.5) & (weather_df["WindDirection"] <= 337.5),
-            "WindDirectionSymbol",
-        ] = "🢆"
-        weather_df.loc[
-            (weather_df["WindDirection"] > 292.5) & (weather_df["WindDirection"] <= 337.5),
-            "WindDirectionText",
-        ] = "NORTH WEST"
-
-        weather_df["WindDirectionSymbol"] = weather_df["WindDirectionSymbol"].ffill()
-        weather_df["WindDirectionText"] = weather_df["WindDirectionText"].ffill()
-
-        self._processed_weather_data = weather_df
+        (
+            self._trim_to_session_time(session_start_time, session_end_time)
+            ._add_session_time_ticks(session_time_ticks_df)
+            ._convert_air_temp_to_fahrenheit()
+            ._convert_track_temp_to_fahrenheit()
+            ._convert_pressure_to_kilopascal()
+            ._convert_wind_speed_to_km_p_h()
+            ._add_weather_symbol()
+            ._add_weather_text()
+            ._add_weather_direction_symbol()
+            ._add_weather_direction_text()
+        )
 
     def get_current_weather_data(self, session_time_tick: int) -> Series | None:
         weather_df = self.processed_weather_data
