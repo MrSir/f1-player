@@ -12,16 +12,13 @@ from direct.showbase.DirectObject import DirectObject
 from direct.showbase.MessengerGlobal import messenger
 from direct.task.Task import Task, TaskManager
 from fastf1.core import Session, Telemetry
-from fastf1.events import Event, EventSchedule
-from fastf1.mvapi import CircuitInfo
-from panda3d.core import LVecBase4f, NodePath, Point3, StaticTextFont, deg2Rad
+from panda3d.core import LVecBase4f, NodePath, Point3, StaticTextFont
 from pandas import DataFrame, Series, Timedelta
 
 from f1p.services.data_extractor.parsers.session import SessionParser
 from f1p.services.data_extractor.parsers.track import TrackParser
 from f1p.services.data_extractor.parsers.weather import WeatherParser
 from f1p.ui.enums import Colors
-from f1p.utils.color import hex_to_rgb_saturation
 from f1p.utils.geometry import center_pos_data, find_center, resize_pos_data
 from f1p.utils.timedelta import td_series_to_min_n_sec
 
@@ -54,13 +51,10 @@ class DataExtractorService(DirectObject):
 
         self._weather_parser: WeatherParser | None = None
 
-
         self._pos_data: dict[str, Telemetry] | None = None
         self._car_data: dict[str, Telemetry] | None = None
 
         self._session_time_ticks_df: DataFrame | None = None
-
-
 
         self._laps: DataFrame | None = None
 
@@ -150,11 +144,6 @@ class DataExtractorService(DirectObject):
 
         return self._weather_parser
 
-
-
-
-
-
     @property
     def pos_data(self) -> dict[str, Telemetry]:
         if self._pos_data is None:
@@ -213,7 +202,6 @@ class DataExtractorService(DirectObject):
     def lowest_z_coordinate(self) -> float:
         return self.processed_pos_data["Z"].min()
 
-
     @property
     def session_ticks(self) -> int:
         df = self.processed_pos_data.copy()
@@ -227,9 +215,13 @@ class DataExtractorService(DirectObject):
     def session_time_ticks_df(self) -> DataFrame:
         if self._session_time_ticks_df is None:
             df = self.processed_pos_data.copy()
-            df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(
-                keep="first",
-            ).copy()
+            df = (
+                df[["SessionTimeTick", "SessionTime"]]
+                .drop_duplicates(
+                    keep="first",
+                )
+                .copy()
+            )
 
             self._session_time_ticks_df = df
 
@@ -243,8 +235,6 @@ class DataExtractorService(DirectObject):
             self.session_start_time,
             self.session_end_time,
         )
-
-
 
     def get_current_track_status(self, session_time_tick: int) -> Series | None:
         ts_df = self.track_statuses

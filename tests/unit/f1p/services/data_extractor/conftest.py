@@ -5,11 +5,15 @@ import pytest
 from fastf1.core import Session
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f, deg2Rad
-from pandas import DataFrame, Timedelta
+from pandas import DataFrame, Series, Timedelta
 from pytest_mock import MockerFixture
 
 from f1p.services.data_extractor.track_statuses import (
-    GreenFlagTrackStatus, RedFlagTrackStatus, SafetyCarTrackStatus, VSCDeployedTrackStatus, VSCEndingTrackStatus,
+    GreenFlagTrackStatus,
+    RedFlagTrackStatus,
+    SafetyCarTrackStatus,
+    VSCDeployedTrackStatus,
+    VSCEndingTrackStatus,
     YellowFlagTrackStatus,
 )
 
@@ -81,14 +85,14 @@ def weather_data() -> DataFrame:
                 Timedelta(milliseconds=2000),
                 Timedelta(milliseconds=3000),
                 Timedelta(milliseconds=4000),
-                Timedelta(milliseconds=5000)
+                Timedelta(milliseconds=5000),
             ],
             "AirTemp": [21.0, 23.0, 25.0, 16.0, 15.0],
             "Humidity": [80.0, 50.0, 0.0, 0.0, 0.0],
-            "Pressure": [1024.6, 1024.6, 1024.6, 1024.6, 1024.6],
+            "Pressure": [1024.6, 1024.6, 1031.6, 1018.4, 1024.6],
             "Rainfall": [True, True, False, False, False],
             "TrackTemp": [45.0, 46.0, 47.0, 48.0, 60.0],
-            "WindDirection": [91, 111, 99, 91, 65],
+            "WindDirection": [91, 116, 99, 300, 65],
             "WindSpeed": [2.1, 1.5, 2.0, 1.8, 2.7],
         },
     )
@@ -135,7 +139,7 @@ def session_time_ticks_df() -> DataFrame:
                 Timedelta(milliseconds=2000),
                 Timedelta(milliseconds=3000),
                 Timedelta(milliseconds=4000),
-                Timedelta(milliseconds=5000)
+                Timedelta(milliseconds=5000),
             ],
             "SessionTimeTick": [1, 2, 3, 4, 5],
         },
@@ -151,7 +155,7 @@ def augmented_session_time_ticks_df() -> DataFrame:
                 Timedelta(milliseconds=2000),
                 Timedelta(milliseconds=3000),
                 Timedelta(milliseconds=4000),
-                Timedelta(milliseconds=5000)
+                Timedelta(milliseconds=5000),
             ],
             "SessionTimeTick": [1, 2, 3, 4, 5],
             "Pixel": [
@@ -160,7 +164,7 @@ def augmented_session_time_ticks_df() -> DataFrame:
                 40.0,
                 60.0,
                 80.0,
-            ]
+            ],
         },
     )
 
@@ -211,7 +215,7 @@ def processed_track_statuses_after_compute_width() -> DataFrame:
             "SessionTimeTickEnd": [4, 4],
             "PixelStart": [20.0, 60.0],
             "PixelEnd": [60.0, 60.0],
-            "Width": [40.0, 0.0]
+            "Width": [40.0, 0.0],
         },
     )
 
@@ -225,9 +229,10 @@ def processed_track_statuses_after_convert_status_to_int() -> DataFrame:
             "SessionTimeTickEnd": [4, 4],
             "PixelStart": [20.0, 60.0],
             "PixelEnd": [60.0, 60.0],
-            "Width": [40.0, 0.0]
+            "Width": [40.0, 0.0],
         },
     )
+
 
 @pytest.fixture()
 def processed_track_statuses() -> DataFrame:
@@ -247,25 +252,280 @@ def processed_track_statuses() -> DataFrame:
 
 
 @pytest.fixture()
+def processed_weather_data_after_trim_to_session_time() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(milliseconds=2000),
+                Timedelta(milliseconds=3000),
+                Timedelta(milliseconds=4000),
+            ],
+            "AirTemp": [23.0, 25.0, 16.0],
+            "Humidity": [50.0, 0.0, 0.0],
+            "Pressure": [1024.6, 1031.6, 1018.4],
+            "Rainfall": [True, False, False],
+            "TrackTemp": [46.0, 47.0, 48.0],
+            "WindDirection": [116, 99, 300],
+            "WindSpeed": [1.5, 2.0, 1.8],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_weather_data_after_add_session_time_ticks() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(milliseconds=2000),
+                Timedelta(milliseconds=3000),
+                Timedelta(milliseconds=4000),
+            ],
+            "AirTemp": [23.0, 25.0, 16.0],
+            "Humidity": [50.0, 0.0, 0.0],
+            "Pressure": [1024.6, 1031.6, 1018.4],
+            "Rainfall": [True, False, False],
+            "TrackTemp": [46.0, 47.0, 48.0],
+            "WindDirection": [116, 99, 300],
+            "WindSpeed": [1.5, 2.0, 1.8],
+            "SessionTimeTick": [2, 3, 4],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_weather_data_after_convert_air_temp_to_fahrenheit() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(milliseconds=2000),
+                Timedelta(milliseconds=3000),
+                Timedelta(milliseconds=4000),
+            ],
+            "AirTemp": [23.0, 25.0, 16.0],
+            "Humidity": [50.0, 0.0, 0.0],
+            "Pressure": [1024.6, 1031.6, 1018.4],
+            "Rainfall": [True, False, False],
+            "TrackTemp": [46.0, 47.0, 48.0],
+            "WindDirection": [116, 99, 300],
+            "WindSpeed": [1.5, 2.0, 1.8],
+            "SessionTimeTick": [2, 3, 4],
+            "AirTempF": [73.4, 77.0, 60.8],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_weather_data_after_convert_track_temp_to_fahrenheit() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(milliseconds=2000),
+                Timedelta(milliseconds=3000),
+                Timedelta(milliseconds=4000),
+            ],
+            "AirTemp": [23.0, 25.0, 16.0],
+            "Humidity": [50.0, 0.0, 0.0],
+            "Pressure": [1024.6, 1031.6, 1018.4],
+            "Rainfall": [True, False, False],
+            "TrackTemp": [46.0, 47.0, 48.0],
+            "WindDirection": [116, 99, 300],
+            "WindSpeed": [1.5, 2.0, 1.8],
+            "SessionTimeTick": [2, 3, 4],
+            "AirTempF": [73.4, 77.0, 60.8],
+            "TrackTempF": [114.8, 116.6, 118.4],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_weather_data_after_convert_pressure_to_kilopascal() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(milliseconds=2000),
+                Timedelta(milliseconds=3000),
+                Timedelta(milliseconds=4000),
+            ],
+            "AirTemp": [23.0, 25.0, 16.0],
+            "Humidity": [50.0, 0.0, 0.0],
+            "Pressure": [102.46, 103.16, 101.84],
+            "Rainfall": [True, False, False],
+            "TrackTemp": [46.0, 47.0, 48.0],
+            "WindDirection": [116, 99, 300],
+            "WindSpeed": [1.5, 2.0, 1.8],
+            "SessionTimeTick": [2, 3, 4],
+            "AirTempF": [73.4, 77.0, 60.8],
+            "TrackTempF": [114.8, 116.6, 118.4],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_weather_data_after_convert_wind_speed_to_km_p_h() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(milliseconds=2000),
+                Timedelta(milliseconds=3000),
+                Timedelta(milliseconds=4000),
+            ],
+            "AirTemp": [23.0, 25.0, 16.0],
+            "Humidity": [50.0, 0.0, 0.0],
+            "Pressure": [102.46, 103.16, 101.84],
+            "Rainfall": [True, False, False],
+            "TrackTemp": [46.0, 47.0, 48.0],
+            "WindDirection": [116, 99, 300],
+            "WindSpeed": [5.4, 7.2, 6.4799999999999995],
+            "SessionTimeTick": [2, 3, 4],
+            "AirTempF": [73.4, 77.0, 60.8],
+            "TrackTempF": [114.8, 116.6, 118.4],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_weather_data_after_add_weather_symbol() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(milliseconds=2000),
+                Timedelta(milliseconds=3000),
+                Timedelta(milliseconds=4000),
+            ],
+            "AirTemp": [23.0, 25.0, 16.0],
+            "Humidity": [50.0, 0.0, 0.0],
+            "Pressure": [102.46, 103.16, 101.84],
+            "Rainfall": [True, False, False],
+            "TrackTemp": [46.0, 47.0, 48.0],
+            "WindDirection": [116, 99, 300],
+            "WindSpeed": [5.4, 7.2, 6.4799999999999995],
+            "SessionTimeTick": [2, 3, 4],
+            "AirTempF": [73.4, 77.0, 60.8],
+            "TrackTempF": [114.8, 116.6, 118.4],
+            "WeatherSymbol": ["🌧", "🌣", "🌣"],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_weather_data_after_add_weather_text() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(milliseconds=2000),
+                Timedelta(milliseconds=3000),
+                Timedelta(milliseconds=4000),
+            ],
+            "AirTemp": [23.0, 25.0, 16.0],
+            "Humidity": [50.0, 0.0, 0.0],
+            "Pressure": [102.46, 103.16, 101.84],
+            "Rainfall": [True, False, False],
+            "TrackTemp": [46.0, 47.0, 48.0],
+            "WindDirection": [116, 99, 300],
+            "WindSpeed": [5.4, 7.2, 6.4799999999999995],
+            "SessionTimeTick": [2, 3, 4],
+            "AirTempF": [73.4, 77.0, 60.8],
+            "TrackTempF": [114.8, 116.6, 118.4],
+            "WeatherSymbol": ["🌧", "🌣", "🌣"],
+            "WeatherText": ["RAIN", "SUNNY", "SUNNY"],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_weather_data_after_add_wind_direction_symbol() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(milliseconds=2000),
+                Timedelta(milliseconds=3000),
+                Timedelta(milliseconds=4000),
+            ],
+            "AirTemp": [23.0, 25.0, 16.0],
+            "Humidity": [50.0, 0.0, 0.0],
+            "Pressure": [102.46, 103.16, 101.84],
+            "Rainfall": [True, False, False],
+            "TrackTemp": [46.0, 47.0, 48.0],
+            "WindDirection": [116, 99, 300],
+            "WindSpeed": [5.4, 7.2, 6.4799999999999995],
+            "SessionTimeTick": [2, 3, 4],
+            "AirTempF": [73.4, 77.0, 60.8],
+            "TrackTempF": [114.8, 116.6, 118.4],
+            "WeatherSymbol": ["🌧", "🌣", "🌣"],
+            "WeatherText": ["RAIN", "SUNNY", "SUNNY"],
+            "WindDirectionSymbol": ["🢄", "🢀", "🢆"],
+        },
+    )
+
+
+@pytest.fixture()
 def processed_weather_data() -> DataFrame:
     return DataFrame(
         {
             "Time": [
-                Timedelta(milliseconds=1000),
                 Timedelta(milliseconds=2000),
                 Timedelta(milliseconds=3000),
                 Timedelta(milliseconds=4000),
-                Timedelta(milliseconds=5000)
             ],
-            "AirTemp": [21.0, 23.0, 25.0, 16.0, 15.0],
-            "Humidity": [80.0, 50.0, 0.0, 0.0, 0.0],
-            "Pressure": [1024.6, 1024.6, 1024.6, 1024.6, 1024.6],
-            "Rainfall": [True, True, False, False, False],
-            "TrackTemp": [45.0, 46.0, 47.0, 48.0, 60.0],
-            "WindDirection": [91, 111, 99, 91, 65],
-            "WindSpeed": [2.1, 1.5, 2.0, 1.8, 2.7],
+            "AirTemp": [23.0, 25.0, 16.0],
+            "Humidity": [50.0, 0.0, 0.0],
+            "Pressure": [102.46, 103.16, 101.84],
+            "Rainfall": [True, False, False],
+            "TrackTemp": [46.0, 47.0, 48.0],
+            "WindDirection": [116, 99, 300],
+            "WindSpeed": [5.4, 7.2, 6.4799999999999995],
+            "SessionTimeTick": [2, 3, 4],
+            "AirTempF": [73.4, 77.0, 60.8],
+            "TrackTempF": [114.8, 116.6, 118.4],
+            "WeatherSymbol": ["🌧", "🌣", "🌣"],
+            "WeatherText": ["RAIN", "SUNNY", "SUNNY"],
+            "WindDirectionSymbol": ["🢄", "🢀", "🢆"],
+            "WindDirectionText": ["SOUTH EAST", "EAST", "NORTH WEST"],
         },
     )
+
+
+@pytest.fixture()
+def processed_weather_data_at_tick_2() -> Series:
+    return Series(
+        [
+            Timedelta(milliseconds=2000),
+            23.0,
+            50.0,
+            102.46,
+            True,
+            46.0,
+            116,
+            5.4,
+            2,
+            73.4,
+            114.8,
+            "🌧",
+            "RAIN",
+            "🢄",
+            "SOUTH EAST",
+        ],
+        index=[
+            "Time",
+            "AirTemp",
+            "Humidity",
+            "Pressure",
+            "Rainfall",
+            "TrackTemp",
+            "WindDirection",
+            "WindSpeed",
+            "SessionTimeTick",
+            "AirTempF",
+            "TrackTempF",
+            "WeatherSymbol",
+            "WeatherText",
+            "WindDirectionSymbol",
+            "WindDirectionText",
+        ],
+        name=0,
+    )
+
+
 #
 # @pytest.fixture()
 # def mock_parent(mocker: MockerFixture) -> MagicMock:

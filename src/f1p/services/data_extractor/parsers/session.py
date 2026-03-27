@@ -1,10 +1,10 @@
 import fastf1
 from direct.showbase.DirectObject import DirectObject
 from fastf1.core import Session
-from fastf1.events import EventSchedule, Event
+from fastf1.events import Event, EventSchedule
 from pandas import DataFrame, Timedelta
 
-from f1p.services.data_extractor.enums import SprintQualifyingSessionIdentifiers, ConventionalSessionIdentifiers
+from f1p.services.data_extractor.enums import ConventionalSessionIdentifiers, SprintQualifyingSessionIdentifiers
 from f1p.utils.color import hex_to_rgb_saturation
 
 

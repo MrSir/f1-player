@@ -7,7 +7,6 @@ from direct.showbase.Messenger import Messenger
 from direct.task.Task import TaskManager
 from panda3d.core import Point3, StaticTextFont
 
-from f1p.services.data_extractor.enums import ConventionalSessionIdentifiers, SprintQualifyingSessionIdentifiers
 from f1p.services.data_extractor.parsers.session import SessionParser
 from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.components.gui.drop_down import BlackDropDown

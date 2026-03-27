@@ -1,8 +1,14 @@
 from panda3d.core import LVecBase4f
 from pandas import Series
 
-from f1p.services.data_extractor.track_statuses import GreenFlagTrackStatus, YellowFlagTrackStatus, \
-    SafetyCarTrackStatus, VSCDeployedTrackStatus, VSCEndingTrackStatus, RedFlagTrackStatus
+from f1p.services.data_extractor.track_statuses import (
+    GreenFlagTrackStatus,
+    RedFlagTrackStatus,
+    SafetyCarTrackStatus,
+    VSCDeployedTrackStatus,
+    VSCEndingTrackStatus,
+    YellowFlagTrackStatus,
+)
 
 
 def test_green_flag_track_status() -> None:

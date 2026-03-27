@@ -3,15 +3,18 @@ from typing import Self
 from fastf1.core import Session
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import deg2Rad
-from pandas import DataFrame, Timedelta, Series
+from pandas import DataFrame, Series, Timedelta
 
 from f1p.services.data_extractor.track_statuses import (
-    GreenFlagTrackStatus, YellowFlagTrackStatus,
+    GreenFlagTrackStatus,
+    RedFlagTrackStatus,
     SafetyCarTrackStatus,
-    RedFlagTrackStatus, VSCDeployedTrackStatus, VSCEndingTrackStatus,
+    VSCDeployedTrackStatus,
+    VSCEndingTrackStatus,
+    YellowFlagTrackStatus,
 )
 from f1p.utils.dataframe import merge_in_session_time_ticks
-from f1p.utils.geometry import resize_pos_data, center_pos_data
+from f1p.utils.geometry import center_pos_data, resize_pos_data
 
 
 class TrackParser:
@@ -150,9 +153,13 @@ class TrackParser:
         ).rename(columns={"SessionTimeTick_x": "SessionTimeTick"})
 
         # Cleanup
-        df = df.rename(columns={"Pixel": "PixelEnd"}).drop(
-            columns=["SessionTime", "SessionTimeTick_y", "Time", "EndTime"],
-        ).reset_index(drop=True)
+        df = (
+            df.rename(columns={"Pixel": "PixelEnd"})
+            .drop(
+                columns=["SessionTime", "SessionTimeTick_y", "Time", "EndTime"],
+            )
+            .reset_index(drop=True)
+        )
 
         self._processed_track_statuses = df
 

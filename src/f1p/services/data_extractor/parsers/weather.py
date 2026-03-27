@@ -3,7 +3,7 @@ from typing import Self
 import numpy as np
 import pandas as pd
 from fastf1.core import Session
-from pandas import DataFrame, Timedelta, Series
+from pandas import DataFrame, Series, Timedelta
 
 from f1p.utils.dataframe import merge_in_session_time_ticks
 
@@ -38,12 +38,12 @@ class WeatherParser:
         df = df[df["Time"] >= session_start_time]
         df = df[df["Time"] <= session_end_time]
 
-        self._weather_data = df.reset_index(drop=True)
+        self._processed_weather_data = df.reset_index(drop=True)
 
         return self
 
     def _add_session_time_ticks(self, session_time_ticks_df: DataFrame) -> Self:
-        df = merge_in_session_time_ticks(self.weather_data, session_time_ticks_df, "Time")
+        df = merge_in_session_time_ticks(self._processed_weather_data, session_time_ticks_df, "Time")
 
         self._processed_weather_data = df
 
@@ -105,7 +105,7 @@ class WeatherParser:
 
         return self
 
-    def _add_weather_direction_symbol(self) -> Self:
+    def _add_wind_direction_symbol(self) -> Self:
         df = self._processed_weather_data.copy()
 
         df["WindDirectionSymbol"] = np.select(
@@ -120,7 +120,7 @@ class WeatherParser:
                 ((df["WindDirection"] > 292.5) & (df["WindDirection"] <= 337.5)),
             ],
             ["🢃", "🢇", "🢀", "🢄", "🢁", "🢅", "🢂", "🢆"],
-            pd.NA
+            pd.NA,
         )
         df["WindDirectionSymbol"] = df["WindDirectionSymbol"].ffill()
 
@@ -128,7 +128,7 @@ class WeatherParser:
 
         return self
 
-    def _add_weather_direction_text(self) -> Self:
+    def _add_wind_direction_text(self) -> Self:
         df = self._processed_weather_data.copy()
 
         df["WindDirectionText"] = np.select(
@@ -143,7 +143,7 @@ class WeatherParser:
                 ((df["WindDirection"] > 292.5) & (df["WindDirection"] <= 337.5)),
             ],
             ["NORTH", "NORTH EAST", "EAST", "SOUTH EAST", "SOUTH", "SOUTH WEST", "WEST", "NORTH WEST"],
-            pd.NA
+            pd.NA,
         )
         df["WindDirectionText"] = df["WindDirectionText"].ffill()
 
@@ -166,17 +166,17 @@ class WeatherParser:
             ._convert_wind_speed_to_km_p_h()
             ._add_weather_symbol()
             ._add_weather_text()
-            ._add_weather_direction_symbol()
-            ._add_weather_direction_text()
+            ._add_wind_direction_symbol()
+            ._add_wind_direction_text()
         )
 
     def get_current_weather_data(self, session_time_tick: int) -> Series | None:
-        weather_df = self.processed_weather_data
+        df = self.processed_weather_data
 
-        weather_df = weather_df[weather_df["SessionTimeTick"] <= session_time_tick]
-        weather_df = weather_df.sort_values(by="SessionTimeTick", ascending=False)
+        df = df[df["SessionTimeTick"] <= session_time_tick]
+        df = df.sort_values(by="SessionTimeTick", ascending=False)
 
-        if weather_df.empty:
+        if df.empty:
             return None
 
-        return weather_df.iloc[0]
+        return df.iloc[0]

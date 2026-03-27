@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock
 
-import pandas as pd
 import pytest
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import deg2Rad
@@ -112,7 +111,7 @@ def test_green_flag_track_status_property_fetches(parser: TrackParser) -> None:
     assert_series_equal(green_flag_track_status, parser._green_flag_track_status)
 
 
-def test_green_flag_track_status_property_caches(parser: TrackParser, track_status_colors: DataFrame) -> None:
+def test_green_flag_track_status_property_caches(parser: TrackParser) -> None:
     assert parser._green_flag_track_status is None
 
     green_flag_track_status = GreenFlagTrackStatus()
@@ -122,7 +121,7 @@ def test_green_flag_track_status_property_caches(parser: TrackParser, track_stat
 
 
 def test_process_corners(parser: TrackParser, circuit_info: CircuitInfo, processed_corners: DataFrame) -> None:
-    parser._circuit_info = parser.circuit_info
+    parser._circuit_info = circuit_info
 
     map_center_coordinate = (1.2, 1.3, 1.4)
 
@@ -153,7 +152,6 @@ def test_trim_to_session_time(
     parser._circuit_info = circuit_info
 
     assert parser._processed_track_statuses is None
-
 
     instance = parser._trim_to_session_time(session_start_time, session_end_time)
 
@@ -207,7 +205,9 @@ def test_merge_in_augmented_session_time_ticks(
     assert "Time" not in parser._processed_track_statuses.columns
     assert "EndTime" not in parser._processed_track_statuses.columns
 
-    assert_frame_equal(processed_track_statuses_after_merge_augmented_session_time_ticks, parser._processed_track_statuses)
+    assert_frame_equal(
+        processed_track_statuses_after_merge_augmented_session_time_ticks, parser._processed_track_statuses,
+    )
 
 
 def test_compute_width(
@@ -223,7 +223,7 @@ def test_compute_width(
 
     assert isinstance(instance, TrackParser)
 
-    assert "Width"  in parser._processed_track_statuses.columns
+    assert "Width" in parser._processed_track_statuses.columns
 
     assert_frame_equal(processed_track_statuses_after_compute_width, parser._processed_track_statuses)
 
@@ -242,9 +242,6 @@ def test_convert_status_to_integer(
     assert isinstance(instance, TrackParser)
 
     assert parser._processed_track_statuses["Status"].dtype == "int64"
-
-    pd.set_option("display.max_columns", None)
-    print(parser._processed_track_statuses)
 
     assert_frame_equal(processed_track_statuses_after_convert_status_to_int, parser._processed_track_statuses)
 
@@ -281,9 +278,7 @@ def test_process_track_statuses(
 ) -> None:
     parser._circuit_info = circuit_info
 
-    result_df = parser.process_track_statuses(
-        100, 5, session_time_ticks_df, session_start_time, session_end_time
-    )
+    result_df = parser.process_track_statuses(100, 5, session_time_ticks_df, session_start_time, session_end_time)
 
     assert_frame_equal(processed_track_statuses, parser._processed_track_statuses)
     assert_frame_equal(processed_track_statuses, result_df)
@@ -313,7 +308,7 @@ def test_process_track_statuses_units(
     mock_msc = mocker.patch.object(parser, "_merge_status_colors", return_value=parser)
 
     result_df = parser.process_track_statuses(
-        width, session_ticks, session_time_ticks_df, session_start_time, session_end_time
+        width, session_ticks, session_time_ticks_df, session_start_time, session_end_time,
     )
 
     assert_frame_equal(processed_track_statuses, parser._processed_track_statuses)
@@ -326,22 +321,3 @@ def test_process_track_statuses_units(
     mock_cw.assert_called_once()
     mock_csti.assert_called_once()
     mock_msc.assert_called_once()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

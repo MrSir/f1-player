@@ -11,7 +11,10 @@ def merge_in_session_time_ticks(
     df = target_df.copy()
 
     ticks_df_sorted = (
-        session_time_ticks_df.groupby("SessionTime", sort=True)["SessionTimeTick"].max().reset_index().sort_values(
+        session_time_ticks_df.groupby("SessionTime", sort=True)["SessionTimeTick"]
+        .max()
+        .reset_index()
+        .sort_values(
             "SessionTime",
         )
     )

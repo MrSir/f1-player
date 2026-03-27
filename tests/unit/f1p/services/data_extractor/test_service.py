@@ -484,7 +484,7 @@ def test_weather_data_fetches_and_caches(data_extractor_service: DataExtractorSe
 
 def test_map_rotation(
     data_extractor_service: DataExtractorService,
-        circuit_info: MagicMock,
+    circuit_info: MagicMock,
     mocker: MockerFixture,
 ) -> None:
     degs = 45.0
