@@ -5,7 +5,7 @@ import pytest
 from fastf1.core import Session
 from fastf1.mvapi import CircuitInfo
 from panda3d.core import LVecBase4f, deg2Rad
-from pandas import DataFrame, Series, Timedelta
+from pandas import DataFrame, Series, Timedelta, Timestamp
 from pytest_mock import MockerFixture
 
 from f1p.services.data_extractor.track_statuses import (
@@ -99,16 +99,443 @@ def weather_data() -> DataFrame:
 
 
 @pytest.fixture()
+def laps() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [Timedelta(milliseconds=2020), Timedelta(milliseconds=2950), Timedelta(milliseconds=3540)],
+            "Driver": ["TOS", "TOS", "TOS"],
+            "DriverNumber": ["24", "24", "24"],
+            "LapTime": [
+                Timedelta("0 days 00:01:46.513000"),
+                Timedelta("0 days 00:01:41.049000"),
+                Timedelta("0 days 00:01:39.308000"),
+            ],
+            "LapNumber": [1.0, 2.0, 3.0],
+            "Stint": [1.0, 1.0, 2.0],
+            "PitOutTime": [pd.NaT, pd.NaT, Timedelta("0 days 02:09:07.882000")],
+            "PitInTime": [pd.NaT, Timedelta("0 days 02:08:44.608000"), pd.NaT],
+            "Sector1Time": [pd.NaT, Timedelta("0 days 00:00:26.553000"), Timedelta("0 days 00:00:26.135000")],
+            "Sector2Time": [
+                Timedelta("0 days 00:00:31.383000"),
+                Timedelta("0 days 00:00:31.140000"),
+                Timedelta("0 days 00:00:30.408000"),
+            ],
+            "Sector3Time": [
+                Timedelta("0 days 00:00:44.478000"),
+                Timedelta("0 days 00:00:43.356000"),
+                Timedelta("0 days 00:00:42.765000"),
+            ],
+            "Sector1SessionTime": [pd.NaT, Timedelta("0 days 00:58:37.448000"), Timedelta("0 days 01:00:18.079000")],
+            "Sector2SessionTime": [
+                Timedelta("0 days 00:57:26.546000"),
+                Timedelta("0 days 00:59:08.588000"),
+                Timedelta("0 days 01:00:48.487000"),
+            ],
+            "Sector3SessionTime": [
+                Timedelta("0 days 00:58:11.005000"),
+                Timedelta("0 days 00:59:51.944000"),
+                Timedelta("0 days 01:01:31.252000"),
+            ],
+            "SpeedI1": [289.0, 275.0, 274.0],
+            "SpeedI2": [268.0, 264.0, 259.0],
+            "SpeedFL": [271.0, 273.0, 275.0],
+            "SpeedST": [336.0, 323.0, 317.0],
+            "IsPersonalBest": [False, True, True],
+            "Compound": ["HARD", "HARD", "MEDIUM"],
+            "TyreLife": [1.0, 2.0, 3.0],
+            "FreshTyre": [True, True, True],
+            "Team": ["Racing Bulls", "Racing Bulls", "Racing Bulls"],
+            "LapStartTime": [
+                Timedelta("0 days 00:56:24.050000"),
+                Timedelta("0 days 00:58:10.825000"),
+                Timedelta("0 days 00:59:51.874000"),
+            ],
+            "LapStartDate": [
+                Timestamp("2026-03-15 07:03:59.831000"),
+                Timestamp("2026-03-15 07:05:46.606000"),
+                Timestamp("2026-03-15 07:07:27.655000"),
+            ],
+            "TrackStatus": ["12", "1", "1"],
+            "Position": [8.0, 9.0, 9.0],
+            "Deleted": [False, False, False],
+            "DeletedReason": ["", "", ""],
+            "FastF1Generated": [False, False, False],
+            "IsAccurate": [False, True, True],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_laps_after_add_total_laps() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [Timedelta(milliseconds=2020), Timedelta(milliseconds=2950), Timedelta(milliseconds=3540)],
+            "Driver": ["TOS", "TOS", "TOS"],
+            "DriverNumber": ["24", "24", "24"],
+            "LapTime": [
+                Timedelta("0 days 00:01:46.513000"),
+                Timedelta("0 days 00:01:41.049000"),
+                Timedelta("0 days 00:01:39.308000"),
+            ],
+            "LapNumber": [1.0, 2.0, 3.0],
+            "Stint": [1.0, 1.0, 2.0],
+            "PitOutTime": [pd.NaT, pd.NaT, Timedelta("0 days 02:09:07.882000")],
+            "PitInTime": [pd.NaT, Timedelta("0 days 02:08:44.608000"), pd.NaT],
+            "Sector1Time": [pd.NaT, Timedelta("0 days 00:00:26.553000"), Timedelta("0 days 00:00:26.135000")],
+            "Sector2Time": [
+                Timedelta("0 days 00:00:31.383000"),
+                Timedelta("0 days 00:00:31.140000"),
+                Timedelta("0 days 00:00:30.408000"),
+            ],
+            "Sector3Time": [
+                Timedelta("0 days 00:00:44.478000"),
+                Timedelta("0 days 00:00:43.356000"),
+                Timedelta("0 days 00:00:42.765000"),
+            ],
+            "Sector1SessionTime": [pd.NaT, Timedelta("0 days 00:58:37.448000"), Timedelta("0 days 01:00:18.079000")],
+            "Sector2SessionTime": [
+                Timedelta("0 days 00:57:26.546000"),
+                Timedelta("0 days 00:59:08.588000"),
+                Timedelta("0 days 01:00:48.487000"),
+            ],
+            "Sector3SessionTime": [
+                Timedelta("0 days 00:58:11.005000"),
+                Timedelta("0 days 00:59:51.944000"),
+                Timedelta("0 days 01:01:31.252000"),
+            ],
+            "SpeedI1": [289.0, 275.0, 274.0],
+            "SpeedI2": [268.0, 264.0, 259.0],
+            "SpeedFL": [271.0, 273.0, 275.0],
+            "SpeedST": [336.0, 323.0, 317.0],
+            "IsPersonalBest": [False, True, True],
+            "Compound": ["HARD", "HARD", "MEDIUM"],
+            "TyreLife": [1.0, 2.0, 3.0],
+            "FreshTyre": [True, True, True],
+            "Team": ["Racing Bulls", "Racing Bulls", "Racing Bulls"],
+            "LapStartTime": [
+                Timedelta("0 days 00:56:24.050000"),
+                Timedelta("0 days 00:58:10.825000"),
+                Timedelta("0 days 00:59:51.874000"),
+            ],
+            "LapStartDate": [
+                Timestamp("2026-03-15 07:03:59.831000"),
+                Timestamp("2026-03-15 07:05:46.606000"),
+                Timestamp("2026-03-15 07:07:27.655000"),
+            ],
+            "TrackStatus": ["12", "1", "1"],
+            "Position": [8.0, 9.0, 9.0],
+            "Deleted": [False, False, False],
+            "DeletedReason": ["", "", ""],
+            "FastF1Generated": [False, False, False],
+            "IsAccurate": [False, True, True],
+            "TotalLaps": [3, 3, 3],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_laps_after_convert_sector_session_time_to_milliseconds() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [Timedelta(milliseconds=2020), Timedelta(milliseconds=2950), Timedelta(milliseconds=3540)],
+            "Driver": ["TOS", "TOS", "TOS"],
+            "DriverNumber": ["24", "24", "24"],
+            "LapTime": [
+                Timedelta("0 days 00:01:46.513000"),
+                Timedelta("0 days 00:01:41.049000"),
+                Timedelta("0 days 00:01:39.308000"),
+            ],
+            "LapNumber": [1.0, 2.0, 3.0],
+            "Stint": [1.0, 1.0, 2.0],
+            "PitOutTime": [pd.NaT, pd.NaT, Timedelta("0 days 02:09:07.882000")],
+            "PitInTime": [pd.NaT, Timedelta("0 days 02:08:44.608000"), pd.NaT],
+            "Sector1Time": [pd.NaT, Timedelta("0 days 00:00:26.553000"), Timedelta("0 days 00:00:26.135000")],
+            "Sector2Time": [
+                Timedelta("0 days 00:00:31.383000"),
+                Timedelta("0 days 00:00:31.140000"),
+                Timedelta("0 days 00:00:30.408000"),
+            ],
+            "Sector3Time": [
+                Timedelta("0 days 00:00:44.478000"),
+                Timedelta("0 days 00:00:43.356000"),
+                Timedelta("0 days 00:00:42.765000"),
+            ],
+            "Sector1SessionTime": [pd.NaT, Timedelta("0 days 00:58:37.448000"), Timedelta("0 days 01:00:18.079000")],
+            "Sector2SessionTime": [
+                Timedelta("0 days 00:57:26.546000"),
+                Timedelta("0 days 00:59:08.588000"),
+                Timedelta("0 days 01:00:48.487000"),
+            ],
+            "Sector3SessionTime": [
+                Timedelta("0 days 00:58:11.005000"),
+                Timedelta("0 days 00:59:51.944000"),
+                Timedelta("0 days 01:01:31.252000"),
+            ],
+            "SpeedI1": [289.0, 275.0, 274.0],
+            "SpeedI2": [268.0, 264.0, 259.0],
+            "SpeedFL": [271.0, 273.0, 275.0],
+            "SpeedST": [336.0, 323.0, 317.0],
+            "IsPersonalBest": [False, True, True],
+            "Compound": ["HARD", "HARD", "MEDIUM"],
+            "TyreLife": [1.0, 2.0, 3.0],
+            "FreshTyre": [True, True, True],
+            "Team": ["Racing Bulls", "Racing Bulls", "Racing Bulls"],
+            "LapStartTime": [
+                Timedelta("0 days 00:56:24.050000"),
+                Timedelta("0 days 00:58:10.825000"),
+                Timedelta("0 days 00:59:51.874000"),
+            ],
+            "LapStartDate": [
+                Timestamp("2026-03-15 07:03:59.831000"),
+                Timestamp("2026-03-15 07:05:46.606000"),
+                Timestamp("2026-03-15 07:07:27.655000"),
+            ],
+            "TrackStatus": ["12", "1", "1"],
+            "Position": [8.0, 9.0, 9.0],
+            "Deleted": [False, False, False],
+            "DeletedReason": ["", "", ""],
+            "FastF1Generated": [False, False, False],
+            "IsAccurate": [False, True, True],
+            "TotalLaps": [3, 3, 3],
+            "Sector1SessionTimeMilliseconds": [0, 3517448, 3618079],
+            "Sector2SessionTimeMilliseconds": [3446546, 3548588, 3648487],
+            "Sector3SessionTimeMilliseconds": [3491005, 3591944, 3691252],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_laps_after_convert_sector_time_to_milliseconds() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [Timedelta(milliseconds=2020), Timedelta(milliseconds=2950), Timedelta(milliseconds=3540)],
+            "Driver": ["TOS", "TOS", "TOS"],
+            "DriverNumber": ["24", "24", "24"],
+            "LapTime": [
+                Timedelta("0 days 00:01:46.513000"),
+                Timedelta("0 days 00:01:41.049000"),
+                Timedelta("0 days 00:01:39.308000"),
+            ],
+            "LapNumber": [1.0, 2.0, 3.0],
+            "Stint": [1.0, 1.0, 2.0],
+            "PitOutTime": [pd.NaT, pd.NaT, Timedelta("0 days 02:09:07.882000")],
+            "PitInTime": [pd.NaT, Timedelta("0 days 02:08:44.608000"), pd.NaT],
+            "Sector1Time": [pd.NaT, Timedelta("0 days 00:00:26.553000"), Timedelta("0 days 00:00:26.135000")],
+            "Sector2Time": [
+                Timedelta("0 days 00:00:31.383000"),
+                Timedelta("0 days 00:00:31.140000"),
+                Timedelta("0 days 00:00:30.408000"),
+            ],
+            "Sector3Time": [
+                Timedelta("0 days 00:00:44.478000"),
+                Timedelta("0 days 00:00:43.356000"),
+                Timedelta("0 days 00:00:42.765000"),
+            ],
+            "Sector1SessionTime": [pd.NaT, Timedelta("0 days 00:58:37.448000"), Timedelta("0 days 01:00:18.079000")],
+            "Sector2SessionTime": [
+                Timedelta("0 days 00:57:26.546000"),
+                Timedelta("0 days 00:59:08.588000"),
+                Timedelta("0 days 01:00:48.487000"),
+            ],
+            "Sector3SessionTime": [
+                Timedelta("0 days 00:58:11.005000"),
+                Timedelta("0 days 00:59:51.944000"),
+                Timedelta("0 days 01:01:31.252000"),
+            ],
+            "SpeedI1": [289.0, 275.0, 274.0],
+            "SpeedI2": [268.0, 264.0, 259.0],
+            "SpeedFL": [271.0, 273.0, 275.0],
+            "SpeedST": [336.0, 323.0, 317.0],
+            "IsPersonalBest": [False, True, True],
+            "Compound": ["HARD", "HARD", "MEDIUM"],
+            "TyreLife": [1.0, 2.0, 3.0],
+            "FreshTyre": [True, True, True],
+            "Team": ["Racing Bulls", "Racing Bulls", "Racing Bulls"],
+            "LapStartTime": [
+                Timedelta("0 days 00:56:24.050000"),
+                Timedelta("0 days 00:58:10.825000"),
+                Timedelta("0 days 00:59:51.874000"),
+            ],
+            "LapStartDate": [
+                Timestamp("2026-03-15 07:03:59.831000"),
+                Timestamp("2026-03-15 07:05:46.606000"),
+                Timestamp("2026-03-15 07:07:27.655000"),
+            ],
+            "TrackStatus": ["12", "1", "1"],
+            "Position": [8.0, 9.0, 9.0],
+            "Deleted": [False, False, False],
+            "DeletedReason": ["", "", ""],
+            "FastF1Generated": [False, False, False],
+            "IsAccurate": [False, True, True],
+            "TotalLaps": [3, 3, 3],
+            "Sector1SessionTimeMilliseconds": [0, 3517448, 3618079],
+            "Sector2SessionTimeMilliseconds": [3446546, 3548588, 3648487],
+            "Sector3SessionTimeMilliseconds": [3491005, 3591944, 3691252],
+            "Sector1TimeMilliseconds": [0, 26553, 26135],
+            "Sector2TimeMilliseconds": [31383, 31140, 30408],
+            "Sector3TimeMilliseconds": [44478, 43356, 42765],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_laps_after_format_sector_time_milliseconds() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [Timedelta(milliseconds=2020), Timedelta(milliseconds=2950), Timedelta(milliseconds=3540)],
+            "Driver": ["TOS", "TOS", "TOS"],
+            "DriverNumber": ["24", "24", "24"],
+            "LapTime": [
+                Timedelta("0 days 00:01:46.513000"),
+                Timedelta("0 days 00:01:41.049000"),
+                Timedelta("0 days 00:01:39.308000"),
+            ],
+            "LapNumber": [1.0, 2.0, 3.0],
+            "Stint": [1.0, 1.0, 2.0],
+            "PitOutTime": [pd.NaT, pd.NaT, Timedelta("0 days 02:09:07.882000")],
+            "PitInTime": [pd.NaT, Timedelta("0 days 02:08:44.608000"), pd.NaT],
+            "Sector1Time": [pd.NaT, Timedelta("0 days 00:00:26.553000"), Timedelta("0 days 00:00:26.135000")],
+            "Sector2Time": [
+                Timedelta("0 days 00:00:31.383000"),
+                Timedelta("0 days 00:00:31.140000"),
+                Timedelta("0 days 00:00:30.408000"),
+            ],
+            "Sector3Time": [
+                Timedelta("0 days 00:00:44.478000"),
+                Timedelta("0 days 00:00:43.356000"),
+                Timedelta("0 days 00:00:42.765000"),
+            ],
+            "Sector1SessionTime": [pd.NaT, Timedelta("0 days 00:58:37.448000"), Timedelta("0 days 01:00:18.079000")],
+            "Sector2SessionTime": [
+                Timedelta("0 days 00:57:26.546000"),
+                Timedelta("0 days 00:59:08.588000"),
+                Timedelta("0 days 01:00:48.487000"),
+            ],
+            "Sector3SessionTime": [
+                Timedelta("0 days 00:58:11.005000"),
+                Timedelta("0 days 00:59:51.944000"),
+                Timedelta("0 days 01:01:31.252000"),
+            ],
+            "SpeedI1": [289.0, 275.0, 274.0],
+            "SpeedI2": [268.0, 264.0, 259.0],
+            "SpeedFL": [271.0, 273.0, 275.0],
+            "SpeedST": [336.0, 323.0, 317.0],
+            "IsPersonalBest": [False, True, True],
+            "Compound": ["HARD", "HARD", "MEDIUM"],
+            "TyreLife": [1.0, 2.0, 3.0],
+            "FreshTyre": [True, True, True],
+            "Team": ["Racing Bulls", "Racing Bulls", "Racing Bulls"],
+            "LapStartTime": [
+                Timedelta("0 days 00:56:24.050000"),
+                Timedelta("0 days 00:58:10.825000"),
+                Timedelta("0 days 00:59:51.874000"),
+            ],
+            "LapStartDate": [
+                Timestamp("2026-03-15 07:03:59.831000"),
+                Timestamp("2026-03-15 07:05:46.606000"),
+                Timestamp("2026-03-15 07:07:27.655000"),
+            ],
+            "TrackStatus": ["12", "1", "1"],
+            "Position": [8.0, 9.0, 9.0],
+            "Deleted": [False, False, False],
+            "DeletedReason": ["", "", ""],
+            "FastF1Generated": [False, False, False],
+            "IsAccurate": [False, True, True],
+            "TotalLaps": [3, 3, 3],
+            "Sector1SessionTimeMilliseconds": [0, 3517448, 3618079],
+            "Sector2SessionTimeMilliseconds": [3446546, 3548588, 3648487],
+            "Sector3SessionTimeMilliseconds": [3491005, 3591944, 3691252],
+            "Sector1TimeMilliseconds": [0, 26553, 26135],
+            "Sector2TimeMilliseconds": [31383, 31140, 30408],
+            "Sector3TimeMilliseconds": [44478, 43356, 42765],
+            "Sector1TimeFormatted": ["0:00.000", "0:26.553", "0:26.135"],
+            "Sector2TimeFormatted": ["0:31.383", "0:31.140", "0:30.408"],
+            "Sector3TimeFormatted": ["0:44.478", "0:43.356", "0:42.765"],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_laps() -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [Timedelta(milliseconds=2020), Timedelta(milliseconds=2950), Timedelta(milliseconds=3540)],
+            "Driver": ["TOS", "TOS", "TOS"],
+            "DriverNumber": ["24", "24", "24"],
+            "LapTime": [
+                Timedelta("0 days 00:01:46.513000"),
+                Timedelta("0 days 00:01:41.049000"),
+                Timedelta("0 days 00:01:39.308000"),
+            ],
+            "LapNumber": [1.0, 2.0, 3.0],
+            "Stint": [1.0, 1.0, 2.0],
+            "PitOutTime": [pd.NaT, pd.NaT, Timedelta("0 days 02:09:07.882000")],
+            "PitInTime": [pd.NaT, Timedelta("0 days 02:08:44.608000"), pd.NaT],
+            "Sector1Time": [pd.NaT, Timedelta("0 days 00:00:26.553000"), Timedelta("0 days 00:00:26.135000")],
+            "Sector2Time": [
+                Timedelta("0 days 00:00:31.383000"),
+                Timedelta("0 days 00:00:31.140000"),
+                Timedelta("0 days 00:00:30.408000"),
+            ],
+            "Sector3Time": [
+                Timedelta("0 days 00:00:44.478000"),
+                Timedelta("0 days 00:00:43.356000"),
+                Timedelta("0 days 00:00:42.765000"),
+            ],
+            "Sector1SessionTime": [pd.NaT, Timedelta("0 days 00:58:37.448000"), Timedelta("0 days 01:00:18.079000")],
+            "Sector2SessionTime": [
+                Timedelta("0 days 00:57:26.546000"),
+                Timedelta("0 days 00:59:08.588000"),
+                Timedelta("0 days 01:00:48.487000"),
+            ],
+            "Sector3SessionTime": [
+                Timedelta("0 days 00:58:11.005000"),
+                Timedelta("0 days 00:59:51.944000"),
+                Timedelta("0 days 01:01:31.252000"),
+            ],
+            "SpeedI1": [289.0, 275.0, 274.0],
+            "SpeedI2": [268.0, 264.0, 259.0],
+            "SpeedFL": [271.0, 273.0, 275.0],
+            "SpeedST": [336.0, 323.0, 317.0],
+            "IsPersonalBest": [False, True, True],
+            "Compound": ["HARD", "HARD", "MEDIUM"],
+            "TyreLife": [1.0, 2.0, 3.0],
+            "FreshTyre": [True, True, True],
+            "Team": ["Racing Bulls", "Racing Bulls", "Racing Bulls"],
+            "LapStartTime": [
+                Timedelta("0 days 00:56:24.050000"),
+                Timedelta("0 days 00:58:10.825000"),
+                Timedelta("0 days 00:59:51.874000"),
+            ],
+            "LapStartDate": [
+                Timestamp("2026-03-15 07:03:59.831000"),
+                Timestamp("2026-03-15 07:05:46.606000"),
+                Timestamp("2026-03-15 07:07:27.655000"),
+            ],
+            "TrackStatus": ["12", "1", "1"],
+            "Position": [8.0, 9.0, 9.0],
+            "Deleted": [False, False, False],
+            "DeletedReason": ["", "", ""],
+            "FastF1Generated": [False, False, False],
+            "IsAccurate": [False, True, True],
+            "TotalLaps": [3, 3, 3],
+        },
+    )
+
+
+@pytest.fixture()
 def mock_session(
     circuit_info: CircuitInfo,
     track_status: DataFrame,
     weather_data: DataFrame,
+    laps: DataFrame,
     mocker: MockerFixture,
 ) -> MagicMock:
     session = mocker.MagicMock(spec=Session)
     session.get_circuit_info = mocker.MagicMock(return_value=circuit_info)
     session.track_status = track_status
     session.weather_data = weather_data
+    session.laps = laps
 
     return session
 
@@ -524,7 +951,6 @@ def processed_weather_data_at_tick_2() -> Series:
         ],
         name=0,
     )
-
 
 #
 # @pytest.fixture()

@@ -151,7 +151,7 @@ class WeatherParser:
 
         return self
 
-    def process_weather_data(
+    def parse(
         self,
         session_time_ticks_df: DataFrame,
         session_start_time: Timedelta,

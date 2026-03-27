@@ -230,7 +230,7 @@ def test_process_weather_data(
     parser._weather_data = weather_data
     assert parser._processed_weather_data is None
 
-    parser.process_weather_data(session_time_ticks_df, session_start_time, session_end_time)
+    parser.parse(session_time_ticks_df, session_start_time, session_end_time)
 
     assert parser._processed_weather_data is not None
 
@@ -259,7 +259,7 @@ def test_process_weather_data_unit(
     mock_awds = mocker.patch.object(parser, "_add_wind_direction_symbol", return_value=parser)
     mock_awdt = mocker.patch.object(parser, "_add_wind_direction_text", return_value=parser)
 
-    parser.process_weather_data(session_time_ticks_df, session_start_time, session_end_time)
+    parser.parse(session_time_ticks_df, session_start_time, session_end_time)
 
     mock_ttss.assert_called_once_with(session_start_time, session_end_time)
     mock_astt.assert_called_once_with(session_time_ticks_df)

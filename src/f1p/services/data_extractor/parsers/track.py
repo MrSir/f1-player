@@ -192,7 +192,7 @@ class TrackParser:
 
         return self
 
-    def process_track_statuses(
+    def parse(
         self,
         width: int,
         session_ticks: int,

@@ -122,26 +122,21 @@ class DriverWindow(DirectObject):
     @property
     def strategy(self) -> dict[int, dict[str, str | int]]:
         if self._strategy is None:
-            self._strategy = self.data_extractor.extract_tire_strategy(self.driver_number)
+            self._strategy = self.data_extractor.laps_parser.get_driver_tire_strategy(self.driver_number)
 
         return self._strategy
 
     @property
     def driver_laps(self) -> DataFrame:
         if self._driver_laps is None:
-            df = self.data_extractor.laps.copy()
-            df = df[df["DriverNumber"] == self.driver_number].copy()
-
-            df["S2LapTime"] = df["Sector2SessionTime"] - df["LapStartTime"]
-
-            self._driver_laps = df
+            self._driver_laps = self.data_extractor.laps_parser.get_driver_laps(self.driver_number)
 
         return self._driver_laps
 
     @property
     def slowest_non_pit_lap(self) -> Series:
         if self._slowest_non_pit_lap is None:
-            self._slowest_non_pit_lap = self.data_extractor.slowest_non_pit_lap
+            self._slowest_non_pit_lap = self.data_extractor.laps_parser.slowest_non_pit_lap
 
         return self._slowest_non_pit_lap
 
@@ -210,7 +205,9 @@ class DriverWindow(DirectObject):
             sr["Sector2TimeFormatted"] = td_series_to_min_n_sec(Series([sr["Sector2Time"]])).iloc[0]
             sr["Sector3TimeFormatted"] = td_series_to_min_n_sec(Series([sr["Sector3Time"]])).iloc[0]
             sr["LapTimeFormatted"] = td_series_to_min_n_sec(Series([sr["LapTime"]])).iloc[0]
-            sr["LapTimeRatio"] = sr["LapTime"] / self.data_extractor.fastest_lap["LapTimeMilliseconds"] * 100
+            sr["LapTimeRatio"] = (
+                sr["LapTime"] / self.data_extractor.laps_parser.fastest_lap["LapTimeMilliseconds"] * 100
+            )
 
             self._lap_averages = sr
 
@@ -1202,7 +1199,7 @@ class DriverWindow(DirectObject):
         )
 
         # Draw Fastest Lap Time
-        fastest_lap_time = self.data_extractor.fastest_lap["LapTime"]
+        fastest_lap_time = self.data_extractor.laps_parser.fastest_lap["LapTime"]
         DirectFrame(
             parent=frame,
             frameColor=Colors.PURPLE,

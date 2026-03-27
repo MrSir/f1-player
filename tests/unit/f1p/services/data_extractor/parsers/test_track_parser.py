@@ -206,7 +206,8 @@ def test_merge_in_augmented_session_time_ticks(
     assert "EndTime" not in parser._processed_track_statuses.columns
 
     assert_frame_equal(
-        processed_track_statuses_after_merge_augmented_session_time_ticks, parser._processed_track_statuses,
+        processed_track_statuses_after_merge_augmented_session_time_ticks,
+        parser._processed_track_statuses,
     )
 
 
@@ -278,7 +279,7 @@ def test_process_track_statuses(
 ) -> None:
     parser._circuit_info = circuit_info
 
-    result_df = parser.process_track_statuses(100, 5, session_time_ticks_df, session_start_time, session_end_time)
+    result_df = parser.parse(100, 5, session_time_ticks_df, session_start_time, session_end_time)
 
     assert_frame_equal(processed_track_statuses, parser._processed_track_statuses)
     assert_frame_equal(processed_track_statuses, result_df)
@@ -307,8 +308,12 @@ def test_process_track_statuses_units(
     mock_csti = mocker.patch.object(parser, "_convert_status_to_integer", return_value=parser)
     mock_msc = mocker.patch.object(parser, "_merge_status_colors", return_value=parser)
 
-    result_df = parser.process_track_statuses(
-        width, session_ticks, session_time_ticks_df, session_start_time, session_end_time,
+    result_df = parser.parse(
+        width,
+        session_ticks,
+        session_time_ticks_df,
+        session_start_time,
+        session_end_time,
     )
 
     assert_frame_equal(processed_track_statuses, parser._processed_track_statuses)

@@ -15,6 +15,7 @@ from fastf1.core import Session, Telemetry
 from panda3d.core import LVecBase4f, NodePath, Point3, StaticTextFont
 from pandas import DataFrame, Series, Timedelta
 
+from f1p.services.data_extractor.parsers.laps import LapsParser
 from f1p.services.data_extractor.parsers.session import SessionParser
 from f1p.services.data_extractor.parsers.track import TrackParser
 from f1p.services.data_extractor.parsers.weather import WeatherParser
@@ -50,16 +51,13 @@ class DataExtractorService(DirectObject):
         self._track_statuses: DataFrame | None = None
 
         self._weather_parser: WeatherParser | None = None
+        self._laps_parser: LapsParser | None = None
 
         self._pos_data: dict[str, Telemetry] | None = None
         self._car_data: dict[str, Telemetry] | None = None
 
         self._session_time_ticks_df: DataFrame | None = None
 
-        self._laps: DataFrame | None = None
-
-        self._slowest_non_pit_lap: Series | None = None
-        self._fastest_lap: Series | None = None
         self.fastest_lap_telemetry: DataFrame | None = None
         self.map_center_coordinate: tuple[float, float, float] | None = None
 
@@ -145,6 +143,13 @@ class DataExtractorService(DirectObject):
         return self._weather_parser
 
     @property
+    def laps_parser(self) -> LapsParser:
+        if self._laps_parser is None:
+            self._laps_parser = LapsParser(self.session, self.total_laps)
+
+        return self._laps_parser
+
+    @property
     def pos_data(self) -> dict[str, Telemetry]:
         if self._pos_data is None:
             self._pos_data = self.session.pos_data
@@ -158,45 +163,10 @@ class DataExtractorService(DirectObject):
 
         return self._car_data
 
-    @property
-    def laps(self) -> DataFrame:
-        if self._laps is None:
-            self._laps = self.session.laps
-
-        return self._laps
-
     def get_current_lap_number(self, session_time_tick: int) -> int:
         df = self.processed_pos_data
 
         return int(math.ceil(df[df["SessionTimeTick"] == session_time_tick]["LapsCompletion"].max()))
-
-    @property
-    def slowest_non_pit_lap(self) -> Series:
-        if self._slowest_non_pit_lap is None:
-            df = self.laps.copy()
-
-            eligible_laps = df[
-                df["PitInTimeMilliseconds"].isna() & df["PitOutTimeMilliseconds"].isna() & (df["TrackStatus"] == "1")
-            ]
-            eligible_laps = eligible_laps.sort_values("LapTime", ascending=False)
-
-            if eligible_laps is not None:
-                self._slowest_non_pit_lap = eligible_laps.iloc[0]
-
-        return self._slowest_non_pit_lap
-
-    @property
-    def fastest_lap(self) -> Series:
-        if self._fastest_lap is None:
-            df = self.laps.copy()
-
-            eligible_laps = df[df["LapTimeMilliseconds"].notna() & (df["LapTimeMilliseconds"] > 0)]
-            eligible_laps = eligible_laps.sort_values("LapTimeMilliseconds", ascending=True)
-
-            if eligible_laps is not None:
-                self._fastest_lap = eligible_laps.iloc[0]
-
-        return self._fastest_lap
 
     @property
     def lowest_z_coordinate(self) -> float:
@@ -228,7 +198,7 @@ class DataExtractorService(DirectObject):
         return self._session_time_ticks_df
 
     def process_track_statuses(self, width: int) -> None:
-        self._track_statuses = self.track_parser.process_track_statuses(
+        self._track_statuses = self.track_parser.parse(
             width,
             self.session_ticks,
             self.session_time_ticks_df,
@@ -251,7 +221,7 @@ class DataExtractorService(DirectObject):
         return self.weather_parser.get_current_weather_data(session_time_tick)
 
     def process_fastest_lap(self) -> Self:
-        pos_data = self.fastest_lap.get_pos_data()
+        pos_data = self.laps_parser.fastest_lap.get_pos_data()
         resized_pos_data_df = resize_pos_data(self.map_rotation, pos_data)
 
         self.map_center_coordinate = find_center(resized_pos_data_df)
@@ -315,135 +285,8 @@ class DataExtractorService(DirectObject):
 
         return self
 
-    def compute_sector_columns(self, sector: int) -> None:
-        laps = self.laps.copy()
-
-        laps.loc[laps[f"Sector{sector}SessionTime"].isna(), f"Sector{sector}SessionTime"] = (
-            laps.loc[laps[f"Sector{sector}SessionTime"].isna(), "LapStartTime"]
-            + laps.loc[laps[f"Sector{sector}SessionTime"].isna(), f"Sector{sector}Time"]
-        )
-
-        sector_session_time_in_milliseconds = (
-            laps[f"Sector{sector}SessionTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
-        )
-        laps[f"Sector{sector}SessionTimeMilliseconds"] = sector_session_time_in_milliseconds.astype("int64")
-
-        sector_time_in_milliseconds = (
-            laps[f"Sector{sector}Time"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
-        )
-        laps[f"Sector{sector}TimeMilliseconds"] = sector_time_in_milliseconds.astype("int64")
-
-        laps[f"Sector{sector}TimeFormatted"] = td_series_to_min_n_sec(laps[f"Sector{sector}TimeMilliseconds"])
-
-        laps[f"S{sector}DiffToCarAhead"] = (
-            laps.sort_values(by=[f"Sector{sector}SessionTimeMilliseconds"], ascending=[True])
-            .groupby("LapNumber")[f"Sector{sector}SessionTimeMilliseconds"]
-            .diff()
-        )
-        sector_time_sr = laps[f"Sector{sector}TimeMilliseconds"]
-        laps[f"Sector{sector}Best"] = sector_time_sr[sector_time_sr > 0].min()
-
-        laps[f"FastestSector{sector}TimeMillisecondsSoFar"] = (
-            laps[laps[f"Sector{sector}TimeMilliseconds"].gt(0) & laps[f"Sector{sector}TimeMilliseconds"].notna()]
-            .groupby("DriverNumber")[f"Sector{sector}TimeMilliseconds"]
-            .cummin()
-        )
-
-        laps[f"Sector{sector}ColorCode"] = "Y"
-        laps.loc[
-            (laps[f"Sector{sector}TimeMilliseconds"] <= laps[f"FastestSector{sector}TimeMillisecondsSoFar"])
-            & (laps[f"Sector{sector}TimeMilliseconds"].gt(0))
-            & (laps[f"Sector{sector}TimeMilliseconds"].notna()),
-            f"Sector{sector}ColorCode",
-        ] = "G"
-        laps.loc[
-            (laps[f"Sector{sector}TimeMilliseconds"] <= laps[f"Sector{sector}Best"])
-            & (laps[f"Sector{sector}TimeMilliseconds"].gt(0))
-            & (laps[f"Sector{sector}TimeMilliseconds"].notna()),
-            f"Sector{sector}ColorCode",
-        ] = "P"
-        compound_mapping = {
-            "Y": Colors.YELLOW,
-            "G": Colors.GREEN,
-            "P": Colors.PURPLE,
-        }
-        laps[f"Sector{sector}Color"] = laps[f"Sector{sector}ColorCode"].apply(lambda c: list(compound_mapping[c]))
-
-        self._laps = laps
-
     def process_laps(self) -> Self:
-        self.compute_sector_columns(1)
-        self.compute_sector_columns(2)
-        self.compute_sector_columns(3)
-
-        laps = self.laps.copy()
-
-        laps["TotalLaps"] = self.total_laps
-
-        lap_start_time_in_milliseconds = laps["LapStartTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
-        laps["LapStartTimeMilliseconds"] = lap_start_time_in_milliseconds.astype("int64")
-        laps.loc[
-            laps["LapTime"].notna(),
-            "LapTimeMilliseconds",
-        ] = laps.loc[laps["LapTime"].notna(), "LapTime"].dt.total_seconds() * 1e3
-
-        laps["LapTimeFormatted"] = td_series_to_min_n_sec(laps["LapTimeMilliseconds"])
-
-        laps["LapEndTimeMilliseconds"] = laps["LapStartTimeMilliseconds"] + laps["LapTimeMilliseconds"]
-
-        pit_in_time_in_milliseconds = laps.loc[laps["PitInTime"].notna(), "PitInTime"].dt.total_seconds() * 1e3
-        laps.loc[laps["PitInTime"].notna(), "PitInTimeMilliseconds"] = pit_in_time_in_milliseconds.astype("int64")
-
-        pit_out_time_in_milliseconds = laps.loc[laps["PitOutTime"].notna(), "PitOutTime"].dt.total_seconds() * 1e3
-        laps.loc[laps["PitOutTime"].notna(), "PitOutTimeMilliseconds"] = pit_out_time_in_milliseconds.astype("int64")
-
-        laps["LastLapTimeMilliseconds"] = laps.groupby("DriverNumber")["LapTimeMilliseconds"].shift(1)
-        laps["FastestLapTimeMillisecondsSoFar"] = laps.groupby("DriverNumber")["LastLapTimeMilliseconds"].cummin()
-
-        laps["Compound"] = laps["Compound"].str[0].astype("string")
-        laps["Compound"] = laps.groupby("DriverNumber")["Compound"].ffill()
-
-        compound_mapping = {
-            "S": Colors.SCompound,
-            "M": Colors.MCompound,
-            "H": Colors.HCompound,
-            "I": Colors.ICompound,
-            "W": Colors.WCompound,
-        }
-        laps["CompoundColor"] = laps["Compound"].apply(lambda c: list(compound_mapping[c]))
-
-        laps["LapTimeBestMilliseconds"] = laps["LapTimeMilliseconds"][laps["LapTimeMilliseconds"] > 0].min()
-        laps["LapTimePersonalBestMilliseconds"] = (
-            laps[laps["LapTimeMilliseconds"].gt(0) & laps["LapTimeMilliseconds"].notna()]
-            .groupby("DriverNumber")["LapTimeMilliseconds"]
-            .transform("min")
-            .astype("int64")
-        )
-        laps["LapTimeColorCode"] = "Y"
-        laps.loc[
-            (laps["LapTimeMilliseconds"] <= laps["FastestLapTimeMillisecondsSoFar"])
-            & (laps["LapTimeMilliseconds"].gt(0))
-            & (laps["LapTimeMilliseconds"].notna()),
-            "LapTimeColorCode",
-        ] = "G"
-        laps.loc[
-            laps["LapTimeMilliseconds"] <= laps["LapTimeBestMilliseconds"],
-            "LapTimeColorCode",
-        ] = "P"
-        color_mapping = {
-            "Y": Colors.YELLOW,
-            "G": Colors.GREEN,
-            "P": Colors.PURPLE,
-        }
-        laps["LapTimeColor"] = laps["LapTimeColorCode"].apply(lambda c: list(color_mapping[c]))
-
-        self._laps = laps
-
-        laps["LapTimeRatio"] = laps["LapTimeMilliseconds"] / self.fastest_lap["LapTimeMilliseconds"] * 100
-
-        self._laps = laps
-
-        # TODO figure out what to do with cases where a driver only has a X number of laps where X < Total # Laps
+        self.laps_parser.parse()
 
         self.update_loading(15)
 
@@ -452,7 +295,7 @@ class DataExtractorService(DirectObject):
     def merge_pos_and_laps(self) -> Self:
         df = self.processed_pos_data.copy()
         ts_df = df[["SessionTimeTick", "SessionTimeMilliseconds"]].drop_duplicates(keep="first").copy()
-        laps_df = self.laps.copy()
+        laps_df = self.laps_parser.processed_laps.copy()
 
         for record in laps_df.itertuples():
             laps_df.loc[
@@ -553,8 +396,6 @@ class DataExtractorService(DirectObject):
 
     def compute_position_index(self) -> Self:
         df = self.processed_pos_data.copy()
-        laps_df = self.laps.copy()
-        end_of_race = laps_df.loc[laps_df["LapNumber"] == self.total_laps, "LapEndTimeMilliseconds"].min()
 
         df["PositionIndex"] = (
             df.sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False])
@@ -563,7 +404,7 @@ class DataExtractorService(DirectObject):
             .add(1)
             - 1
         )
-        df.loc[df["SessionTimeMilliseconds"] >= end_of_race, "PositionIndex"] = pd.NA
+        df.loc[df["SessionTimeMilliseconds"] >= self.laps_parser.end_of_race_milliseconds, "PositionIndex"] = pd.NA
         df["PositionIndex"] = df.groupby("DriverNumber")["PositionIndex"].ffill().astype("int64")
 
         self.processed_pos_data = df
@@ -749,7 +590,7 @@ class DataExtractorService(DirectObject):
         return self
 
     def process_weather_data(self) -> Self:
-        self.weather_parser.process_weather_data(
+        self.weather_parser.parse(
             self.session_time_ticks_df,
             self.session_start_time,
             self.session_end_time,
@@ -852,20 +693,3 @@ class DataExtractorService(DirectObject):
         messenger.send("sessionSelected")
 
         return task.done
-
-    def extract_tire_strategy(self, driver_number: str) -> dict[int, dict[str, str | int]]:
-        laps_df = self.laps.copy()
-        df = laps_df[laps_df["DriverNumber"] == driver_number].copy()
-        df = df.sort_values(by="LapNumber", ascending=True)
-
-        pd.set_option("display.max_rows", len(df))
-        pd.set_option("display.max_columns", None)
-
-        strategy_df = (
-            df[["Compound", "CompoundColor", "LapNumber", "Stint", "TotalLaps"]]
-            .drop_duplicates(subset=["Compound", "Stint"], keep="last")
-            .reset_index(drop=True)
-        )
-        strategy = strategy_df.set_index("Stint").to_dict(orient="index")
-
-        return strategy
