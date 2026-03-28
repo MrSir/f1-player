@@ -150,7 +150,6 @@ class LapsParser:
 
     def _compute_sector_columns(self, sector: int) -> Self:
         (
-            # self._compute_sector_session_time(sector)
             self._convert_sector_session_time_to_milliseconds(sector)
             ._convert_sector_time_to_milliseconds(sector)
             ._format_sector_time_milliseconds(sector)
