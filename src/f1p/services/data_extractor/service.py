@@ -18,6 +18,7 @@ from pandas import DataFrame, Series, Timedelta
 from f1p.services.data_extractor.parsers.laps import LapsParser
 from f1p.services.data_extractor.parsers.position import PositionParser
 from f1p.services.data_extractor.parsers.session import SessionParser
+from f1p.services.data_extractor.parsers.telemetry import TelemetryParser
 from f1p.services.data_extractor.parsers.track import TrackParser
 from f1p.services.data_extractor.parsers.weather import WeatherParser
 from f1p.ui.enums import Colors
@@ -55,7 +56,10 @@ class DataExtractorService(DirectObject):
         self._laps_parser: LapsParser | None = None
         self._pos_parser: PositionParser | None = None
 
-        self._pos_data: dict[str, Telemetry] | None = None
+        self.processed_pos_data: DataFrame | None = None
+        self._telemetry_parser: TelemetryParser | None = None
+
+
         self._car_data: dict[str, Telemetry] | None = None
 
         self._session_time_ticks_df: DataFrame | None = None
@@ -67,7 +71,6 @@ class DataExtractorService(DirectObject):
         self.loading_text: OnscreenText | None = None
         self.wait_bar: DirectWaitBar | None = None
 
-        self.processed_pos_data: DataFrame | None = None
         self.processed_car_data: DataFrame | None = None
 
         self.accept("loadData", self.load_data)
@@ -159,8 +162,11 @@ class DataExtractorService(DirectObject):
         return self._pos_parser
 
     @property
-    def pos_data(self) -> dict[str, DataFrame]:
-        return self.pos_parser.pos_data
+    def telemetry_parser(self) -> TelemetryParser:
+        if self._telemetry_parser is None:
+            self._telemetry_parser = TelemetryParser(self.session)
+
+        return self._telemetry_parser
 
 
 
@@ -475,63 +481,13 @@ class DataExtractorService(DirectObject):
 
         return self
 
-    def combine_car_data(self) -> Self:
-        drivers_car_data = []
-        for driver_number, car_data in self.car_data.items():
-            car_data["DriverNumber"] = driver_number
-            drivers_car_data.append(car_data)
 
-        self.processed_car_data = pd.concat(drivers_car_data, ignore_index=True)
-
-        self.update_loading(1)
-
-        return self
-
-    def process_car_data(self) -> Self:
-        df = self.processed_pos_data.copy()
-        df = df[["SessionTimeTick", "SessionTime"]].drop_duplicates(keep="first").copy()
-
-        car_data_df = self.processed_car_data.copy()
-        car_data_df = car_data_df[car_data_df["SessionTime"] >= self.session_start_time]
-        car_data_df = car_data_df[car_data_df["SessionTime"] <= self.session_end_time]
-
-        df_sorted = (
-            df.groupby("SessionTime", sort=True)["SessionTimeTick"].max().reset_index().sort_values("SessionTime")
+    def parse_telemetry(self) -> Self:
+        self.processed_car_data = self.telemetry_parser.parse(
+            self.session_start_time,
+            self.session_end_time,
+            self.session_time_ticks_df,
         )
-        times = df_sorted["SessionTime"].values  # sorted datetime64 array
-        ticks = df_sorted["SessionTimeTick"].values
-        indices = np.searchsorted(times, car_data_df["SessionTime"].values, side="right") - 1
-        valid = indices >= 0
-        result = np.where(valid, ticks[np.clip(indices, 0, len(ticks) - 1)], np.nan)
-        car_data_df["SessionTimeTick"] = result
-
-        # DRS
-        # 0 - DRS DEACTIVATED (CLOSED)
-        # 1 - DRS DISABLED
-        # 2 - DRS DEACTIVATING (CLOSING)
-        # 3 -
-        # 8 - DRS ENABLED
-        # 10 -
-        # 12 -
-        # 14 - DRS ACTIVATED (OPEN)
-
-        car_data_df["nGear"] = car_data_df["nGear"].astype("int64").astype(str)
-        car_data_df["nGear"] = car_data_df["nGear"].replace("0", "N")
-        car_data_df["SpeedMph"] = car_data_df["Speed"] / 1.609344
-        car_data_df = car_data_df.drop_duplicates(
-            subset=["DriverNumber", "SessionTimeTick"],
-            keep="first",
-        ).reset_index()
-        car_data_df = car_data_df.drop(
-            columns=[
-                "Time",
-                "SessionTime",
-                "Date",
-                "Source",
-            ],
-        )
-
-        self.processed_car_data = car_data_df
 
         self.update_loading(15)
 
@@ -636,6 +592,7 @@ class DataExtractorService(DirectObject):
             self.parse_laps()
             .process_fastest_lap()
             .parse_pos_data()
+            .parse_telemetry()
             .merge_pos_and_laps()
             .compute_lap_completion()
             .compute_is_dnf()
@@ -646,8 +603,6 @@ class DataExtractorService(DirectObject):
             .compute_diff_to_car_in_front()
             .compute_diff_to_leader()
             .compute_in_pit()
-            .combine_car_data()
-            .process_car_data()
             .merge_pos_and_car_data()
             .process_weather_data()
             .process_corners()

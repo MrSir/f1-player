@@ -24,7 +24,7 @@ class PositionParser:
     @property
     def processed_pos_data(self) -> DataFrame:
         if self._processed_pos_data is None:
-            raise ValueError("Laps not processed yet.")
+            raise ValueError("Position data not processed yet.")
 
         return self._processed_pos_data
 

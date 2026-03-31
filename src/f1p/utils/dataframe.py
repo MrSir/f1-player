@@ -25,6 +25,11 @@ def merge_in_session_time_ticks(
     result = np.where(valid, ticks[np.clip(indices, 0, len(ticks) - 1)], np.nan)
 
     df[target_df_result_column] = result
-    df[target_df_result_column] = df[target_df_result_column].astype("int64")
+
+    # Remove rows that have no time tick matched to them.
+    # Could happen if the session_start_time is earlier than the Session Time on tick number 1
+    df = df.dropna(subset=[target_df_result_column])
+
+    df.loc[:,target_df_result_column] = df[target_df_result_column].astype("int64")
 
     return df
