@@ -175,10 +175,8 @@ class LapsParser:
     def _convert_lap_time_to_milliseconds(self) -> Self:
         df = self._processed_laps.copy()
 
-        df.loc[
-            df["LapTime"].notna(),
-            "LapTimeMilliseconds",
-        ] = df.loc[df["LapTime"].notna(), "LapTime"].dt.total_seconds() * 1e3
+        lap_time_in_milliseconds = df["LapTime"].fillna(Timedelta(milliseconds=0)).dt.total_seconds() * 1e3
+        df["LapTimeMilliseconds"] = lap_time_in_milliseconds.astype("int64")
 
         self._processed_laps = df
 
@@ -243,7 +241,7 @@ class LapsParser:
     def _fill_in_compound(self) -> Self:
         df = self._processed_laps.copy()
 
-        df["Compound"] = df["Compound"].str[0].astype("string")
+        df["Compound"] = df["Compound"].str[0]
         df["Compound"] = df.groupby("DriverNumber")["Compound"].ffill()
 
         self._processed_laps = df
@@ -378,7 +376,7 @@ class LapsParser:
             ]
             eligible_laps = eligible_laps.sort_values("LapTime", ascending=False)
 
-            if eligible_laps is not None:
+            if not eligible_laps.empty:
                 self._slowest_non_pit_lap = eligible_laps.iloc[0]
 
         return self._slowest_non_pit_lap
@@ -391,7 +389,7 @@ class LapsParser:
             eligible_laps = df[df["LapTimeMilliseconds"].notna() & (df["LapTimeMilliseconds"] > 0)]
             eligible_laps = eligible_laps.sort_values("LapTimeMilliseconds", ascending=True)
 
-            if eligible_laps is not None:
+            if not eligible_laps.empty:
                 self._fastest_lap = eligible_laps.iloc[0]
 
         return self._fastest_lap
@@ -413,15 +411,12 @@ class LapsParser:
         return df
 
     def get_driver_tire_strategy(self, driver_number: str) -> dict[int, dict[str, str | int]]:
-        laps_df = self._processed_laps.copy()
-        df = laps_df[laps_df["DriverNumber"] == driver_number].copy()
-        df = df.sort_values(by="LapNumber", ascending=True)
+        df = self.get_driver_laps(driver_number).sort_values(by="LapNumber", ascending=True)
 
         strategy_df = (
             df[["Compound", "CompoundColor", "LapNumber", "Stint", "TotalLaps"]]
             .drop_duplicates(subset=["Compound", "Stint"], keep="last")
             .reset_index(drop=True)
         )
-        strategy = strategy_df.set_index("Stint").to_dict(orient="index")
 
-        return strategy
+        return strategy_df.set_index("Stint").to_dict(orient="index")
