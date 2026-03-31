@@ -16,6 +16,7 @@ from panda3d.core import LVecBase4f, NodePath, Point3, StaticTextFont
 from pandas import DataFrame, Series, Timedelta
 
 from f1p.services.data_extractor.parsers.laps import LapsParser
+from f1p.services.data_extractor.parsers.position import PositionParser
 from f1p.services.data_extractor.parsers.session import SessionParser
 from f1p.services.data_extractor.parsers.track import TrackParser
 from f1p.services.data_extractor.parsers.weather import WeatherParser
@@ -52,6 +53,7 @@ class DataExtractorService(DirectObject):
 
         self._weather_parser: WeatherParser | None = None
         self._laps_parser: LapsParser | None = None
+        self._pos_parser: PositionParser | None = None
 
         self._pos_data: dict[str, Telemetry] | None = None
         self._car_data: dict[str, Telemetry] | None = None
@@ -150,11 +152,20 @@ class DataExtractorService(DirectObject):
         return self._laps_parser
 
     @property
-    def pos_data(self) -> dict[str, Telemetry]:
-        if self._pos_data is None:
-            self._pos_data = self.session.pos_data
+    def pos_parser(self) -> PositionParser:
+        if self._pos_parser is None:
+            self._pos_parser = PositionParser(self.session)
 
-        return self._pos_data
+        return self._pos_parser
+
+    @property
+    def pos_data(self) -> dict[str, DataFrame]:
+        return self.pos_parser.pos_data
+
+
+
+
+
 
     @property
     def car_data(self) -> dict[str, Telemetry]:
@@ -232,60 +243,18 @@ class DataExtractorService(DirectObject):
 
         return self
 
-    def combine_position_data(self) -> Self:
-        drivers_pos_data = []
-        for driver_number, pos_data in self.pos_data.items():
-            pos_data["DriverNumber"] = driver_number
-            drivers_pos_data.append(pos_data)
+    def parse_pos_data(self) -> Self:
+        self.processed_pos_data = self.pos_parser.parse(
+            self.session_start_time,
+            self.map_rotation,
+            self.map_center_coordinate
+        )
 
-        self.processed_pos_data = pd.concat(drivers_pos_data, ignore_index=True)
-
-        self.update_loading(2)
-
-        return self
-
-    def remove_records_before_session_start_time(self) -> Self:
-        self.processed_pos_data = self.processed_pos_data[
-            self.processed_pos_data["SessionTime"] >= self.session_start_time
-        ]
-
-        self.update_loading(1)
+        self.update_loading(10)
 
         return self
 
-    def normalize_position_data(self) -> Self:
-        df = self.processed_pos_data.copy()
-
-        resized_pos_data_df = resize_pos_data(self.map_rotation, df)
-        self.processed_pos_data = center_pos_data(self.map_center_coordinate, resized_pos_data_df)
-
-        self.update_loading(5)
-
-        return self
-
-    def add_session_time_in_milliseconds(self) -> Self:
-        df = self.processed_pos_data.copy()
-
-        df["SessionTimeMilliseconds"] = (df["SessionTime"].dt.total_seconds() * 1e3).astype("int64")
-
-        self.processed_pos_data = df
-
-        self.update_loading(1)
-
-        return self
-
-    def add_session_time_tick(self) -> Self:
-        df = self.processed_pos_data.copy()
-
-        df["SessionTimeTick"] = df.groupby("DriverNumber").cumcount().add(1)
-
-        self.processed_pos_data = df
-
-        self.update_loading(1)
-
-        return self
-
-    def process_laps(self) -> Self:
+    def parse_laps(self) -> Self:
         self.laps_parser.parse()
 
         self.update_loading(15)
@@ -664,13 +633,9 @@ class DataExtractorService(DirectObject):
         self.update_loading(10)
 
         (
-            self.combine_position_data()
-            .remove_records_before_session_start_time()
-            .add_session_time_in_milliseconds()
-            .add_session_time_tick()
-            .process_laps()
+            self.parse_laps()
             .process_fastest_lap()
-            .normalize_position_data()
+            .parse_pos_data()
             .merge_pos_and_laps()
             .compute_lap_completion()
             .compute_is_dnf()
