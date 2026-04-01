@@ -146,19 +146,20 @@ jobs:
         run: | 
           source ./.venv/bin/activate
           set -o pipefail
-          poetry run pytest ./tests/unit --junitxml=junit.xml --cov-report=term-missing:skip-covered --cov=f1p  | tee pytest-coverage.txt
+          poetry run pytest ./tests/unit --cov-report=xml --junitxml=junit.xml --cov-report=term-missing:skip-covered --cov=f1p  | tee pytest-coverage.txt
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           report_type: "coverage"
+          files: ./junit.xml
 
-      - name: Upload test results to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          report_type: "test_results"
+#      - name: Upload test results to Codecov
+#        uses: codecov/codecov-action@v5
+#        with:
+#          token: ${{ secrets.CODECOV_TOKEN }}
+#          report_type: "test_results"
 
       - name: Pytest Coverage Comment
         uses: MishaKav/pytest-coverage-comment@v1.2.0
