@@ -21,6 +21,7 @@ class Driver(DirectObject):
         broadcast_name: str,
         abbreviation: str,
         team_name: str,
+        headshot_url: str,
         data_extractor: DataExtractorService,
         node_path: NodePath = None,
     ):
@@ -33,6 +34,7 @@ class Driver(DirectObject):
         self.broadcast_name = broadcast_name
         self.abbreviation = abbreviation
         self.team_name = team_name
+        self.headshot_url = headshot_url
         self.data_extractor = data_extractor
         self.node_path = node_path
 
@@ -75,6 +77,7 @@ class Driver(DirectObject):
                 self.last_name,
                 self.team_color_obj,
                 self.team_name,
+                self.headshot_url,
                 self.app,
                 self.data_extractor,
             )
@@ -112,6 +115,7 @@ class Driver(DirectObject):
             broadcast_name=driver_sr["BroadcastName"],
             abbreviation=driver_sr["Abbreviation"],
             team_name=driver_sr["TeamName"],
+            headshot_url=driver_sr["HeadshotUrl"],
             data_extractor=data_extractor,
             node_path=cls.create_node_path(parent, driver_sr["TeamColor"]),
         )

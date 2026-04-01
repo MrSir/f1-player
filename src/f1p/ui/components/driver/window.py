@@ -1,8 +1,11 @@
 from decimal import Decimal
 from math import ceil
+from pathlib import Path
 
 import pandas as pd
+import requests
 from direct.gui.DirectFrame import DirectFrame
+from direct.gui.OnscreenImage import OnscreenImage
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.ShowBase import ShowBase
@@ -16,7 +19,7 @@ from panda3d.core import (
     PGTop,
     Point3,
     TextNode,
-    VBase4,
+    TransparencyAttrib, VBase4,
     Vec4,
     WindowProperties,
 )
@@ -37,6 +40,7 @@ class DriverWindow(DirectObject):
         last_name: str,
         team_color_obj: LVecBase4f,
         team_name: str,
+        headshot_url: str,
         app: ShowBase,
         data_extractor: DataExtractorService,
     ):
@@ -54,6 +58,7 @@ class DriverWindow(DirectObject):
         self.last_name = last_name
         self.team_color_obj = team_color_obj
         self.team_name = team_name
+        self.headshot_url = headshot_url
         self.app = app
         self.data_extractor = data_extractor
 
@@ -313,6 +318,24 @@ class DriverWindow(DirectObject):
 
         return self._camera_np
 
+    @property
+    def local_headshot_url(self) -> str:
+        file_name = f"{self.driver_number}_{self.first_name}_{self.last_name}_{self.data_extractor.session_parser.year}.png"
+        dir_path =  Path("./src/f1p/ui/components/driver/headshots")
+
+        if not dir_path.exists():
+            dir_path.mkdir()
+
+        local_path = dir_path / file_name
+
+        if local_path.exists():
+            return str(local_path)
+
+        local_path.write_bytes(requests.get(self.headshot_url).content)
+
+        return str(local_path)
+
+
     def make_camera_region(self) -> None:
         width = 240
         padding_x = 10
@@ -384,6 +407,22 @@ class DriverWindow(DirectObject):
             fg=Colors.WHITE,
             pos=(33, self.driver_frame_height - title_frame_height - 50, 0),
         )
+
+        headshot_frame = DirectFrame(
+            parent=frame,
+            frameColor=Colors.WHITE,
+            frameSize=(-20, 20, -20, 20),
+            pos=(260 - 10 - 20, 0, self.driver_frame_height - title_frame_height - 35),
+            sortOrder=20,
+        )
+
+        headshot = OnscreenImage(
+            parent=headshot_frame,
+            image=self.local_headshot_url,
+            pos=Point3(0, 0, 0),
+            scale=20,
+        )
+        headshot.setTransparency(TransparencyAttrib.MAlpha)
 
     def make_telemetry_widget(self) -> None:
         width = 260
