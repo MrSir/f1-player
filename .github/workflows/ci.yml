@@ -152,9 +152,11 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           report_type: "coverage"
+          flags: unit
 
       - name: Upload test results to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           report_type: "test_results"
+          flags: unit
