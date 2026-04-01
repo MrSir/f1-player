@@ -65,6 +65,7 @@ class DriverWindow(DirectObject):
         self.total_laps = self.data_extractor.total_laps
         self.is_open = False
 
+        self._local_headshot_url: str | None = None
         self._strategy: dict[int, dict[str, str | int]] | None = None
         self._driver_laps: DataFrame | None = None
         self._lap_averages: Series | None = None
@@ -320,21 +321,21 @@ class DriverWindow(DirectObject):
 
     @property
     def local_headshot_url(self) -> str:
-        file_name = f"{self.driver_number}_{self.first_name}_{self.last_name}_{self.data_extractor.session_parser.year}.png"
-        dir_path =  Path("./src/f1p/ui/components/driver/headshots")
+        if self._local_headshot_url is None:
+            file_name = f"{self.driver_number}_{self.first_name}_{self.last_name}_{self.data_extractor.session_parser.year}.png"
+            dir_path =  Path("./src/f1p/ui/components/driver/headshots")
 
-        if not dir_path.exists():
-            dir_path.mkdir()
+            if not dir_path.exists():
+                dir_path.mkdir()
 
-        local_path = dir_path / file_name
+            local_path = dir_path / file_name
 
-        if local_path.exists():
-            return str(local_path)
+            self._local_headshot_url = str(local_path)
 
-        local_path.write_bytes(requests.get(self.headshot_url).content)
+            if not local_path.exists():
+                local_path.write_bytes(requests.get(self.headshot_url).content)
 
-        return str(local_path)
-
+        return self._local_headshot_url
 
     def make_camera_region(self) -> None:
         width = 240

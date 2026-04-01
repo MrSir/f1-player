@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from direct.gui.DirectFrame import DirectFrame
+from direct.gui.OnscreenImage import OnscreenImage
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
 from panda3d.core import (
@@ -40,7 +41,7 @@ def strategy() -> dict[int, dict[str, str | int]]:
 def driver_window(
     mock_f1p_app: MagicMock,
     team_color: LVecBase4f,
-    mock_data_extractor: MagicMock,
+    data_extractor_service: MagicMock,
 ) -> DriverWindow:
     return DriverWindow(
         800,
@@ -50,15 +51,16 @@ def driver_window(
         "Shmoe",
         team_color,
         "Team 1",
+        "https://some.img.url",
         mock_f1p_app,
-        mock_data_extractor,
+        data_extractor_service,
     )
 
 
 def test_init(
     mock_f1p_app: MagicMock,
     team_color: LVecBase4f,
-    mock_data_extractor: MagicMock,
+    data_extractor_service: MagicMock,
     mocker: MockerFixture,
 ) -> None:
     width = 800
@@ -67,6 +69,7 @@ def test_init(
     first_name = "Joe"
     last_name = "Shmoe"
     team_name = "Rd Bull Racing"
+    headshot_url = "https://some.img.url"
 
     mock_accept = mocker.MagicMock()
     mocker.patch("f1p.ui.components.driver.window.DriverWindow.accept", mock_accept)
@@ -79,8 +82,9 @@ def test_init(
         last_name,
         team_color,
         team_name,
+        headshot_url,
         mock_f1p_app,
-        mock_data_extractor,
+        data_extractor_service,
     )
 
     assert driver_window.width == width
@@ -95,10 +99,11 @@ def test_init(
     assert driver_window.last_name == last_name
     assert driver_window.team_color_obj == team_color
     assert driver_window.team_name == team_name
+    assert driver_window.headshot_url == headshot_url
     assert driver_window.app is mock_f1p_app
-    assert driver_window.data_extractor == mock_data_extractor
+    assert driver_window.data_extractor == data_extractor_service
 
-    assert mock_data_extractor.total_laps == driver_window.total_laps
+    assert data_extractor_service.total_laps == driver_window.total_laps
     assert driver_window.is_open is False
 
     assert driver_window._strategy is None
@@ -408,6 +413,12 @@ def test_make_driver_widget(
     mock_onscreen_text_class = mocker.MagicMock(return_value=mock_onscreen_text)
     mocker.patch("f1p.ui.components.driver.window.OnscreenText", mock_onscreen_text_class)
 
+    mock_onscreen_image = mocker.MagicMock(spec=OnscreenImage)
+    mock_onscreen_image_class = mocker.MagicMock(return_value=mock_onscreen_image)
+    mocker.patch("f1p.ui.components.driver.window.OnscreenImage", mock_onscreen_image_class)
+
+    driver_window._local_headshot_url = "local_file.pg"
+
     driver_window.make_driver_widget()
 
     title_frame_height = 30
@@ -435,6 +446,13 @@ def test_make_driver_widget(
             frameColor=driver_window.team_color_obj,
             frameSize=(0, 19, 0, 19),
             pos=(10, 0, driver_window.driver_frame_height - title_frame_height - 54),
+            sortOrder=20,
+        ),
+        mocker.call(
+            parent=mock_direct_frame,
+            frameColor=Colors.WHITE,
+            frameSize=(-20, 20, -20, 20),
+            pos=(260 - 10 - 20, 0, driver_window.driver_frame_height - title_frame_height - 35),
             sortOrder=20,
         ),
     ])
@@ -467,6 +485,13 @@ def test_make_driver_widget(
             pos=(33, driver_window.driver_frame_height - title_frame_height - 50, 0),
         ),
     ])
+
+    mock_onscreen_image_class.assert_called_once_with(
+        parent=mock_direct_frame,
+        image="local_file.pg",
+        pos=Point3(0, 0, 0),
+        scale=20,
+    )
 
 
 def test_make_telemetry_widget(

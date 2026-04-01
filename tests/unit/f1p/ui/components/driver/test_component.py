@@ -18,18 +18,8 @@ def ticks(pos_data: DataFrame) -> dict:
 
 
 @pytest.fixture
-def driver_sr() -> Series:
-    return Series(
-        {
-            "DriverNumber": "1",
-            "FirstName": "Joe",
-            "LastName": "Shmoe",
-            "BroadcastName": "JSH",
-            "Abbreviation": "SHM",
-            "TeamName": "Team 1",
-            "TeamColor": "FF0000",
-        },
-    )
+def driver_sr(session_results: DataFrame) -> Series:
+    return session_results.iloc[0]
 
 
 @pytest.fixture
@@ -120,6 +110,7 @@ def test_initialization(
     broadcast_name = "JSH"
     abbreviation = "SHM"
     team_name = "Team 1"
+    headshot_url = "https://some.img.url"
 
     mock_accept = mocker.MagicMock()
     mocker.patch("f1p.ui.components.driver.component.Driver.accept", mock_accept)
@@ -132,6 +123,7 @@ def test_initialization(
         broadcast_name,
         abbreviation,
         team_name,
+        headshot_url,
         mock_data_extractor,
     )
 
@@ -143,6 +135,7 @@ def test_initialization(
     assert broadcast_name == driver.broadcast_name
     assert abbreviation == driver.abbreviation
     assert team_name == driver.team_name
+    assert headshot_url == driver.headshot_url
     assert mock_data_extractor == driver.data_extractor
     assert driver.node_path is None
 
@@ -178,6 +171,7 @@ def test_driver_window_lazy_initialization(
         driver.last_name,
         driver.team_color_obj,
         driver.team_name,
+        driver.headshot_url,
         driver.app,
         driver.data_extractor,
     )
@@ -243,6 +237,7 @@ def test_from_df(
     assert driver_sr["BroadcastName"] == driver.broadcast_name
     assert driver_sr["Abbreviation"] == driver.abbreviation
     assert driver_sr["TeamName"] == driver.team_name
+    assert driver_sr["HeadshotUrl"] == driver.headshot_url
     assert mock_data_extractor == driver.data_extractor
     assert mock_parent.attachNewNode.return_value == driver.node_path
 

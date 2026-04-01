@@ -12,6 +12,7 @@ from panda3d.core import LVecBase4f, NodePath, StaticTextFont, deg2Rad
 from pandas import DataFrame, Series, Timedelta, Timestamp
 from pytest_mock import MockerFixture
 
+from f1p.services.data_extractor.parsers.session import SessionParser
 from f1p.services.data_extractor.service import DataExtractorService
 from f1p.services.data_extractor.track_statuses import (
     GreenFlagTrackStatus,
@@ -4961,10 +4962,11 @@ def mock_text_font(mocker: MockerFixture) -> MagicMock:
 
 @pytest.fixture()
 def data_extractor_service(
-        mock_parent: MagicMock,
-        mock_task_manager: MagicMock,
-        mock_text_font: MagicMock,
-        mocker: MockerFixture,
+    mock_parent: MagicMock,
+    mock_task_manager: MagicMock,
+    mock_text_font: MagicMock,
+    mock_session: MagicMock,
+    mocker: MockerFixture,
 ) -> DataExtractorService:
     mocker.patch.object(DataExtractorService, "accept")
     mocker.patch("f1p.services.data_extractor.service.fastf1.Cache.enable_cache")
@@ -4976,9 +4978,13 @@ def data_extractor_service(
         window_height=1080,
         text_font=mock_text_font,
     )
-    service.year = 2024
-    service.event_name = "Bahrain"
-    service.session_id = "FP1"
+    session_parser = SessionParser()
+    session_parser.year = 2026
+    session_parser.event_name = "Australian Grand Prix"
+    session_parser.session_id = "Race"
+    session_parser._session = mock_session
+
+    service.session_parser = session_parser
 
     return service
 

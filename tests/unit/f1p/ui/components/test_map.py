@@ -240,6 +240,7 @@ def test_initialize_drivers(
         "Abbreviation": ["HAM", "RUS"],
         "TeamName": ["Team A", "Team B"],
         "TeamColor": [(1, 0, 0, 1), (0, 0, 1, 1)],
+        "HeadshotUrl": ["headshot1.png", "headshot2.png"],
     })
     mock_data_extractor.session_results = driver_results
 
@@ -266,6 +267,7 @@ def test_initialize_drivers(
     assert driver1_sr["BroadcastName"] == driver1.broadcast_name
     assert driver1_sr["Abbreviation"] == driver1.abbreviation
     assert driver1_sr["TeamName"] == driver1.team_name
+    assert driver1_sr["HeadshotUrl"] == driver1.headshot_url
     assert driver1_pos_data.equals(driver1.pos_data)
     assert driver1_pos_data.set_index("SessionTimeTick").to_dict(orient="index") == driver1.ticks
     assert mock_f1p_app.render.attachNewNode.return_value == driver1.node_path
