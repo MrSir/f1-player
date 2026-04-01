@@ -43,7 +43,7 @@ def test_processed_pos_data_property_returns_set_value(parser: PositionParser, p
     assert_frame_equal(processed_pos_data, parser.processed_pos_data)
 
 
-def test_processed_pos_data_property_raises_value_error_when_none(parser: PositionParser, processed_pos_data: DataFrame) -> None:
+def test_processed_pos_data_property_raises_value_error_when_none(parser: PositionParser) -> None:
     assert parser._processed_pos_data is None
 
     with pytest.raises(ValueError, match="Position data not processed yet."):

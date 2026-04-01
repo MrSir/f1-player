@@ -5422,8 +5422,6 @@ def processed_pos_data() -> DataFrame:
     return DataFrame()
 
 
-
-
 #
 # @pytest.fixture()
 # def mock_session_status() -> DataFrame:

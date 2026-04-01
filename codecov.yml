@@ -1,3 +1,5 @@
+precision: 5
+
 coverage:
   status:
     project:
@@ -8,3 +10,5 @@ coverage:
 
 comment:
   layout: "diff, flags, files"
+  require_head: false
+  require_base: false
