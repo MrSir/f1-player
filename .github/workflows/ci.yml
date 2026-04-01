@@ -145,7 +145,7 @@ jobs:
         run: | 
           source ./.venv/bin/activate
           set -o pipefail
-          poetry run pytest ./tests/unit --junitxml=junit.xml --cov-report=term-missing:skip-covered --cov=f1p  | tee pytest-coverage.txt
+          poetry run pytest ./tests/unit --cov-report=xml --junitxml=junit.xml --cov-report=term-missing:skip-covered --cov=f1p  | tee pytest-coverage.txt
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
@@ -158,12 +158,3 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           report_type: "test_results"
-
-      - name: Pytest Coverage Comment
-        uses: MishaKav/pytest-coverage-comment@v1.2.0
-        if: github.event_name == 'pull_request'
-        with:
-          pytest-coverage-path: ./pytest-coverage.txt
-          junitxml-path: ./junit.xml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          create-new-comment: true
