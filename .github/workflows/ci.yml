@@ -4,7 +4,6 @@ on:
   push:
     branches:
     - main
-    - fix_codecov
   pull_request:
     branches:
     - main
@@ -153,13 +152,12 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           report_type: "coverage"
-          files: ./junit.xml
 
-#      - name: Upload test results to Codecov
-#        uses: codecov/codecov-action@v5
-#        with:
-#          token: ${{ secrets.CODECOV_TOKEN }}
-#          report_type: "test_results"
+      - name: Upload test results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          report_type: "test_results"
 
       - name: Pytest Coverage Comment
         uses: MishaKav/pytest-coverage-comment@v1.2.0
