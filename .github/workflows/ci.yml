@@ -158,12 +158,3 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           report_type: "test_results"
-
-      - name: Pytest Coverage Comment
-        uses: MishaKav/pytest-coverage-comment@v1.2.0
-        if: github.event_name == 'pull_request'
-        with:
-          pytest-coverage-path: ./pytest-coverage.txt
-          junitxml-path: ./junit.xml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          create-new-comment: true
