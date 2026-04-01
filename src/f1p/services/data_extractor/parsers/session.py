@@ -142,9 +142,9 @@ class SessionParser(DirectObject):
         return self._total_laps
 
     def reset_from_year(self) -> None:
+        self._event_schedule = None
         self._event_name = None
         self._session_id = None
-        self._event_schedule = None
         self._event = None
         self._session = None
 

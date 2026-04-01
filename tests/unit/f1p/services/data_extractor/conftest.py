@@ -4425,11 +4425,98 @@ def fastest_lap(processed_laps: DataFrame) -> Series:
 
 
 @pytest.fixture()
+def session_status(session_start_time: Timedelta, session_end_time: Timedelta) -> DataFrame:
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(minutes=0, seconds=0),
+                session_start_time,
+                Timedelta(minutes=0, seconds=1),
+                session_end_time,
+                Timedelta(minutes=0, seconds=3),
+            ],
+            "Status": ["Inactive", "Started", "Finished", "Finalised", "Ends"],
+        }
+    )
+
+
+@pytest.fixture()
+def session_results() -> DataFrame:
+    return DataFrame(
+        {
+            "DriverNumber": ["24", "3"],
+            "BroadcastName": ["M TOSHEV", "M VERSTAPPEN"],
+            "Abbreviation": ["TOS", "VER"],
+            "DriverId": ["toshev", "max_verstappen"],
+            "TeamName": ["SIR Racing", "Red Bull Racing"],
+            "TeamColor": ["00FF00", "4781D7"],
+            "TeamId": ["sir", "red_bull"],
+            "FirstName": ["Mitko", "Max"],
+            "LastName": ["Toshev", "Verstappen"],
+            "FullName": ["Mitko Toshev", "Max Verstappen"],
+            "HeadshotUrl": [
+                "https://some.img.url",
+                "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/1col/image.png"
+            ],
+            "CountryCode": [None, None],
+            "Position": [1.0, 8.0],
+            "ClassifiedPosition": [1, 8],
+            "GridPosition": [1.0, 11.0],
+            "Q1": [pd.NaT, pd.NaT],
+            "Q2": [pd.NaT, pd.NaT],
+            "Q3": [pd.NaT, pd.NaT],
+            "Time": [Timedelta(hours=1, minutes=28, seconds=3, milliseconds=403), Timedelta(seconds=32, milliseconds=677)],
+            "Status": ["Finished", "Finished"],
+            "Points": [25.0, 4.0],
+            "Laps": [53.0, 53.0],
+        }
+    )
+
+
+@pytest.fixture()
+def session_results_after_process_team_colors() -> DataFrame:
+    return DataFrame(
+        {
+            "DriverNumber": ["24", "3"],
+            "BroadcastName": ["M TOSHEV", "M VERSTAPPEN"],
+            "Abbreviation": ["TOS", "VER"],
+            "DriverId": ["toshev", "max_verstappen"],
+            "TeamName": ["SIR Racing", "Red Bull Racing"],
+            "TeamColor": [
+                (0.0, 1.0, 0.0, 1.0),
+                (0.2784313725490196, 0.5058823529411764, 0.8431372549019608, 1.0)
+            ],
+            "TeamId": ["sir", "red_bull"],
+            "FirstName": ["Mitko", "Max"],
+            "LastName": ["Toshev", "Verstappen"],
+            "FullName": ["Mitko Toshev", "Max Verstappen"],
+            "HeadshotUrl": [
+                "https://some.img.url",
+                "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/1col/image.png"
+            ],
+            "CountryCode": [None, None],
+            "Position": [1.0, 8.0],
+            "ClassifiedPosition": [1, 8],
+            "GridPosition": [1.0, 11.0],
+            "Q1": [pd.NaT, pd.NaT],
+            "Q2": [pd.NaT, pd.NaT],
+            "Q3": [pd.NaT, pd.NaT],
+            "Time": [Timedelta(hours=1, minutes=28, seconds=3, milliseconds=403), Timedelta(seconds=32, milliseconds=677)],
+            "Status": ["Finished", "Finished"],
+            "Points": [25.0, 4.0],
+            "Laps": [53.0, 53.0],
+        }
+    )
+
+
+@pytest.fixture()
 def mock_session(
     circuit_info: CircuitInfo,
     track_status: DataFrame,
     weather_data: DataFrame,
     laps: DataFrame,
+    session_status: DataFrame,
+    session_results: DataFrame,
     mocker: MockerFixture,
 ) -> MagicMock:
     session = mocker.MagicMock(spec=Session)
@@ -4437,6 +4524,9 @@ def mock_session(
     session.track_status = track_status
     session.weather_data = weather_data
     session.laps = laps
+    session.session_status = session_status
+    session.results = session_results
+    session.total_laps = 53.0
 
     return session
 

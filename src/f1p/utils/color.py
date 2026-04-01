@@ -17,5 +17,5 @@ def hex_to_rgb_saturation(hex_code):
     return {
         "hex": f"#{hex_code}",
         "rgb": rgb_255,
-        "saturation_hls": saturation,
+        "saturation_hls": 1,
     }
