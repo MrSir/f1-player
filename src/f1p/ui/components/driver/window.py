@@ -1,8 +1,11 @@
 from decimal import Decimal
 from math import ceil
+from pathlib import Path
 
 import pandas as pd
+import requests
 from direct.gui.DirectFrame import DirectFrame
+from direct.gui.OnscreenImage import OnscreenImage
 from direct.gui.OnscreenText import OnscreenText
 from direct.showbase.DirectObject import DirectObject
 from direct.showbase.ShowBase import ShowBase
@@ -16,6 +19,7 @@ from panda3d.core import (
     PGTop,
     Point3,
     TextNode,
+    TransparencyAttrib,
     VBase4,
     Vec4,
     WindowProperties,
@@ -37,6 +41,7 @@ class DriverWindow(DirectObject):
         last_name: str,
         team_color_obj: LVecBase4f,
         team_name: str,
+        headshot_url: str,
         app: ShowBase,
         data_extractor: DataExtractorService,
     ):
@@ -54,12 +59,14 @@ class DriverWindow(DirectObject):
         self.last_name = last_name
         self.team_color_obj = team_color_obj
         self.team_name = team_name
+        self.headshot_url = headshot_url
         self.app = app
         self.data_extractor = data_extractor
 
         self.total_laps = self.data_extractor.total_laps
         self.is_open = False
 
+        self._local_headshot_url: str | None = None
         self._strategy: dict[int, dict[str, str | int]] | None = None
         self._driver_laps: DataFrame | None = None
         self._lap_averages: Series | None = None
@@ -122,26 +129,21 @@ class DriverWindow(DirectObject):
     @property
     def strategy(self) -> dict[int, dict[str, str | int]]:
         if self._strategy is None:
-            self._strategy = self.data_extractor.extract_tire_strategy(self.driver_number)
+            self._strategy = self.data_extractor.laps_parser.get_driver_tire_strategy(self.driver_number)
 
         return self._strategy
 
     @property
     def driver_laps(self) -> DataFrame:
         if self._driver_laps is None:
-            df = self.data_extractor.laps.copy()
-            df = df[df["DriverNumber"] == self.driver_number].copy()
-
-            df["S2LapTime"] = df["Sector2SessionTime"] - df["LapStartTime"]
-
-            self._driver_laps = df
+            self._driver_laps = self.data_extractor.laps_parser.get_driver_laps(self.driver_number)
 
         return self._driver_laps
 
     @property
     def slowest_non_pit_lap(self) -> Series:
         if self._slowest_non_pit_lap is None:
-            self._slowest_non_pit_lap = self.data_extractor.slowest_non_pit_lap
+            self._slowest_non_pit_lap = self.data_extractor.laps_parser.slowest_non_pit_lap
 
         return self._slowest_non_pit_lap
 
@@ -210,7 +212,9 @@ class DriverWindow(DirectObject):
             sr["Sector2TimeFormatted"] = td_series_to_min_n_sec(Series([sr["Sector2Time"]])).iloc[0]
             sr["Sector3TimeFormatted"] = td_series_to_min_n_sec(Series([sr["Sector3Time"]])).iloc[0]
             sr["LapTimeFormatted"] = td_series_to_min_n_sec(Series([sr["LapTime"]])).iloc[0]
-            sr["LapTimeRatio"] = sr["LapTime"] / self.data_extractor.fastest_lap["LapTimeMilliseconds"] * 100
+            sr["LapTimeRatio"] = (
+                sr["LapTime"] / self.data_extractor.laps_parser.fastest_lap["LapTimeMilliseconds"] * 100
+            )
 
             self._lap_averages = sr
 
@@ -316,6 +320,26 @@ class DriverWindow(DirectObject):
 
         return self._camera_np
 
+    @property
+    def local_headshot_url(self) -> str:
+        if self._local_headshot_url is None:
+            file_name = (
+                f"{self.driver_number}_{self.first_name}_{self.last_name}_{self.data_extractor.session_parser.year}.png"
+            )
+            dir_path = Path("./src/f1p/ui/components/driver/headshots")
+
+            if not dir_path.exists():
+                dir_path.mkdir()
+
+            local_path = dir_path / file_name
+
+            self._local_headshot_url = str(local_path)
+
+            if not local_path.exists():
+                local_path.write_bytes(requests.get(self.headshot_url).content)
+
+        return self._local_headshot_url
+
     def make_camera_region(self) -> None:
         width = 240
         padding_x = 10
@@ -387,6 +411,22 @@ class DriverWindow(DirectObject):
             fg=Colors.WHITE,
             pos=(33, self.driver_frame_height - title_frame_height - 50, 0),
         )
+
+        headshot_frame = DirectFrame(
+            parent=frame,
+            frameColor=Colors.WHITE,
+            frameSize=(-20, 20, -20, 20),
+            pos=(260 - 10 - 20, 0, self.driver_frame_height - title_frame_height - 35),
+            sortOrder=20,
+        )
+
+        headshot = OnscreenImage(
+            parent=headshot_frame,
+            image=self.local_headshot_url,
+            pos=Point3(0, 0, 0),
+            scale=20,
+        )
+        headshot.setTransparency(TransparencyAttrib.MAlpha)
 
     def make_telemetry_widget(self) -> None:
         width = 260
@@ -1202,7 +1242,7 @@ class DriverWindow(DirectObject):
         )
 
         # Draw Fastest Lap Time
-        fastest_lap_time = self.data_extractor.fastest_lap["LapTime"]
+        fastest_lap_time = self.data_extractor.laps_parser.fastest_lap["LapTime"]
         DirectFrame(
             parent=frame,
             frameColor=Colors.PURPLE,

@@ -1,12 +1,13 @@
 import datetime
 
 from direct.gui.DirectFrame import DirectFrame
+from direct.gui.DirectGuiGlobals import DISABLED
 from direct.gui.DirectOptionMenu import DirectOptionMenu
 from direct.showbase.Messenger import Messenger
 from direct.task.Task import TaskManager
 from panda3d.core import Point3, StaticTextFont
 
-from f1p.services.data_extractor.enums import ConventionalSessionIdentifiers, SprintQualifyingSessionIdentifiers
+from f1p.services.data_extractor.parsers.session import SessionParser
 from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.components.gui.drop_down import BlackDropDown
 
@@ -21,6 +22,7 @@ class Menu:
         height: int,
         text_font: StaticTextFont,
         data_extractor: DataExtractorService,
+        session_parser: SessionParser,
     ):
         self.pixel2d = pixel2d
         self.task_manager = task_manager
@@ -29,6 +31,7 @@ class Menu:
         self.height = height
         self.text_font = text_font
         self.data_extractor = data_extractor
+        self.session_parser = session_parser
 
         self.frame: DirectFrame | None = None
         self.year_menu: DirectOptionMenu | None = None
@@ -47,19 +50,10 @@ class Menu:
         )
 
     def select_year(self, year: str) -> None:
-        if year != "Year":
-            self.data_extractor._event_schedule = None
-            self.data_extractor._event = None
-            self.data_extractor._session = None
-            self.data_extractor._fastest_lap = None
-            self.data_extractor._circuit_info = None
-            self.data_extractor.year = int(year)
-
-            event_schedule = self.data_extractor.event_schedule
-            event_schedule = event_schedule[event_schedule["Session5"] == "Race"]
-
-            self.events_menu["items"] = ["Event"] + event_schedule["EventName"].tolist()
-            self.events_menu.setItems()
+        self.session_parser.year = int(year) if year != "Year" else None
+        self.session_parser.reset_from_year()
+        self.events_menu["items"] = self.session_parser.race_event_names
+        self.events_menu.setItems()
 
     def render_year_menu(self) -> None:
         self.year_menu = BlackDropDown(
@@ -79,19 +73,10 @@ class Menu:
         self.year_menu["command"] = self.select_year
 
     def select_event(self, event_name: str) -> None:
-        if event_name != "Event":
-            self.data_extractor._event = None
-            self.data_extractor._session = None
-            self.data_extractor._fastest_lap = None
-            self.data_extractor._circuit_info = None
-            self.data_extractor.event_name = event_name
-
-            event = self.data_extractor.event
-            match event["EventFormat"]:
-                case "sprint_qualifying":
-                    self.session_menu["items"] = ["Session"] + SprintQualifyingSessionIdentifiers.all_values()
-                case "conventional":
-                    self.session_menu["items"] = ["Session"] + ConventionalSessionIdentifiers.all_values()
+        self.session_parser.event_name = event_name if event_name != "Event" else None
+        self.session_parser.reset_from_event_name()
+        self.session_menu["items"] = self.session_parser.session_names
+        self.session_menu.setItems()
 
     def render_events_menu(self) -> None:
         self.events_menu = BlackDropDown(
@@ -110,11 +95,15 @@ class Menu:
         )
 
     def select_session(self, session_id: str) -> None:
+        self.session_parser.session_id = session_id if session_id != "Session" else None
+        self.session_parser.reset_from_session_id()
+
         if session_id != "Session":
-            self.data_extractor._session = None
-            self.data_extractor._fastest_lap = None
-            self.data_extractor._circuit_info = None
-            self.data_extractor.session_id = session_id
+            self.year_menu["state"] = DISABLED
+            self.events_menu["state"] = DISABLED
+            self.session_menu["state"] = DISABLED
+
+            self.data_extractor.session_parser = self.session_parser
 
             self.messenger.send("loadData")
 

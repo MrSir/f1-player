@@ -20,17 +20,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.14'
 
       - name: Install Poetry
         uses: abatilo/actions-poetry@v4
         with:
-          poetry-version: 2.2.1
+          poetry-version: 2.3.2
 
       - name: Load cached venv
         id: cached-poetry-dependencies
@@ -54,17 +54,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.14'
 
       - name: Install Poetry
         uses: abatilo/actions-poetry@v4
         with:
-          poetry-version: 2.2.1
+          poetry-version: 2.3.2
 
       - name: Load cached venv
         id: cached-poetry-dependencies
@@ -86,17 +86,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.14'
 
       - name: Install Poetry
         uses: abatilo/actions-poetry@v4
         with:
-          poetry-version: 2.2.1
+          poetry-version: 2.3.2
 
       - name: Load cached venv
         id: cached-poetry-dependencies
@@ -118,17 +118,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.14'
 
       - name: Install Poetry
         uses: abatilo/actions-poetry@v4
         with:
-          poetry-version: 2.2.1
+          poetry-version: 2.3.2
 
       - name: Load cached venv
         id: cached-poetry-dependencies
@@ -145,13 +145,25 @@ jobs:
         run: | 
           source ./.venv/bin/activate
           set -o pipefail
-          poetry run pytest ./tests/unit --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=f1p  | tee pytest-coverage.txt
+          poetry run pytest ./tests/unit --junitxml=junit.xml --cov-report=term-missing:skip-covered --cov=f1p  | tee pytest-coverage.txt
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          report_type: "coverage"
+
+      - name: Upload test results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          report_type: "test_results"
 
       - name: Pytest Coverage Comment
         uses: MishaKav/pytest-coverage-comment@v1.2.0
         if: github.event_name == 'pull_request'
         with:
           pytest-coverage-path: ./pytest-coverage.txt
-          junitxml-path: ./pytest.xml
+          junitxml-path: ./junit.xml
           github-token: ${{ secrets.GITHUB_TOKEN }}
           create-new-comment: true
