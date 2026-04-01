@@ -30,6 +30,6 @@ def merge_in_session_time_ticks(
     # Could happen if the session_start_time is earlier than the Session Time on tick number 1
     df = df.dropna(subset=[target_df_result_column])
 
-    df.loc[:,target_df_result_column] = df[target_df_result_column].astype("int64")
+    df[target_df_result_column] = df[target_df_result_column].astype("int64")
 
     return df

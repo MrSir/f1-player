@@ -1,14 +1,18 @@
+from datetime import datetime
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
 import pytest
+from direct.task.Task import TaskManager
 from fastf1.core import Session
 from fastf1.mvapi import CircuitInfo
-from panda3d.core import LVecBase4f, deg2Rad
+from panda3d.core import LVecBase4f, NodePath, StaticTextFont, deg2Rad
 from pandas import DataFrame, Series, Timedelta, Timestamp
 from pytest_mock import MockerFixture
 
+from f1p.services.data_extractor.service import DataExtractorService
 from f1p.services.data_extractor.track_statuses import (
     GreenFlagTrackStatus,
     RedFlagTrackStatus,
@@ -18,6 +22,90 @@ from f1p.services.data_extractor.track_statuses import (
     YellowFlagTrackStatus,
 )
 from f1p.ui.enums import Colors
+
+
+@pytest.fixture()
+def event_schedule() -> DataFrame:
+    return DataFrame(
+        {
+            "RoundNumber": [0, 1, 2],
+            "Country": ["Bahrain", "Australia", "China"],
+            "Location": ["Bahrain", "Melbourne", "Shanghai"],
+            "OfficialEventName": [
+                "FORMULA 1 ARAMCO PRE-SEASON TESTING 2 2026",
+                "FORMULA 1 QATAR AIRWAYS AUSTRALIAN GRAND PRIX 2026",
+                "FORMULA 1 HEINEKEN CHINESE GRAND PRIX 2026",
+            ],
+            "EventDate": [
+                datetime(2026, 2, 20),
+                datetime(2026, 3, 8),
+                datetime(2026, 3, 15),
+            ],
+            "EventName": ["Pre-Season Testing", "Australian Grand Prix", "Chinese Grand Prix"],
+            "EventFormat": ["testing", "conventional", "sprint_qualifying"],
+            "Session1": ["Practice 1", "Practice 1", "Practice 1"],
+            "Session1Date": [
+                datetime(2026, 2, 18, 10, 30, tzinfo=ZoneInfo("Asia/Bahrain")),
+                datetime(2026, 3, 6, 12, 30, tzinfo=ZoneInfo("Australia/Melbourne")),
+                datetime(2026, 3, 13, 11, 30, tzinfo=ZoneInfo("Asia/Shanghai")),
+            ],
+            "Session1DateUtc": [
+                datetime(2026, 2, 18, 7, 0),
+                datetime(2026, 3, 6, 1, 30),
+                datetime(2026, 3, 13, 3, 30),
+            ],
+            "Session2": ["Practice 2", "Practice 2", "Sprint Qualifying"],
+            "Session2Date": [
+                datetime(2026, 2, 19, 10, 30, tzinfo=ZoneInfo("Asia/Bahrain")),
+                datetime(2026, 3, 6, 16, 0, tzinfo=ZoneInfo("Australia/Melbourne")),
+                datetime(2026, 3, 13, 15, 30, tzinfo=ZoneInfo("Asia/Shanghai")),
+            ],
+            "Session2DateUtc": [
+                datetime(2026, 2, 19, 7, 0),
+                datetime(2026, 3, 6, 5, 0),
+                datetime(2026, 3, 13, 7, 30),
+            ],
+            "Session3": ["Practice 3", "Practice 3", "Sprint"],
+            "Session3Date": [
+                datetime(2026, 2, 20, 10, 30, tzinfo=ZoneInfo("Asia/Bahrain")),
+                datetime(2026, 3, 7, 12, 30, tzinfo=ZoneInfo("Australia/Melbourne")),
+                datetime(2026, 3, 14, 11, 0, tzinfo=ZoneInfo("Asia/Shanghai")),
+            ],
+            "Session3DateUtc": [
+                datetime(2026, 2, 20, 7, 0),
+                datetime(2026, 3, 7, 1, 30),
+                datetime(2026, 3, 14, 3, 0),
+            ],
+            "Session4": [None, "Qualifying", "Qualifying"],
+            "Session4Date": [
+                pd.NaT,
+                datetime(2026, 3, 7, 16, 0, tzinfo=ZoneInfo("Australia/Melbourne")),
+                datetime(2026, 3, 14, 15, 0, tzinfo=ZoneInfo("Asia/Shanghai")),
+            ],
+            "Session4DateUtc": [
+                pd.NaT,
+                datetime(2026, 3, 7, 5, 0),
+                datetime(2026, 3, 14, 7, 0),
+            ],
+            "Session5": [None, "Race", "Race"],
+            "Session5Date": [
+                pd.NaT,
+                datetime(2026, 3, 8, 15, 0, tzinfo=ZoneInfo("Australia/Melbourne")),
+                datetime(2026, 3, 15, 15, 0, tzinfo=ZoneInfo("Asia/Shanghai")),
+            ],
+            "Session5DateUtc": [
+                pd.NaT,
+                datetime(2026, 3, 8, 4, 0),
+                datetime(2026, 3, 15, 7, 0),
+            ],
+            "F1ApiSupport": [True, True, True],
+        }
+    )
+
+
+@pytest.fixture()
+def race_event_schedule(event_schedule: DataFrame) -> DataFrame:
+    return event_schedule[event_schedule["Session5"] == "Race"]
 
 
 @pytest.fixture()
@@ -4765,45 +4853,45 @@ def processed_weather_data_at_tick_2() -> Series:
         name=0,
     )
 
-#
-# @pytest.fixture()
-# def mock_parent(mocker: MockerFixture) -> MagicMock:
-#     return mocker.MagicMock(spec=NodePath)
-#
-#
-# @pytest.fixture()
-# def mock_task_manager(mocker: MockerFixture) -> MagicMock:
-#     return mocker.MagicMock(spec=TaskManager)
-#
-#
-# @pytest.fixture()
-# def mock_text_font(mocker: MockerFixture) -> MagicMock:
-#     return mocker.MagicMock(spec=StaticTextFont)
-#
-#
-# @pytest.fixture()
-# def data_extractor_service(
-#         mock_parent: MagicMock,
-#         mock_task_manager: MagicMock,
-#         mock_text_font: MagicMock,
-#         mocker: MockerFixture,
-# ) -> DataExtractorService:
-#     mocker.patch.object(DataExtractorService, "accept")
-#     mocker.patch("f1p.services.data_extractor.service.fastf1.Cache.enable_cache")
-#
-#     service = DataExtractorService(
-#         parent=mock_parent,
-#         task_manager=mock_task_manager,
-#         window_width=1920,
-#         window_height=1080,
-#         text_font=mock_text_font,
-#     )
-#     service.year = 2024
-#     service.event_name = "Bahrain"
-#     service.session_id = "FP1"
-#
-#     return service
-#
+
+@pytest.fixture()
+def mock_parent(mocker: MockerFixture) -> MagicMock:
+    return mocker.MagicMock(spec=NodePath)
+
+
+@pytest.fixture()
+def mock_task_manager(mocker: MockerFixture) -> MagicMock:
+    return mocker.MagicMock(spec=TaskManager)
+
+
+@pytest.fixture()
+def mock_text_font(mocker: MockerFixture) -> MagicMock:
+    return mocker.MagicMock(spec=StaticTextFont)
+
+
+@pytest.fixture()
+def data_extractor_service(
+        mock_parent: MagicMock,
+        mock_task_manager: MagicMock,
+        mock_text_font: MagicMock,
+        mocker: MockerFixture,
+) -> DataExtractorService:
+    mocker.patch.object(DataExtractorService, "accept")
+    mocker.patch("f1p.services.data_extractor.service.fastf1.Cache.enable_cache")
+
+    service = DataExtractorService(
+        parent=mock_parent,
+        task_manager=mock_task_manager,
+        window_width=1920,
+        window_height=1080,
+        text_font=mock_text_font,
+    )
+    service.year = 2024
+    service.event_name = "Bahrain"
+    service.session_id = "FP1"
+
+    return service
+
 #
 # @pytest.fixture()
 # def mock_session_status() -> DataFrame:

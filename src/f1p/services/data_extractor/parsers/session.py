@@ -1,8 +1,10 @@
 import fastf1
+import pandas as pd
+
 from direct.showbase.DirectObject import DirectObject
 from fastf1.core import Session
-from fastf1.events import Event, EventSchedule
-from pandas import DataFrame, Timedelta
+from fastf1.events import Event
+from pandas import DataFrame, Series, Timedelta
 
 from f1p.services.data_extractor.enums import ConventionalSessionIdentifiers, SprintQualifyingSessionIdentifiers
 from f1p.utils.color import hex_to_rgb_saturation
@@ -16,8 +18,8 @@ class SessionParser(DirectObject):
         self._event_name: str | None = None
         self._session_id: str | None = None
 
-        self._event_schedule: EventSchedule | None = None
-        self._event: Event | None = None
+        self._event_schedule: DataFrame | None = None
+        self._event: Series | None = None
         self._session: Session | None = None
 
         self._session_status: DataFrame | None = None
@@ -61,7 +63,7 @@ class SessionParser(DirectObject):
         self._session_id = value
 
     @property
-    def event_schedule(self) -> EventSchedule:
+    def event_schedule(self) -> DataFrame:
         if self._event_schedule is None:
             self._event_schedule = fastf1.get_event_schedule(self.year)
 
@@ -78,9 +80,9 @@ class SessionParser(DirectObject):
         return ["Event"] + event_schedule["EventName"].tolist()
 
     @property
-    def event(self) -> Event:
+    def event(self) -> Series:
         if self._event is None:
-            self._event = fastf1.get_event(self.year, self.event_name)
+            self._event = self.event_schedule[self.event_schedule["EventName"] == self.event_name].iloc[0]
 
         return self._event
 
@@ -90,7 +92,7 @@ class SessionParser(DirectObject):
             return ["Session"]
 
         match self.event["EventFormat"]:
-            case "sprint_qualifying":
+            case "sprint" | "sprint_shootout" | "sprint_qualifying":
                 return ["Session"] + SprintQualifyingSessionIdentifiers.all_values()
             case "conventional":
                 return ["Session"] + ConventionalSessionIdentifiers.all_values()
