@@ -4939,6 +4939,7 @@ def mock_session(
     laps: DataFrame,
     session_status: DataFrame,
     session_results: DataFrame,
+    pos_data: DataFrame,
     mocker: MockerFixture,
 ) -> MagicMock:
     session = mocker.MagicMock(spec=Session)
@@ -4949,6 +4950,7 @@ def mock_session(
     session.session_status = session_status
     session.results = session_results
     session.total_laps = 53.0
+    session.pos_data = pos_data
 
     return session
 
@@ -5410,6 +5412,18 @@ def data_extractor_service(
     return service
 
 
+@pytest.fixture()
+def pos_data() -> dict[str, DataFrame]:
+    return {"": DataFrame()}
+
+
+@pytest.fixture()
+def processed_pos_data() -> DataFrame:
+    return DataFrame()
+
+
+
+
 #
 # @pytest.fixture()
 # def mock_session_status() -> DataFrame:
@@ -5419,15 +5433,7 @@ def data_extractor_service(
 #     })
 #
 #
-# @pytest.fixture()
-# def mock_processed_pos_data() -> DataFrame:
-#     return pd.DataFrame({
-#         "SessionTimeTick": [1, 2, 3, 4, 5],
-#         "LapsCompletion": [0.5, 1.2, 1.8, 2.1, 2.9],
-#         "Z": [0.0, 1.5, 2.0, 1.8, 0.5],
-#         "DriverNumber": [1, 1, 2, 2, 1],
-#     })
-#
+
 
 # @pytest.fixture()
 # def green_flag_track_status() -> DataFrame:
