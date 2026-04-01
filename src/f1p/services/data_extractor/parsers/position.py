@@ -45,7 +45,6 @@ class PositionParser:
 
         return self
 
-
     def _normalize_position_data(self, map_rotation: float, map_center_coordinate: tuple[float, float, float]) -> Self:
         df = self._processed_pos_data.copy()
 
@@ -85,6 +84,5 @@ class PositionParser:
             ._add_session_time_in_milliseconds()
             ._add_session_time_tick()
         )
-
 
         return self._processed_pos_data

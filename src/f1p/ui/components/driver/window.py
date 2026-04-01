@@ -19,7 +19,8 @@ from panda3d.core import (
     PGTop,
     Point3,
     TextNode,
-    TransparencyAttrib, VBase4,
+    TransparencyAttrib,
+    VBase4,
     Vec4,
     WindowProperties,
 )
@@ -322,8 +323,10 @@ class DriverWindow(DirectObject):
     @property
     def local_headshot_url(self) -> str:
         if self._local_headshot_url is None:
-            file_name = f"{self.driver_number}_{self.first_name}_{self.last_name}_{self.data_extractor.session_parser.year}.png"
-            dir_path =  Path("./src/f1p/ui/components/driver/headshots")
+            file_name = (
+                f"{self.driver_number}_{self.first_name}_{self.last_name}_{self.data_extractor.session_parser.year}.png"
+            )
+            dir_path = Path("./src/f1p/ui/components/driver/headshots")
 
             if not dir_path.exists():
                 dir_path.mkdir()

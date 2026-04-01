@@ -567,7 +567,11 @@ def test_parse_units(parser: LapsParser, mocker: MockerFixture) -> None:
     mock_cs2lt.assert_called_once()
 
 
-def test_slowest_non_pit_lap_property_fetches(parser: LapsParser, processed_laps: DataFrame, slowest_non_pit_lap: Series) -> None:
+def test_slowest_non_pit_lap_property_fetches(
+    parser: LapsParser,
+    processed_laps: DataFrame,
+    slowest_non_pit_lap: Series,
+) -> None:
     assert parser._slowest_non_pit_lap is None
 
     parser._processed_laps = processed_laps
@@ -578,7 +582,11 @@ def test_slowest_non_pit_lap_property_fetches(parser: LapsParser, processed_laps
     assert_series_equal(slowest_non_pit_lap, parser._slowest_non_pit_lap)
 
 
-def test_slowest_non_pit_lap_property_caches(parser: LapsParser, processed_laps: DataFrame, slowest_non_pit_lap: Series) -> None:
+def test_slowest_non_pit_lap_property_caches(
+    parser: LapsParser,
+    processed_laps: DataFrame,
+    slowest_non_pit_lap: Series,
+) -> None:
     assert parser._slowest_non_pit_lap is None
 
     parser._processed_laps = processed_laps
@@ -589,7 +597,10 @@ def test_slowest_non_pit_lap_property_caches(parser: LapsParser, processed_laps:
     assert parser._slowest_non_pit_lap is not None
 
 
-def test_slowest_non_pit_lap_property_returns_none_when_no_lap_matches_criteria(parser: LapsParser, processed_laps: DataFrame) -> None:
+def test_slowest_non_pit_lap_property_returns_none_when_no_lap_matches_criteria(
+    parser: LapsParser,
+    processed_laps: DataFrame,
+) -> None:
     assert parser._slowest_non_pit_lap is None
 
     df = processed_laps.copy()
@@ -624,7 +635,10 @@ def test_fastest_lap_property_caches(parser: LapsParser, processed_laps: DataFra
     assert parser._fastest_lap is not None
 
 
-def test_fastest_lap_property_returns_none_when_no_lap_matches_criteria(parser: LapsParser, processed_laps: DataFrame) -> None:
+def test_fastest_lap_property_returns_none_when_no_lap_matches_criteria(
+    parser: LapsParser,
+    processed_laps: DataFrame,
+) -> None:
     assert parser._fastest_lap is None
 
     df = processed_laps.copy()
@@ -647,7 +661,10 @@ def test_end_of_race_milliseconds_property_fetches(parser: LapsParser, processed
     assert 3691182 == parser._end_of_race_milliseconds
 
 
-def test_end_of_race_milliseconds_property_caches(parser: LapsParser, processed_laps: DataFrame, fastest_lap: Series) -> None:
+def test_end_of_race_milliseconds_property_caches(
+    parser: LapsParser,
+    processed_laps: DataFrame,
+) -> None:
     assert parser._end_of_race_milliseconds is None
 
     parser._processed_laps = processed_laps
@@ -678,8 +695,8 @@ def test_get_driver_tire_strategy(parser: LapsParser, processed_laps: DataFrame)
     driver_number = "24"
 
     expected = {
-        1.0: {'Compound': 'H', 'CompoundColor': (1, 1, 1, 0.8), 'LapNumber': 2.0, 'TotalLaps': 3},
-        2.0: {'Compound': 'M', 'CompoundColor': (1, 1, 0, 0.8), 'LapNumber': 3.0, 'TotalLaps': 3},
+        1.0: {"Compound": "H", "CompoundColor": (1, 1, 1, 0.8), "LapNumber": 2.0, "TotalLaps": 3},
+        2.0: {"Compound": "M", "CompoundColor": (1, 1, 0, 0.8), "LapNumber": 3.0, "TotalLaps": 3},
     }
 
     assert expected == parser.get_driver_tire_strategy(driver_number)

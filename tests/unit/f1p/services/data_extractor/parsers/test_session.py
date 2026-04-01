@@ -1,7 +1,5 @@
-from typing import cast
 from unittest.mock import MagicMock
 
-import pandas as pd
 import pytest
 from pandas import DataFrame, Series, Timedelta
 from pandas._testing import assert_frame_equal, assert_series_equal
@@ -189,12 +187,14 @@ def test_event_property_caches(
         (None, None, ["Session"]),
         ("E1", Series({"EventFormat": "sprint"}), ["Session"] + SprintQualifyingSessionIdentifiers.all_values()),
         (
-                "E2", Series({"EventFormat": "sprint_shootout"}),
-                ["Session"] + SprintQualifyingSessionIdentifiers.all_values()
+            "E2",
+            Series({"EventFormat": "sprint_shootout"}),
+            ["Session"] + SprintQualifyingSessionIdentifiers.all_values(),
         ),
         (
-                "E3", Series({"EventFormat": "sprint_qualifying"}),
-                ["Session"] + SprintQualifyingSessionIdentifiers.all_values()
+            "E3",
+            Series({"EventFormat": "sprint_qualifying"}),
+            ["Session"] + SprintQualifyingSessionIdentifiers.all_values(),
         ),
         ("E4", Series({"EventFormat": "conventional"}), ["Session"] + ConventionalSessionIdentifiers.all_values()),
         ("E5", Series({"EventFormat": "default"}), ["Session"] + ConventionalSessionIdentifiers.all_values()),
@@ -392,7 +392,7 @@ def test_total_laps_property_computes_when_none(parser: SessionParser, mock_sess
     assert 53 == parser._total_laps
 
 
-def test_total_laps_property_caches(    parser: SessionParser,    mock_session: MagicMock) -> None:
+def test_total_laps_property_caches(parser: SessionParser, mock_session: MagicMock) -> None:
     assert parser._total_laps is None
 
     parser._session = mock_session

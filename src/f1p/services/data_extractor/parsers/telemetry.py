@@ -76,7 +76,6 @@ class TelemetryParser:
 
         return self
 
-
     def _clean_up(self) -> Self:
         df = self._processed_car_data.copy()
 
@@ -97,7 +96,6 @@ class TelemetryParser:
         self._processed_car_data = df
 
         return self
-
 
     def parse(
         self,

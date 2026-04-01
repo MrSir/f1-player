@@ -1,9 +1,6 @@
 import fastf1
-import pandas as pd
-
 from direct.showbase.DirectObject import DirectObject
 from fastf1.core import Session
-from fastf1.events import Event
 from pandas import DataFrame, Series, Timedelta
 
 from f1p.services.data_extractor.enums import ConventionalSessionIdentifiers, SprintQualifyingSessionIdentifiers

@@ -21,7 +21,6 @@ from f1p.services.data_extractor.parsers.session import SessionParser
 from f1p.services.data_extractor.parsers.telemetry import TelemetryParser
 from f1p.services.data_extractor.parsers.track import TrackParser
 from f1p.services.data_extractor.parsers.weather import WeatherParser
-from f1p.ui.enums import Colors
 from f1p.utils.geometry import center_pos_data, find_center, resize_pos_data
 from f1p.utils.timedelta import td_series_to_min_n_sec
 
@@ -58,7 +57,6 @@ class DataExtractorService(DirectObject):
 
         self.processed_pos_data: DataFrame | None = None
         self._telemetry_parser: TelemetryParser | None = None
-
 
         self._car_data: dict[str, Telemetry] | None = None
 
@@ -168,11 +166,6 @@ class DataExtractorService(DirectObject):
 
         return self._telemetry_parser
 
-
-
-
-
-
     @property
     def car_data(self) -> dict[str, Telemetry]:
         if self._car_data is None:
@@ -253,7 +246,7 @@ class DataExtractorService(DirectObject):
         self.processed_pos_data = self.pos_parser.parse(
             self.session_start_time,
             self.map_rotation,
-            self.map_center_coordinate
+            self.map_center_coordinate,
         )
 
         self.update_loading(10)
@@ -480,7 +473,6 @@ class DataExtractorService(DirectObject):
         self.update_loading(5)
 
         return self
-
 
     def parse_telemetry(self) -> Self:
         self.processed_car_data = self.telemetry_parser.parse(
