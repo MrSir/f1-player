@@ -37,6 +37,11 @@ def mock_f1p_app(mock_task_manager: MagicMock, mocker: MockerFixture) -> MagicMo
     m = mocker.MagicMock(spec=F1PlayerApp)
     m.render = mocker.MagicMock(spec=NodePath)
     m.taskMgr = mock_task_manager
+    m.configure_window = mocker.MagicMock(return_value=m)
+    m.draw_menu = mocker.MagicMock(return_value=m)
+    m.register_ui_components = mocker.MagicMock(return_value=m)
+    m.register_controls = mocker.MagicMock(return_value=m)
+    m.run = mocker.MagicMock(return_value=m)
 
     return m
 
