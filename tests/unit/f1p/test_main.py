@@ -6,7 +6,9 @@ from importlib import import_module
 def test_main(mock_class: MagicMock, mock_f1p_app: MagicMock) -> None:
     mock_class.return_value = mock_f1p_app
 
-    import_module("f1p.main")
+    from f1p.main import main
+
+    main()
 
     mock_class.assert_called_once()
     mock_f1p_app.configure_window.assert_called_once()

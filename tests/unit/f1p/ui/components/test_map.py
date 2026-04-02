@@ -14,30 +14,30 @@ from f1p.ui.components.map import Map
 @pytest.fixture()
 def map_component(
     mock_f1p_app: MagicMock,
-    data_extractor_service: DataExtractorService,
+    mock_data_extractor_service: MagicMock,
     mocker: MockerFixture,
 ) -> Map:
     mock_accept = mocker.MagicMock()
     mocker.patch("f1p.ui.components.map.Map.accept", mock_accept)
 
-    return Map(mock_f1p_app, data_extractor_service)
+    return Map(mock_f1p_app, mock_data_extractor_service)
 
 
 def test_initialization(
     mock_f1p_app: MagicMock,
-    data_extractor_service: DataExtractorService,
+    mock_data_extractor_service: MagicMock,
     mocker: MockerFixture,
 ) -> None:
     mock_accept = mocker.MagicMock()
     mocker.patch("f1p.ui.components.map.Map.accept", mock_accept)
 
-    map_component = Map(mock_f1p_app, data_extractor_service)
+    map_component = Map(mock_f1p_app, mock_data_extractor_service)
 
     assert isinstance(map_component, DirectObject)
 
     assert mock_f1p_app.render == map_component.parent
     assert mock_f1p_app.taskMgr == map_component.task_manager
-    assert data_extractor_service == map_component.data_extractor
+    assert mock_data_extractor_service == map_component.data_extractor
 
     assert map_component.inner_border_node_path is None
     assert map_component.outer_border_node_path is None
@@ -49,13 +49,13 @@ def test_initialization(
     mock_accept.assert_called_once_with("sessionSelected", map_component.render_task)
 
 
-def test_render_map(map_component: Map, data_extractor_service: DataExtractorService, mocker: MockerFixture) -> None:
+def test_render_map(map_component: Map, mock_data_extractor_service: MagicMock, mocker: MockerFixture) -> None:
     telemetry_data = DataFrame({
         "X": [0.0, 1.0, 2.0, 3.0],
         "Y": [0.0, 1.0, 2.0, 3.0],
         "Z": [0.0, 0.0, 0.0, 0.0],
     })
-    data_extractor_service.fastest_lap_telemetry = telemetry_data
+    mock_data_extractor_service.fastest_lap_telemetry = telemetry_data
 
     mock_draw_track = mocker.MagicMock()
     mock_node_path = mocker.MagicMock(spec=NodePath)
@@ -130,7 +130,7 @@ def test_draw_track(map_component: Map, mocker: MockerFixture) -> None:
 def test_render_corners(
     map_component: Map,
     mock_f1p_app: MagicMock,
-    data_extractor_service: DataExtractorService,
+    mock_data_extractor_service: MagicMock,
     mocker: MockerFixture,
 ) -> None:
     corners_data = DataFrame({
@@ -139,8 +139,8 @@ def test_render_corners(
         "Z": [1.0, 1.0],
         "Label": ["1", "2"],
     })
-    data_extractor_service._processed_corners = corners_data
-    data_extractor_service.pos_parser._lowest_z_coordinate = 0.0
+    mock_data_extractor_service.processed_corners = corners_data
+    mock_data_extractor_service.lowest_z_coordinate = 0.0
 
     mock_line_segs = mocker.MagicMock(spec=LineSegs)
     mock_line_node = mocker.MagicMock()
@@ -231,10 +231,10 @@ def test_render_corners(
 def test_initialize_drivers(
     map_component: Map,
     mock_f1p_app: MagicMock,
-    data_extractor_service: DataExtractorService,
+    mock_data_extractor_service: MagicMock,
     session_results: DataFrame,
 ) -> None:
-    data_extractor_service._session_results = session_results
+    mock_data_extractor_service.session_results = session_results
 
     pos_data = DataFrame({
         "SessionTimeTick": [1, 2, 1, 2],
@@ -243,7 +243,7 @@ def test_initialize_drivers(
         "Y": [0.0, 1.0, 2.0, 3.0],
         "Z": [0.0, 0.0, 0.0, 0.0],
     })
-    data_extractor_service.processed_pos_data = pos_data
+    mock_data_extractor_service.processed_pos_data = pos_data
 
     map_component.initialize_drivers()
 

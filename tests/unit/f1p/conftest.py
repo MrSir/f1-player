@@ -12,17 +12,6 @@ from panda3d.core import LVecBase4f, NodePath, StaticTextFont, deg2Rad
 from pandas import DataFrame, Series, Timedelta, Timestamp
 from pytest_mock import MockerFixture
 
-from f1p.app import F1PlayerApp
-from f1p.services.data_extractor.parsers.session import SessionParser
-from f1p.services.data_extractor.service import DataExtractorService
-from f1p.services.data_extractor.track_statuses import (
-    GreenFlagTrackStatus,
-    RedFlagTrackStatus,
-    SafetyCarTrackStatus,
-    VSCDeployedTrackStatus,
-    VSCEndingTrackStatus,
-    YellowFlagTrackStatus,
-)
 from f1p.ui.enums import Colors
 
 
@@ -34,7 +23,7 @@ def mock_task_manager(mocker: MockerFixture) -> MagicMock:
 
 @pytest.fixture()
 def mock_f1p_app(mock_task_manager: MagicMock, mocker: MockerFixture) -> MagicMock:
-    m = mocker.MagicMock(spec=F1PlayerApp)
+    m = mocker.MagicMock()
     m.render = mocker.MagicMock(spec=NodePath)
     m.taskMgr = mock_task_manager
     m.configure_window = mocker.MagicMock(return_value=m)
@@ -175,14 +164,26 @@ def track_status() -> DataFrame:
 @pytest.fixture()
 def track_status_colors() -> DataFrame:
     return pd.DataFrame(
-        data=[
-            GreenFlagTrackStatus(),
-            YellowFlagTrackStatus(),
-            SafetyCarTrackStatus(),
-            RedFlagTrackStatus(),
-            VSCDeployedTrackStatus(),
-            VSCEndingTrackStatus(),
-        ],
+        data={
+            "Status": [1, 2, 4, 5, 6, 7],
+            "Label": ["Green Flag","Yellow Flag", "Safety Car", "Red Flag", "VSC Deployed", "VSC Ending"],
+            "Color": [
+                LVecBase4f(0, 1, 0, 0.8),
+                LVecBase4f(1, 1, 0, 0.8),
+                LVecBase4f(1, 1, 0, 0.8),
+                LVecBase4f(1, 0, 0, 0.8),
+                LVecBase4f(1, 0.64, 0, 0.8),
+                LVecBase4f(1, 0.64, 0, 0.8),
+            ],
+            "TextColor": [
+                LVecBase4f(0, 0, 0, 0.8),
+                LVecBase4f(0, 0, 0, 0.8),
+                LVecBase4f(0, 0, 0, 0.8),
+                LVecBase4f(1, 1, 1, 0.8),
+                LVecBase4f(0, 0, 0, 0.8),
+                LVecBase4f(0, 0, 0, 0.8),
+            ],
+        },
     )
 
 
@@ -5403,34 +5404,35 @@ def mock_task_manager(mocker: MockerFixture) -> MagicMock:
 def mock_text_font(mocker: MockerFixture) -> MagicMock:
     return mocker.MagicMock(spec=StaticTextFont)
 
+@pytest.fixture()
+def mock_session_parser(mock_session: MagicMock, mocker: MockerFixture) -> MagicMock:
+    mock_parser = mocker.MagicMock()
+    mock_parser.year = 2026
+    mock_parser.event_name = "Australian Grand Prix"
+    mock_parser.session_id = "Race"
+    mock_parser._session = mock_session
+
+    return mock_parser
+
 
 @pytest.fixture()
-def data_extractor_service(
+def mock_data_extractor_service(
     mock_parent: MagicMock,
     mock_task_manager: MagicMock,
     mock_text_font: MagicMock,
     mock_session: MagicMock,
+    mock_session_parser: MagicMock,
     mocker: MockerFixture,
-) -> DataExtractorService:
-    mocker.patch.object(DataExtractorService, "accept")
-    mocker.patch("f1p.services.data_extractor.service.fastf1.Cache.enable_cache")
+) -> MagicMock:
+    mock_service = mocker.MagicMock()
+    mock_service.parent = mock_parent
+    mock_service.task_manager = mock_task_manager
+    mock_service.window_width = 1920
+    mock_service.window_height = 1080
+    mock_service.text_font = mock_text_font
+    mock_service.session_parser = mock_session_parser
 
-    service = DataExtractorService(
-        parent=mock_parent,
-        task_manager=mock_task_manager,
-        window_width=1920,
-        window_height=1080,
-        text_font=mock_text_font,
-    )
-    session_parser = SessionParser()
-    session_parser.year = 2026
-    session_parser.event_name = "Australian Grand Prix"
-    session_parser.session_id = "Race"
-    session_parser._session = mock_session
-
-    service.session_parser = session_parser
-
-    return service
+    return mock_service
 
 
 @pytest.fixture()

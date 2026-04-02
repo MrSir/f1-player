@@ -41,7 +41,7 @@ def strategy() -> dict[int, dict[str, str | int]]:
 def driver_window(
     mock_f1p_app: MagicMock,
     team_color: LVecBase4f,
-    data_extractor_service: MagicMock,
+    mock_data_extractor_service: MagicMock,
 ) -> DriverWindow:
     return DriverWindow(
         800,
@@ -53,14 +53,14 @@ def driver_window(
         "Team 1",
         "https://some.img.url",
         mock_f1p_app,
-        data_extractor_service,
+        mock_data_extractor_service,
     )
 
 
 def test_init(
     mock_f1p_app: MagicMock,
     team_color: LVecBase4f,
-    data_extractor_service: MagicMock,
+    mock_data_extractor_service: MagicMock,
     mocker: MockerFixture,
 ) -> None:
     width = 800
@@ -84,7 +84,7 @@ def test_init(
         team_name,
         headshot_url,
         mock_f1p_app,
-        data_extractor_service,
+        mock_data_extractor_service,
     )
 
     assert driver_window.width == width
@@ -101,9 +101,9 @@ def test_init(
     assert driver_window.team_name == team_name
     assert driver_window.headshot_url == headshot_url
     assert driver_window.app is mock_f1p_app
-    assert driver_window.data_extractor == data_extractor_service
+    assert driver_window.data_extractor == mock_data_extractor_service
 
-    assert data_extractor_service.total_laps == driver_window.total_laps
+    assert mock_data_extractor_service.total_laps == driver_window.total_laps
     assert driver_window.is_open is False
 
     assert driver_window._strategy is None

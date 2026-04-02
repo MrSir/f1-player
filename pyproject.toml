@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "F1 Player"
-version = "0.5"
+version = "0.9"
 description = "A tool for watching F1 races from a data perspective."
 authors = [
     "Mitko Toshev <mr.sir88@gmail.com>"
@@ -12,6 +12,7 @@ packages = [{include = "f1p", from = "src"}]
 python = ">=3.14,<3.15"
 fastf1 = "3.8.1"
 panda3d = "1.10.16"
+timedelta = "^2020.12.3"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.12.8"
@@ -30,7 +31,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-f1p = "f1p.main:app"
+f1p = "f1p.main:main"
 
 [tool.coverage.run]
 branch = true
