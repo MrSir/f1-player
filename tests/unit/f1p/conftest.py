@@ -12,6 +12,7 @@ from panda3d.core import LVecBase4f, NodePath, StaticTextFont, deg2Rad
 from pandas import DataFrame, Series, Timedelta, Timestamp
 from pytest_mock import MockerFixture
 
+from f1p.app import F1PlayerApp
 from f1p.services.data_extractor.parsers.session import SessionParser
 from f1p.services.data_extractor.service import DataExtractorService
 from f1p.services.data_extractor.track_statuses import (
@@ -23,6 +24,21 @@ from f1p.services.data_extractor.track_statuses import (
     YellowFlagTrackStatus,
 )
 from f1p.ui.enums import Colors
+
+
+@pytest.fixture()
+def mock_task_manager(mocker: MockerFixture) -> MagicMock:
+    m_task_manager = mocker.MagicMock(spec=TaskManager)
+
+    return m_task_manager
+
+@pytest.fixture()
+def mock_f1p_app(mock_task_manager: MagicMock, mocker: MockerFixture) -> MagicMock:
+    m = mocker.MagicMock(spec=F1PlayerApp)
+    m.render = mocker.MagicMock(spec=NodePath)
+    m.taskMgr = mock_task_manager
+
+    return m
 
 
 @pytest.fixture()

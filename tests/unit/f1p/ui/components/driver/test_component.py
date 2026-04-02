@@ -7,6 +7,7 @@ from panda3d.core import LVecBase4f, NodePath
 from pandas import DataFrame, Series
 from pytest_mock import MockerFixture
 
+from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.components.driver.component import Driver
 from f1p.ui.components.driver.window import DriverWindow
 from procedural3d import SphereMaker
@@ -93,15 +94,15 @@ def strategy() -> dict[int, dict[str, str | int]]:
 def driver(
     mock_f1p_app: MagicMock,
     mock_parent: MagicMock,
-    mock_data_extractor: MagicMock,
+    data_extractor_service: DataExtractorService,
     driver_sr: Series,
 ) -> Driver:
-    return Driver.from_df(mock_f1p_app, mock_parent, mock_data_extractor, driver_sr)
+    return Driver.from_df(mock_f1p_app, mock_parent, data_extractor_service, driver_sr)
 
 
 def test_initialization(
     mock_f1p_app: MagicMock,
-    mock_data_extractor: MagicMock,
+    data_extractor_service: DataExtractorService,
     mocker: MockerFixture,
 ) -> None:
     number = "1"
@@ -124,7 +125,7 @@ def test_initialization(
         abbreviation,
         team_name,
         headshot_url,
-        mock_data_extractor,
+        data_extractor_service,
     )
 
     assert isinstance(driver, DirectObject)
@@ -136,7 +137,7 @@ def test_initialization(
     assert abbreviation == driver.abbreviation
     assert team_name == driver.team_name
     assert headshot_url == driver.headshot_url
-    assert mock_data_extractor == driver.data_extractor
+    assert data_extractor_service == driver.data_extractor
     assert driver.node_path is None
 
     assert driver._pos_data is None
@@ -225,9 +226,9 @@ def test_from_df(
     mock_parent: MagicMock,
     driver_sr: Series,
     mock_f1p_app: MagicMock,
-    mock_data_extractor: MagicMock,
+    data_extractor_service: DataExtractorService,
 ) -> None:
-    driver = Driver.from_df(mock_f1p_app, mock_parent, mock_data_extractor, driver_sr)
+    driver = Driver.from_df(mock_f1p_app, mock_parent, data_extractor_service, driver_sr)
 
     assert isinstance(driver, DirectObject)
     assert mock_f1p_app == driver.app
@@ -238,7 +239,7 @@ def test_from_df(
     assert driver_sr["Abbreviation"] == driver.abbreviation
     assert driver_sr["TeamName"] == driver.team_name
     assert driver_sr["HeadshotUrl"] == driver.headshot_url
-    assert mock_data_extractor == driver.data_extractor
+    assert data_extractor_service == driver.data_extractor
     assert mock_parent.attachNewNode.return_value == driver.node_path
 
     assert driver._pos_data is None
@@ -250,6 +251,18 @@ def test_from_df(
     assert driver.is_dnf is False
     assert driver.is_finished is False
     assert driver.has_fastest_lap is False
+
+
+def test_queue_update(driver: Driver, mock_f1p_app: MagicMock) -> None:
+    session_time_tick = 2
+    driver.queue_update(session_time_tick)
+
+    mock_f1p_app.taskMgr.add.assert_called_once_with(
+        driver.update,
+        "updateDriver",
+        extraArgs=[session_time_tick],
+        taskChain="updating",
+    )
 
 
 @pytest.mark.parametrize(

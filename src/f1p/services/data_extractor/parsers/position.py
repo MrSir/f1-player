@@ -14,6 +14,8 @@ class PositionParser:
         self._pos_data: dict[str, DataFrame] | None = None
         self._processed_pos_data: DataFrame | None = None
 
+        self._lowest_z_coordinate: float | None = None
+
     @property
     def pos_data(self) -> dict[str, DataFrame]:
         if self._pos_data is None:
@@ -27,6 +29,13 @@ class PositionParser:
             raise ValueError("Position data not processed yet.")
 
         return self._processed_pos_data
+
+    @property
+    def lowest_z_coordinate(self) -> float:
+        if self._lowest_z_coordinate is None:
+            self._lowest_z_coordinate = self.processed_pos_data["Z"].min()
+
+        return self._lowest_z_coordinate
 
     def _combine_position_data(self) -> Self:
         drivers_pos_data = []

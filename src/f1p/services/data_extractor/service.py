@@ -180,7 +180,7 @@ class DataExtractorService(DirectObject):
 
     @property
     def lowest_z_coordinate(self) -> float:
-        return self.processed_pos_data["Z"].min()
+        return self.pos_parser.lowest_z_coordinate
 
     @property
     def session_ticks(self) -> int:

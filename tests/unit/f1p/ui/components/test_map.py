@@ -7,36 +7,37 @@ from panda3d.core import BillboardEffect, LineSegs, NodePath, TextNode
 from pandas import DataFrame
 from pytest_mock import MockerFixture
 
+from f1p.services.data_extractor.service import DataExtractorService
 from f1p.ui.components.map import Map
 
 
 @pytest.fixture()
 def map_component(
     mock_f1p_app: MagicMock,
-    mock_data_extractor: MagicMock,
+    data_extractor_service: DataExtractorService,
     mocker: MockerFixture,
 ) -> Map:
     mock_accept = mocker.MagicMock()
     mocker.patch("f1p.ui.components.map.Map.accept", mock_accept)
 
-    return Map(mock_f1p_app, mock_data_extractor)
+    return Map(mock_f1p_app, data_extractor_service)
 
 
 def test_initialization(
     mock_f1p_app: MagicMock,
-    mock_data_extractor: MagicMock,
+    data_extractor_service: DataExtractorService,
     mocker: MockerFixture,
 ) -> None:
     mock_accept = mocker.MagicMock()
     mocker.patch("f1p.ui.components.map.Map.accept", mock_accept)
 
-    map_component = Map(mock_f1p_app, mock_data_extractor)
+    map_component = Map(mock_f1p_app, data_extractor_service)
 
     assert isinstance(map_component, DirectObject)
 
     assert mock_f1p_app.render == map_component.parent
     assert mock_f1p_app.taskMgr == map_component.task_manager
-    assert mock_data_extractor == map_component.data_extractor
+    assert data_extractor_service == map_component.data_extractor
 
     assert map_component.inner_border_node_path is None
     assert map_component.outer_border_node_path is None
@@ -48,13 +49,13 @@ def test_initialization(
     mock_accept.assert_called_once_with("sessionSelected", map_component.render_task)
 
 
-def test_render_map(map_component: Map, mock_data_extractor: MagicMock, mocker: MockerFixture) -> None:
+def test_render_map(map_component: Map, data_extractor_service: DataExtractorService, mocker: MockerFixture) -> None:
     telemetry_data = DataFrame({
         "X": [0.0, 1.0, 2.0, 3.0],
         "Y": [0.0, 1.0, 2.0, 3.0],
         "Z": [0.0, 0.0, 0.0, 0.0],
     })
-    mock_data_extractor.fastest_lap_telemetry = telemetry_data
+    data_extractor_service.fastest_lap_telemetry = telemetry_data
 
     mock_draw_track = mocker.MagicMock()
     mock_node_path = mocker.MagicMock(spec=NodePath)
@@ -129,7 +130,7 @@ def test_draw_track(map_component: Map, mocker: MockerFixture) -> None:
 def test_render_corners(
     map_component: Map,
     mock_f1p_app: MagicMock,
-    mock_data_extractor: MagicMock,
+    data_extractor_service: DataExtractorService,
     mocker: MockerFixture,
 ) -> None:
     corners_data = DataFrame({
@@ -138,8 +139,8 @@ def test_render_corners(
         "Z": [1.0, 1.0],
         "Label": ["1", "2"],
     })
-    mock_data_extractor.processed_corners = corners_data
-    mock_data_extractor.lowest_z_coordinate = 0.0
+    data_extractor_service._processed_corners = corners_data
+    data_extractor_service.pos_parser._lowest_z_coordinate = 0.0
 
     mock_line_segs = mocker.MagicMock(spec=LineSegs)
     mock_line_node = mocker.MagicMock()
@@ -230,19 +231,10 @@ def test_render_corners(
 def test_initialize_drivers(
     map_component: Map,
     mock_f1p_app: MagicMock,
-    mock_data_extractor: MagicMock,
+    data_extractor_service: DataExtractorService,
+    session_results: DataFrame,
 ) -> None:
-    driver_results = DataFrame({
-        "DriverNumber": [1, 2],
-        "FirstName": ["Lewis", "George"],
-        "LastName": ["Hamilton", "Russell"],
-        "BroadcastName": ["HAM", "RUS"],
-        "Abbreviation": ["HAM", "RUS"],
-        "TeamName": ["Team A", "Team B"],
-        "TeamColor": [(1, 0, 0, 1), (0, 0, 1, 1)],
-        "HeadshotUrl": ["headshot1.png", "headshot2.png"],
-    })
-    mock_data_extractor.session_results = driver_results
+    data_extractor_service._session_results = session_results
 
     pos_data = DataFrame({
         "SessionTimeTick": [1, 2, 1, 2],
@@ -251,13 +243,13 @@ def test_initialize_drivers(
         "Y": [0.0, 1.0, 2.0, 3.0],
         "Z": [0.0, 0.0, 0.0, 0.0],
     })
-    mock_data_extractor.processed_pos_data = pos_data
+    data_extractor_service.processed_pos_data = pos_data
 
     map_component.initialize_drivers()
 
     assert len(map_component.drivers) == 2
 
-    driver1_sr = driver_results.iloc[0]
+    driver1_sr = session_results.iloc[0]
     driver1_pos_data = pos_data[pos_data["DriverNumber"] == driver1_sr["DriverNumber"]]
     driver1 = map_component.drivers[0]
     assert isinstance(driver1, DirectObject)
@@ -276,7 +268,7 @@ def test_initialize_drivers(
     assert driver1.is_finished is False
     assert driver1.has_fastest_lap is False
 
-    driver2_sr = driver_results.iloc[1]
+    driver2_sr = session_results.iloc[1]
     driver2_pos_data = pos_data[pos_data["DriverNumber"] == driver2_sr["DriverNumber"]]
     driver2 = map_component.drivers[1]
     assert isinstance(driver2, DirectObject)
@@ -286,6 +278,7 @@ def test_initialize_drivers(
     assert driver2_sr["BroadcastName"] == driver2.broadcast_name
     assert driver2_sr["Abbreviation"] == driver2.abbreviation
     assert driver2_sr["TeamName"] == driver2.team_name
+    assert driver2_sr["HeadshotUrl"] == driver2.headshot_url
     assert driver2_pos_data.equals(driver2.pos_data)
     assert driver2_pos_data.set_index("SessionTimeTick").to_dict(orient="index") == driver2.ticks
     assert mock_f1p_app.render.attachNewNode.return_value == driver2.node_path
