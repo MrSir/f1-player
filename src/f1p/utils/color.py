@@ -1,7 +1,7 @@
 import colorsys
 
 
-def hex_to_rgb_saturation(hex_code):
+def hex_to_rgb_saturation(hex_code) -> dict[str, str | tuple | float]:
     # 1. Convert hex to RGB (0-255 range)
     hex_code = hex_code.lstrip("#")
     lv = len(hex_code)
@@ -17,5 +17,5 @@ def hex_to_rgb_saturation(hex_code):
     return {
         "hex": f"#{hex_code}",
         "rgb": rgb_255,
-        "saturation_hls": 1,
+        "saturation_hls": 1.0,
     }
