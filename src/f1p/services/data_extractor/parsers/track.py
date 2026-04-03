@@ -124,13 +124,13 @@ class TrackParser:
         ts_df = merge_in_session_time_ticks(
             self._processed_track_statuses,
             self._augmented_session_time_ticks_df,
-            "Time",
+            target_df_comparison_column="Time",
         )
         ts_df = merge_in_session_time_ticks(
             ts_df,
             self._augmented_session_time_ticks_df,
-            "EndTime",
-            "SessionTimeTickEnd",
+            target_df_comparison_column="EndTime",
+            target_df_result_column="SessionTimeTickEnd",
         )
 
         self._processed_track_statuses = ts_df

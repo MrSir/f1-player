@@ -43,7 +43,11 @@ class WeatherParser:
         return self
 
     def _add_session_time_ticks(self, session_time_ticks_df: DataFrame) -> Self:
-        df = merge_in_session_time_ticks(self._processed_weather_data, session_time_ticks_df, "Time")
+        df = merge_in_session_time_ticks(
+            self._processed_weather_data,
+            session_time_ticks_df,
+            target_df_comparison_column="Time",
+        )
 
         self._processed_weather_data = df
 
