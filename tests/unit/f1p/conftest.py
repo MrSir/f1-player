@@ -5437,12 +5437,283 @@ def mock_data_extractor_service(
 
 @pytest.fixture()
 def pos_data() -> dict[str, DataFrame]:
-    return {"": DataFrame()}
+    return {
+        "3": DataFrame(
+            {
+                "Date": [
+                    datetime(2026, 3, 29, 4, 10, 19, 344),
+                    datetime(2026, 3, 29, 4, 10, 19, 604),
+                    datetime(2026, 3, 29, 4, 10, 19, 824),
+                ],
+                "Status": ["OnTrack", "OnTrack", "OnTrack"],
+                "X": [0.0, 0.0, 0.0],
+                "Y": [0.0, 0.0, 0.0],
+                "Z": [1.0, 2.0, 2.0],
+                "Source": ["pos", "pos", "pos"],
+                "Time": [
+                    Timedelta(milliseconds=1000),
+                    Timedelta(seconds=2, milliseconds=236),
+                    Timedelta(seconds=2, milliseconds=456),
+                ],
+                "SessionTime": [
+                    Timedelta(milliseconds=1000),
+                    Timedelta(seconds=2, milliseconds=236),
+                    Timedelta(seconds=2, milliseconds=456),
+                ],
+            }
+        ),
+        "24": DataFrame(
+            {
+                "Date": [
+                    datetime(2026, 3, 29, 4, 10, 19, 344),
+                    datetime(2026, 3, 29, 4, 10, 19, 604),
+                    datetime(2026, 3, 29, 4, 10, 19, 824),
+                ],
+                "Status": ["OnTrack", "OnTrack", "OnTrack"],
+                "X": [0.0, 0.0, 0.0],
+                "Y": [0.0, 0.0, 0.0],
+                "Z": [1.0, 1.0, 2.0],
+                "Source": ["pos", "pos", "pos"],
+                "Time": [
+                    Timedelta(milliseconds=1000),
+                    Timedelta(seconds=2, milliseconds=236),
+                    Timedelta(seconds=2, milliseconds=456),
+                ],
+                "SessionTime": [
+                    Timedelta(milliseconds=1000),
+                    Timedelta(seconds=2, milliseconds=236),
+                    Timedelta(seconds=2, milliseconds=456),
+                ],
+            }
+        ),
+    }
+
+
+@pytest.fixture()
+def combined_pos_data() -> DataFrame:
+    return DataFrame(
+        {
+            "Date": [
+                datetime(2026, 3, 29, 4, 10, 19, 344),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+                datetime(2026, 3, 29, 4, 10, 19, 344),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+            ],
+            "Status": ["OnTrack", "OnTrack", "OnTrack", "OnTrack", "OnTrack", "OnTrack"],
+            "X": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "Y": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "Z": [1.0, 2.0, 2.0, 1.0, 1.0, 2.0],
+            "Source": ["pos", "pos", "pos", "pos", "pos", "pos"],
+            "Time": [
+                Timedelta(milliseconds=1000),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(milliseconds=1000),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "SessionTime": [
+                Timedelta(milliseconds=1000),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(milliseconds=1000),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "DriverNumber": ["3", "3", "3", "24", "24", "24"],
+        }
+    )
+
+@pytest.fixture()
+def processed_pos_data_after_remove_records_before_session_start_time() -> DataFrame:
+    return DataFrame(
+        {
+            "Date": [
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+            ],
+            "Status": ["OnTrack", "OnTrack", "OnTrack", "OnTrack"],
+            "X": [0.0, 0.0, 0.0, 0.0],
+            "Y": [0.0, 0.0, 0.0, 0.0],
+            "Z": [2.0, 2.0, 1.0, 2.0],
+            "Source": ["pos", "pos", "pos", "pos"],
+            "Time": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "SessionTime": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "DriverNumber": ["3", "3", "24", "24"],
+        }
+    )
+
+
+@pytest.fixture()
+def processed_pos_data_after_normalize_position_data() -> DataFrame:
+    return DataFrame(
+        {
+            "Date": [
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+            ],
+            "Status": ["OnTrack", "OnTrack", "OnTrack", "OnTrack"],
+            "X": [-1.2, -1.2, -1.2, -1.2],
+            "Y": [-1.3, -1.3, -1.3, -1.3],
+            "Z": [-1.3966666666666665, -1.3966666666666665, -1.3983333333333332, -1.3966666666666665],
+            "Source": ["pos", "pos", "pos", "pos"],
+            "Time": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "SessionTime": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "DriverNumber": ["3", "3", "24", "24"],
+        }
+    )
+
+
+@pytest.fixture()
+def processed_pos_data_after_add_session_time_in_milliseconds() -> DataFrame:
+    return DataFrame(
+        {
+            "Date": [
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+            ],
+            "Status": ["OnTrack", "OnTrack", "OnTrack", "OnTrack"],
+            "X": [-1.2, -1.2, -1.2, -1.2],
+            "Y": [-1.3, -1.3, -1.3, -1.3],
+            "Z": [-1.3966666666666665, -1.3966666666666665, -1.3983333333333332, -1.3966666666666665],
+            "Source": ["pos", "pos", "pos", "pos"],
+            "Time": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "SessionTime": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "DriverNumber": ["3", "3", "24", "24"],
+            "SessionTimeMilliseconds": [
+                2236,
+                2456,
+                2236,
+                2456,
+            ],
+        }
+    )
+
+
+@pytest.fixture()
+def processed_pos_data_after_add_session_time_tick() -> DataFrame:
+    return DataFrame(
+        {
+            "Date": [
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+            ],
+            "Status": ["OnTrack", "OnTrack", "OnTrack", "OnTrack"],
+            "X": [-1.2, -1.2, -1.2, -1.2],
+            "Y": [-1.3, -1.3, -1.3, -1.3],
+            "Z": [-1.3966666666666665, -1.3966666666666665, -1.3983333333333332, -1.3966666666666665],
+            "Source": ["pos", "pos", "pos", "pos"],
+            "Time": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "SessionTime": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "DriverNumber": ["3", "3", "24", "24"],
+            "SessionTimeMilliseconds": [
+                2236,
+                2456,
+                2236,
+                2456,
+            ],
+            "SessionTimeTick": [
+                1,
+                2,
+                1,
+                2,
+            ],
+        }
+    )
 
 
 @pytest.fixture()
 def processed_pos_data() -> DataFrame:
-    return DataFrame()
+    return DataFrame(
+        {
+            "Date": [
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+            ],
+            "Status": ["OnTrack", "OnTrack", "OnTrack", "OnTrack"],
+            "X": [-1.2, -1.2, -1.2, -1.2],
+            "Y": [-1.3, -1.3, -1.3, -1.3],
+            "Z": [-1.3966666666666665, -1.3966666666666665, -1.3983333333333332, -1.3966666666666665],
+            "Source": ["pos", "pos", "pos", "pos"],
+            "Time": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "SessionTime": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "DriverNumber": ["3", "3", "24", "24"],
+            "SessionTimeMilliseconds": [
+                2236,
+                2456,
+                2236,
+                2456,
+            ],
+            "SessionTimeTick": [
+                1,
+                2,
+                1,
+                2,
+            ],
+        }
+    )
 
 
 #

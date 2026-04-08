@@ -21,6 +21,9 @@ class PositionParser:
         if self._pos_data is None:
             self._pos_data = self.session.pos_data
 
+            pd.set_option("display.max_columns", None)
+            print(self._pos_data)
+
         return self._pos_data
 
     @property
@@ -50,7 +53,7 @@ class PositionParser:
     def _remove_records_before_session_start_time(self, session_start_time: Timedelta) -> Self:
         df = self._processed_pos_data.copy()
 
-        self._processed_pos_data = df[df["SessionTime"] >= session_start_time]
+        self._processed_pos_data = df[df["SessionTime"] >= session_start_time].reset_index(drop=True)
 
         return self
 
