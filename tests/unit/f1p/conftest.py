@@ -4961,7 +4961,8 @@ def mock_session(
     laps: DataFrame,
     session_status: DataFrame,
     session_results: DataFrame,
-    pos_data: DataFrame,
+    pos_data: dict[str, DataFrame],
+    car_data: dict[str, DataFrame],
     mocker: MockerFixture,
 ) -> MagicMock:
     session = mocker.MagicMock(spec=Session)
@@ -4973,6 +4974,7 @@ def mock_session(
     session.results = session_results
     session.total_laps = 53.0
     session.pos_data = pos_data
+    session.car_data = car_data
 
     return session
 
@@ -5687,6 +5689,150 @@ def processed_pos_data() -> DataFrame:
             "Y": [-1.3, -1.3, -1.3, -1.3],
             "Z": [-1.3966666666666665, -1.3966666666666665, -1.3983333333333332, -1.3966666666666665],
             "Source": ["pos", "pos", "pos", "pos"],
+            "Time": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "SessionTime": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "DriverNumber": ["3", "3", "24", "24"],
+            "SessionTimeMilliseconds": [
+                2236,
+                2456,
+                2236,
+                2456,
+            ],
+            "SessionTimeTick": [
+                1,
+                2,
+                1,
+                2,
+            ],
+        }
+    )
+
+
+@pytest.fixture()
+def car_data() -> dict[str, DataFrame]:
+    return {
+        "3": DataFrame(
+            {
+                "Date": [
+                    datetime(2026, 3, 29, 4, 10, 19, 344),
+                    datetime(2026, 3, 29, 4, 10, 19, 604),
+                    datetime(2026, 3, 29, 4, 10, 19, 824),
+                ],
+                "Speed": [0.0, 104.5, 200.0],
+                "RPM": [0.0, 5000.0, 10000.0],
+                "nGear": [0, 1, 3],
+                "Throttle": [0.0, 60.0, 100.0],
+                "Brake": [True, False, False],
+                "DRS": [0, 1, 14],
+                "Source": ["car", "car", "car"],
+                "Time": [
+                    Timedelta(milliseconds=1000),
+                    Timedelta(seconds=2, milliseconds=236),
+                    Timedelta(seconds=2, milliseconds=456),
+                ],
+                "SessionTime": [
+                    Timedelta(milliseconds=1000),
+                    Timedelta(seconds=2, milliseconds=236),
+                    Timedelta(seconds=2, milliseconds=456),
+                ],
+            }
+        ),
+        "24": DataFrame(
+            {
+                "Date": [
+                    datetime(2026, 3, 29, 4, 10, 19, 344),
+                    datetime(2026, 3, 29, 4, 10, 19, 604),
+                    datetime(2026, 3, 29, 4, 10, 19, 824),
+                ],
+                "Speed": [0.0, 107.5, 160.0],
+                "RPM": [0.0, 5400.0, 11000.0],
+                "nGear": [0, 1, 3],
+                "Throttle": [0.0, 40.0, 100.0],
+                "Brake": [True, False, False],
+                "DRS": [0, 1, 1],
+                "Source": ["car", "car", "car"],
+                "Time": [
+                    Timedelta(milliseconds=1000),
+                    Timedelta(seconds=2, milliseconds=236),
+                    Timedelta(seconds=2, milliseconds=456),
+                ],
+                "SessionTime": [
+                    Timedelta(milliseconds=1000),
+                    Timedelta(seconds=2, milliseconds=236),
+                    Timedelta(seconds=2, milliseconds=456),
+                ],
+            }
+        ),
+    }
+
+
+@pytest.fixture()
+def processed_car_data_after_combined_car_data() -> DataFrame:
+    return DataFrame(
+        {
+            "Date": [
+                datetime(2026, 3, 29, 4, 10, 19, 344),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+                datetime(2026, 3, 29, 4, 10, 19, 344),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+            ],
+            "Speed": [0.0, 104.5, 200.0, 0.0, 107.5, 160.0],
+            "RPM": [0.0, 5000.0, 10000.0, 0.0, 5400.0, 11000.0],
+            "nGear": [0, 1, 3, 0, 1, 3],
+            "Throttle": [0.0, 60.0, 100.0, 0.0, 40.0, 100.0],
+            "Brake": [True, False, False, True, False, False],
+            "DRS": [0, 1, 14, 0, 1, 1],
+            "Source": ["car", "car", "car", "car", "car", "car"],
+            "Time": [
+                Timedelta(milliseconds=1000),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(milliseconds=1000),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "SessionTime": [
+                Timedelta(milliseconds=1000),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(milliseconds=1000),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=2, milliseconds=456),
+            ],
+            "DriverNumber": ["3", "3", "3", "24", "24", "24"],
+        }
+    )
+
+
+@pytest.fixture()
+def processed_car_data() -> DataFrame:
+    return DataFrame(
+        {
+            "Date": [
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+            ],
+            "Speed": [104.5, 200.0, 107.5, 160.0],
+            "RPM": [5000.0, 10000.0, 5400.0, 11000.0],
+            "nGear": [1, 3, 1, 3],
+            "Throttle": [60.0, 100.0, 40.0, 100.0],
+            "Brake": [False, False, False, False],
+            "DRS": [1, 14, 1, 1],
+            "Source": ["car", "car", "car", "car"],
             "Time": [
                 Timedelta(seconds=2, milliseconds=236),
                 Timedelta(seconds=2, milliseconds=456),

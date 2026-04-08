@@ -21,9 +21,6 @@ class PositionParser:
         if self._pos_data is None:
             self._pos_data = self.session.pos_data
 
-            pd.set_option("display.max_columns", None)
-            print(self._pos_data)
-
         return self._pos_data
 
     @property

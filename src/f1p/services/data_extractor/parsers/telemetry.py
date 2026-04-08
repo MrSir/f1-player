@@ -19,6 +19,9 @@ class TelemetryParser:
         if self._car_data is None:
             self._car_data = self.session.car_data
 
+            pd.set_option("display.max_columns", None)
+            print(self._car_data)
+
         return self._car_data
 
     @property
