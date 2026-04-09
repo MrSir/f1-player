@@ -33,6 +33,14 @@ class BlackDropDown(DirectOptionMenu):
         self.font_scale = font_scale
         self.popup_menu_below = popup_menu_below
 
+        self.minX = None
+        self.maxX = None
+        self.minZ = None
+        self.maxZ = None
+
+        self.maxWidth = None
+        self.maxHeight = None
+
         self.scale = scale
         self.item_scale = item_scale
         self.frame_size = (0, width, -height / 2, height / 2)
@@ -85,15 +93,10 @@ class BlackDropDown(DirectOptionMenu):
 
         self.initialiseoptions(BlackDropDown)
 
-    def setItems(self):
-        """
-        self['items'] = itemList
-        Create new popup menu to reflect specified set of items
-        """
-        # Remove old component if it exits
+    def re_create_popup_menu(self) -> None:
         if self.popupMenu is not None:
             self.destroycomponent("popupMenu")
-        # Create new component
+
         self.popupMenu = self.createcomponent(
             "popupMenu",
             (),
@@ -103,18 +106,15 @@ class BlackDropDown(DirectOptionMenu):
             frameColor=(0, 0, 0, 0),
             relief=RAISED,
         )
-        # Make sure it is on top of all the other gui widgets
+
         self.popupMenu.setBin("gui-popup", 0)
+
         self.highlightedIndex = None
-        if not self["items"]:
-            return
-        # Create a new component for each item
-        # Find the maximum extents of all items
-        itemIndex = 0
-        self.minX = self.maxX = self.minZ = self.maxZ = None
-        for item in self["items"]:
+
+    def create_components(self) -> None:
+        for index, item in enumerate(self["items"]):
             c = self.createcomponent(
-                "item%d" % itemIndex,
+                "item%d" % index,
                 (),
                 "item",
                 BlackButton,
@@ -130,32 +130,32 @@ class BlackDropDown(DirectOptionMenu):
                 relief=RAISED,
                 borderWidth=self.item_border_width,
                 pressEffect=self.item_press_effect,
-                command=lambda i=itemIndex: self.set(i),
+                command=lambda i=index: self.set(i),
             )
             bounds = c.getBounds()
 
-            if self.minX is None:
+            if self.minX is None or bounds[0] < self.minX:
                 self.minX = bounds[0]
-            elif bounds[0] < self.minX:
-                self.minX = bounds[0]
-            if self.maxX is None:
+
+            if self.maxX is None or bounds[1] > self.maxX:
                 self.maxX = bounds[1]
-            elif bounds[1] > self.maxX:
-                self.maxX = bounds[1]
-            if self.minZ is None:
+
+            if self.minZ is None or bounds[2] < self.minZ:
                 self.minZ = bounds[2]
-            elif bounds[2] < self.minZ:
-                self.minZ = bounds[2]
-            if self.maxZ is None:
+
+            if self.maxZ is None or bounds[3] > self.maxZ:
                 self.maxZ = bounds[3]
-            elif bounds[3] > self.maxZ:
-                self.maxZ = bounds[3]
-            itemIndex += 1
+
+    def calculate_width_n_height(self) -> None:
         # Calc max width and height
         self.maxWidth = self.maxX - self.minX
         self.maxHeight = self.maxZ - self.minZ
+
+    def adjust_frame_sizes(self) -> None:
+        num_items = len(self["items"])
+
         # Adjust frame size for each item and bind actions to mouse events
-        for i in range(itemIndex):
+        for i in range(num_items):
             item = self.component("item%d" % i)
             # So entire extent of item's slot on popup is reactive to mouse
             item["frameSize"] = self.item_frame_size
@@ -167,38 +167,46 @@ class BlackDropDown(DirectOptionMenu):
             # Restore specified color upon exiting
             fc = item["frameColor"]
             item.bind(WITHOUT, lambda _, the_item=item, frame_color=fc: self._unhighlightItem(the_item, frame_color))
+
         # Set popup menu frame size to encompass all items
         f = self.component("popupMenu")
-        f["frameSize"] = (0, self.width, -self.maxHeight * itemIndex, 0)
+        f["frameSize"] = (0, self.width, -self.maxHeight * num_items, 0)
 
-        # Determine what initial item to display and set text accordingly
-        if self["initialitem"]:
-            self.set(self["initialitem"], fCommand=0)
-        else:
-            # No initial item specified, just use first item
-            self.set(0, fCommand=0)
+    def set_initial_item(self) -> None:
+        self.set(self["initialitem"] if self["initialitem"] else 0, fCommand=0)
 
+    def set_popup_marker_position(self) -> None:
         # Position popup Marker to the right of the button
         pm = self.popupMarker
         pmw = pm.getWidth() * pm.getScale()[0] + 2 * self["popupMarkerBorder"][0]
+
+        bounds = [self.minX, self.maxX, self.minZ, self.maxZ]
         if self.initFrameSize:
-            # Use specified frame size
             bounds = list(self.initFrameSize)
-        else:
-            # Or base it upon largest item
-            bounds = [self.minX, self.maxX, self.minZ, self.maxZ]
+
+        pm_pos = [bounds[1] + pmw / 2.0, 0, bounds[2] + (bounds[3] - bounds[2]) / 2.0]
         if self.initPopupMarkerPos:
-            # Use specified position
-            pmPos = list(self.initPopupMarkerPos)
-        else:
-            # Or base the position on the frame size.
-            pmPos = [bounds[1] + pmw / 2.0, 0, bounds[2] + (bounds[3] - bounds[2]) / 2.0]
-        pm.setPos(pmPos[0], pmPos[1], pmPos[2])
+            pm_pos = list(self.initPopupMarkerPos)
+
+        pm.setPos(pm_pos[0], pm_pos[1], pm_pos[2])
+
         # Adjust popup menu button to fit all items (or use user specified
         # frame size
         bounds[1] += pmw
         self["frameSize"] = (bounds[0], bounds[1], bounds[2], bounds[3])
-        # Set initial state
+
+    def setItems(self):
+        self.re_create_popup_menu()
+
+        if not self["items"]:
+            return
+
+        self.create_components()
+        self.calculate_width_n_height()
+        self.adjust_frame_sizes()
+        self.set_initial_item()
+        self.set_popup_marker_position()
+
         self.hidePopupMenu()
 
     def showPopupMenu(self, event=None):
@@ -209,6 +217,7 @@ class BlackDropDown(DirectOptionMenu):
         z_coordinate = -self.height + 6
         if not self.popup_menu_below:
             z_coordinate = self.height * self.item_scale * len(self.items)
+
         self.popupMenu.setZ(z_coordinate)
 
     def _highlightItem(self, item, index):

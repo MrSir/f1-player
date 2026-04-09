@@ -476,7 +476,7 @@ class DataExtractorService(DirectObject):
 
         return self
 
-    def merge_pos_and_car_data(self) -> Self:
+    def merge_data_and_telemetry(self) -> Self:
         df = self.data.copy()
         car_data = self.parsed_telemetry.copy()
 
@@ -497,7 +497,7 @@ class DataExtractorService(DirectObject):
 
         return self
 
-    def process_weather_data(self) -> Self:
+    def parse_weather_data(self) -> Self:
         self.weather_parser.parse(
             self.session_time_ticks_df,
             self.session_start_time,
@@ -586,8 +586,8 @@ class DataExtractorService(DirectObject):
             .compute_diff_to_car_in_front()
             .compute_diff_to_leader()
             .compute_in_pit()
-            .merge_pos_and_car_data()
-            .process_weather_data()
+            .merge_data_and_telemetry()
+            .parse_weather_data()
             .process_corners()
             .process_team_colors()
         )
