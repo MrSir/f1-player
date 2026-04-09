@@ -54,11 +54,9 @@ class DataExtractorService(DirectObject):
         self._weather_parser: WeatherParser | None = None
         self._laps_parser: LapsParser | None = None
         self._pos_parser: PositionParser | None = None
-
-        self.processed_pos_data: DataFrame | None = None
         self._telemetry_parser: TelemetryParser | None = None
 
-        self._car_data: dict[str, Telemetry] | None = None
+        self.data: DataFrame | None = None
 
         self._session_time_ticks_df: DataFrame | None = None
 
@@ -69,7 +67,7 @@ class DataExtractorService(DirectObject):
         self.loading_text: OnscreenText | None = None
         self.wait_bar: DirectWaitBar | None = None
 
-        self.processed_car_data: DataFrame | None = None
+        self.parsed_car_data: DataFrame | None = None
 
         self.accept("loadData", self.load_data)
 
@@ -166,15 +164,8 @@ class DataExtractorService(DirectObject):
 
         return self._telemetry_parser
 
-    @property
-    def car_data(self) -> dict[str, Telemetry]:
-        if self._car_data is None:
-            self._car_data = self.session.car_data
-
-        return self._car_data
-
     def get_current_lap_number(self, session_time_tick: int) -> int:
-        df = self.processed_pos_data
+        df = self.data
 
         return int(math.ceil(df[df["SessionTimeTick"] == session_time_tick]["LapsCompletion"].max()))
 
@@ -184,7 +175,7 @@ class DataExtractorService(DirectObject):
 
     @property
     def session_ticks(self) -> int:
-        df = self.processed_pos_data.copy()
+        df = self.data.copy()
 
         df = df[["DriverNumber", "SessionTimeTick"]]
         df = df.groupby("DriverNumber")["SessionTimeTick"].count()
@@ -194,7 +185,7 @@ class DataExtractorService(DirectObject):
     @property
     def session_time_ticks_df(self) -> DataFrame:
         if self._session_time_ticks_df is None:
-            df = self.processed_pos_data.copy()
+            df = self.data.copy()
             df = (
                 df[["SessionTimeTick", "SessionTime"]]
                 .drop_duplicates(
@@ -243,7 +234,7 @@ class DataExtractorService(DirectObject):
         return self
 
     def parse_pos_data(self) -> Self:
-        self.processed_pos_data = self.pos_parser.parse(
+        self.data = self.pos_parser.parse(
             self.session_start_time,
             self.map_rotation,
             self.map_center_coordinate,
@@ -261,7 +252,7 @@ class DataExtractorService(DirectObject):
         return self
 
     def merge_pos_and_laps(self) -> Self:
-        df = self.processed_pos_data.copy()
+        df = self.data.copy()
         ts_df = df[["SessionTimeTick", "SessionTimeMilliseconds"]].drop_duplicates(keep="first").copy()
         laps_df = self.laps_parser.processed_laps.copy()
 
@@ -295,7 +286,7 @@ class DataExtractorService(DirectObject):
         )
         combined_df = combined_df.drop(columns=["SessionTimeTick_y"])
 
-        self.processed_pos_data = combined_df
+        self.data = combined_df
 
         # TODO figure out what to do with drivers that have no lap data at all. Should probably zero out everything
         #      relevant for them and DNS them
@@ -311,7 +302,7 @@ class DataExtractorService(DirectObject):
         df.loc[df[column_name].notna(), f"{column_name}Milliseconds"] = time_in_milliseconds.astype("int64")
 
     def compute_lap_completion(self) -> Self:
-        df = self.processed_pos_data.copy()
+        df = self.data.copy()
 
         self.compute_elapsed_time(df, "LapStartTime", "S1ElapsedLapTime")
         self.compute_elapsed_time(df, "Sector1SessionTime", "S2ElapsedLapTime")
@@ -332,38 +323,38 @@ class DataExtractorService(DirectObject):
         df.loc[df["LapNumber"] > self.total_laps, "LapPercentageCompletion"] = 0
         df["LapsCompletion"] = (df["LapNumber"] - 1) + df["LapPercentageCompletion"]
 
-        self.processed_pos_data = df
+        self.data = df
 
         self.update_loading(5)
 
         return self
 
     def compute_is_dnf(self) -> Self:
-        df = self.processed_pos_data.copy()
+        df = self.data.copy()
 
         df.loc[df["Position"].notna(), "IsDNF"] = False
         df.loc[df["Position"].isna(), "IsDNF"] = True
 
-        self.processed_pos_data = df
+        self.data = df
 
         self.update_loading(1)
 
         return self
 
     def compute_is_finished(self) -> Self:
-        df = self.processed_pos_data.copy()
+        df = self.data.copy()
         df.loc[df["LapsCompletion"] == self.total_laps, "IsFinished"] = True
         df.loc[df["IsFinished"].isna(), "IsFinished"] = False
         df.loc[df["IsFinished"], "IsDNF"] = False
 
-        self.processed_pos_data = df
+        self.data = df
 
         self.update_loading(1)
 
         return self
 
     def compute_position_index(self) -> Self:
-        df = self.processed_pos_data.copy()
+        df = self.data.copy()
 
         df["PositionIndex"] = (
             df.sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False])
@@ -375,14 +366,14 @@ class DataExtractorService(DirectObject):
         df.loc[df["SessionTimeMilliseconds"] >= self.laps_parser.end_of_race_milliseconds, "PositionIndex"] = pd.NA
         df["PositionIndex"] = df.groupby("DriverNumber")["PositionIndex"].ffill().astype("int64")
 
-        self.processed_pos_data = df
+        self.data = df
 
         self.update_loading(2)
 
         return self
 
     def compute_fastest_lap(self) -> Self:
-        df = self.processed_pos_data.copy()
+        df = self.data.copy()
 
         df["FastestLapTimeMilliseconds"] = df.sort_values(
             by=["SessionTimeTick", "LapsCompletion"],
@@ -395,26 +386,26 @@ class DataExtractorService(DirectObject):
         df.loc[df["HasFastestLap"].isna(), "HasFastestLap"] = False
         df["HasFastestLap"] = df.groupby("DriverNumber")["HasFastestLap"].ffill()
 
-        self.processed_pos_data = df
+        self.data = df
 
         self.update_loading(3)
 
         return self
 
     def compute_formatted_times(self) -> Self:
-        df = self.processed_pos_data.copy()
+        df = self.data.copy()
 
         df["S1ElapsedLapTimeFormatted"] = td_series_to_min_n_sec(df["S1ElapsedLapTimeMilliseconds"])
         df["S2ElapsedLapTimeFormatted"] = td_series_to_min_n_sec(df["S2ElapsedLapTimeMilliseconds"])
         df["S3ElapsedLapTimeFormatted"] = td_series_to_min_n_sec(df["S3ElapsedLapTimeMilliseconds"])
         df["ElapsedLapTimeFormatted"] = td_series_to_min_n_sec(df["ElapsedLapTimeMilliseconds"])
 
-        self.processed_pos_data = df
+        self.data = df
 
         return self
 
     def compute_diff_to_car_in_front(self) -> Self:
-        df = self.processed_pos_data.copy()
+        df = self.data.copy()
         df.loc[
             (df["SessionTimeMilliseconds"] >= df["Sector1SessionTimeMilliseconds"]),
             "DiffToCarInFront",
@@ -431,14 +422,14 @@ class DataExtractorService(DirectObject):
         df["DiffToCarInFront"] = df.groupby("DriverNumber")["DiffToCarInFront"].ffill()
         df["DiffToCarInFront"] = round(df["DiffToCarInFront"] / 1000, 3)
 
-        self.processed_pos_data = df
+        self.data = df
 
         self.update_loading(5)
 
         return self
 
     def compute_diff_to_leader(self) -> Self:
-        df = self.processed_pos_data.copy()
+        df = self.data.copy()
         df["DiffToLeader"] = (
             df.sort_values(by=["SessionTimeTick", "LapsCompletion"], ascending=[True, False])
             .groupby(["SessionTimeTick"])["DiffToCarInFront"]
@@ -446,14 +437,14 @@ class DataExtractorService(DirectObject):
         )
         df["DiffToLeader"] = round(df["DiffToLeader"], 3)
 
-        self.processed_pos_data = df
+        self.data = df
 
         self.update_loading(5)
 
         return self
 
     def compute_in_pit(self) -> Self:
-        df = self.processed_pos_data.copy()
+        df = self.data.copy()
 
         df.loc[
             (
@@ -468,14 +459,14 @@ class DataExtractorService(DirectObject):
 
         df["InPit"] = df["InPit"].astype("boolean").fillna(False)
 
-        self.processed_pos_data = df
+        self.data = df
 
         self.update_loading(5)
 
         return self
 
     def parse_telemetry(self) -> Self:
-        self.processed_car_data = self.telemetry_parser.parse(
+        self.parsed_car_data = self.telemetry_parser.parse(
             self.session_start_time,
             self.session_end_time,
             self.session_time_ticks_df,
@@ -486,8 +477,8 @@ class DataExtractorService(DirectObject):
         return self
 
     def merge_pos_and_car_data(self) -> Self:
-        df = self.processed_pos_data.copy()
-        car_data = self.processed_car_data.copy()
+        df = self.data.copy()
+        car_data = self.parsed_car_data.copy()
 
         combined_df = df.merge(car_data, on=["DriverNumber", "SessionTimeTick"], how="left")
         combined_df["RPM"] = combined_df.groupby("DriverNumber")["RPM"].ffill()
@@ -500,7 +491,7 @@ class DataExtractorService(DirectObject):
         combined_df["DRS"] = combined_df["DRS"].fillna(0)
         combined_df["DRS"] = combined_df["DRS"].astype("int64")
 
-        self.processed_pos_data = combined_df
+        self.data = combined_df
 
         self.update_loading(3)
 

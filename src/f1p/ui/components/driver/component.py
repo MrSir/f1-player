@@ -53,9 +53,9 @@ class Driver(DirectObject):
     @property
     def pos_data(self) -> DataFrame:
         if self._pos_data is None:
-            self._pos_data = self.data_extractor.processed_pos_data[
-                self.data_extractor.processed_pos_data["DriverNumber"] == self.number
-            ]
+            self._pos_data = self.data_extractor.data[
+                self.data_extractor.data["DriverNumber"] == self.number
+                ]
 
         return self._pos_data
 
