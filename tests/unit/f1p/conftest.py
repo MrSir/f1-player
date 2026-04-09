@@ -21,6 +21,7 @@ def mock_task_manager(mocker: MockerFixture) -> MagicMock:
 
     return m_task_manager
 
+
 @pytest.fixture()
 def mock_f1p_app(mock_task_manager: MagicMock, mocker: MockerFixture) -> MagicMock:
     m = mocker.MagicMock()
@@ -37,79 +38,81 @@ def mock_f1p_app(mock_task_manager: MagicMock, mocker: MockerFixture) -> MagicMo
 
 @pytest.fixture()
 def event_schedule() -> DataFrame:
-    return DataFrame({
-        "RoundNumber": [0, 1, 2],
-        "Country": ["Bahrain", "Australia", "China"],
-        "Location": ["Bahrain", "Melbourne", "Shanghai"],
-        "OfficialEventName": [
-            "FORMULA 1 ARAMCO PRE-SEASON TESTING 2 2026",
-            "FORMULA 1 QATAR AIRWAYS AUSTRALIAN GRAND PRIX 2026",
-            "FORMULA 1 HEINEKEN CHINESE GRAND PRIX 2026",
-        ],
-        "EventDate": [
-            datetime(2026, 2, 20),
-            datetime(2026, 3, 8),
-            datetime(2026, 3, 15),
-        ],
-        "EventName": ["Pre-Season Testing", "Australian Grand Prix", "Chinese Grand Prix"],
-        "EventFormat": ["testing", "conventional", "sprint_qualifying"],
-        "Session1": ["Practice 1", "Practice 1", "Practice 1"],
-        "Session1Date": [
-            datetime(2026, 2, 18, 10, 30, tzinfo=ZoneInfo("Asia/Bahrain")),
-            datetime(2026, 3, 6, 12, 30, tzinfo=ZoneInfo("Australia/Melbourne")),
-            datetime(2026, 3, 13, 11, 30, tzinfo=ZoneInfo("Asia/Shanghai")),
-        ],
-        "Session1DateUtc": [
-            datetime(2026, 2, 18, 7, 0),
-            datetime(2026, 3, 6, 1, 30),
-            datetime(2026, 3, 13, 3, 30),
-        ],
-        "Session2": ["Practice 2", "Practice 2", "Sprint Qualifying"],
-        "Session2Date": [
-            datetime(2026, 2, 19, 10, 30, tzinfo=ZoneInfo("Asia/Bahrain")),
-            datetime(2026, 3, 6, 16, 0, tzinfo=ZoneInfo("Australia/Melbourne")),
-            datetime(2026, 3, 13, 15, 30, tzinfo=ZoneInfo("Asia/Shanghai")),
-        ],
-        "Session2DateUtc": [
-            datetime(2026, 2, 19, 7, 0),
-            datetime(2026, 3, 6, 5, 0),
-            datetime(2026, 3, 13, 7, 30),
-        ],
-        "Session3": ["Practice 3", "Practice 3", "Sprint"],
-        "Session3Date": [
-            datetime(2026, 2, 20, 10, 30, tzinfo=ZoneInfo("Asia/Bahrain")),
-            datetime(2026, 3, 7, 12, 30, tzinfo=ZoneInfo("Australia/Melbourne")),
-            datetime(2026, 3, 14, 11, 0, tzinfo=ZoneInfo("Asia/Shanghai")),
-        ],
-        "Session3DateUtc": [
-            datetime(2026, 2, 20, 7, 0),
-            datetime(2026, 3, 7, 1, 30),
-            datetime(2026, 3, 14, 3, 0),
-        ],
-        "Session4": [None, "Qualifying", "Qualifying"],
-        "Session4Date": [
-            pd.NaT,
-            datetime(2026, 3, 7, 16, 0, tzinfo=ZoneInfo("Australia/Melbourne")),
-            datetime(2026, 3, 14, 15, 0, tzinfo=ZoneInfo("Asia/Shanghai")),
-        ],
-        "Session4DateUtc": [
-            pd.NaT,
-            datetime(2026, 3, 7, 5, 0),
-            datetime(2026, 3, 14, 7, 0),
-        ],
-        "Session5": [None, "Race", "Race"],
-        "Session5Date": [
-            pd.NaT,
-            datetime(2026, 3, 8, 15, 0, tzinfo=ZoneInfo("Australia/Melbourne")),
-            datetime(2026, 3, 15, 15, 0, tzinfo=ZoneInfo("Asia/Shanghai")),
-        ],
-        "Session5DateUtc": [
-            pd.NaT,
-            datetime(2026, 3, 8, 4, 0),
-            datetime(2026, 3, 15, 7, 0),
-        ],
-        "F1ApiSupport": [True, True, True],
-    })
+    return DataFrame(
+        {
+            "RoundNumber": [0, 1, 2],
+            "Country": ["Bahrain", "Australia", "China"],
+            "Location": ["Bahrain", "Melbourne", "Shanghai"],
+            "OfficialEventName": [
+                "FORMULA 1 ARAMCO PRE-SEASON TESTING 2 2026",
+                "FORMULA 1 QATAR AIRWAYS AUSTRALIAN GRAND PRIX 2026",
+                "FORMULA 1 HEINEKEN CHINESE GRAND PRIX 2026",
+            ],
+            "EventDate": [
+                datetime(2026, 2, 20),
+                datetime(2026, 3, 8),
+                datetime(2026, 3, 15),
+            ],
+            "EventName": ["Pre-Season Testing", "Australian Grand Prix", "Chinese Grand Prix"],
+            "EventFormat": ["testing", "conventional", "sprint_qualifying"],
+            "Session1": ["Practice 1", "Practice 1", "Practice 1"],
+            "Session1Date": [
+                datetime(2026, 2, 18, 10, 30, tzinfo=ZoneInfo("Asia/Bahrain")),
+                datetime(2026, 3, 6, 12, 30, tzinfo=ZoneInfo("Australia/Melbourne")),
+                datetime(2026, 3, 13, 11, 30, tzinfo=ZoneInfo("Asia/Shanghai")),
+            ],
+            "Session1DateUtc": [
+                datetime(2026, 2, 18, 7, 0),
+                datetime(2026, 3, 6, 1, 30),
+                datetime(2026, 3, 13, 3, 30),
+            ],
+            "Session2": ["Practice 2", "Practice 2", "Sprint Qualifying"],
+            "Session2Date": [
+                datetime(2026, 2, 19, 10, 30, tzinfo=ZoneInfo("Asia/Bahrain")),
+                datetime(2026, 3, 6, 16, 0, tzinfo=ZoneInfo("Australia/Melbourne")),
+                datetime(2026, 3, 13, 15, 30, tzinfo=ZoneInfo("Asia/Shanghai")),
+            ],
+            "Session2DateUtc": [
+                datetime(2026, 2, 19, 7, 0),
+                datetime(2026, 3, 6, 5, 0),
+                datetime(2026, 3, 13, 7, 30),
+            ],
+            "Session3": ["Practice 3", "Practice 3", "Sprint"],
+            "Session3Date": [
+                datetime(2026, 2, 20, 10, 30, tzinfo=ZoneInfo("Asia/Bahrain")),
+                datetime(2026, 3, 7, 12, 30, tzinfo=ZoneInfo("Australia/Melbourne")),
+                datetime(2026, 3, 14, 11, 0, tzinfo=ZoneInfo("Asia/Shanghai")),
+            ],
+            "Session3DateUtc": [
+                datetime(2026, 2, 20, 7, 0),
+                datetime(2026, 3, 7, 1, 30),
+                datetime(2026, 3, 14, 3, 0),
+            ],
+            "Session4": [None, "Qualifying", "Qualifying"],
+            "Session4Date": [
+                pd.NaT,
+                datetime(2026, 3, 7, 16, 0, tzinfo=ZoneInfo("Australia/Melbourne")),
+                datetime(2026, 3, 14, 15, 0, tzinfo=ZoneInfo("Asia/Shanghai")),
+            ],
+            "Session4DateUtc": [
+                pd.NaT,
+                datetime(2026, 3, 7, 5, 0),
+                datetime(2026, 3, 14, 7, 0),
+            ],
+            "Session5": [None, "Race", "Race"],
+            "Session5Date": [
+                pd.NaT,
+                datetime(2026, 3, 8, 15, 0, tzinfo=ZoneInfo("Australia/Melbourne")),
+                datetime(2026, 3, 15, 15, 0, tzinfo=ZoneInfo("Asia/Shanghai")),
+            ],
+            "Session5DateUtc": [
+                pd.NaT,
+                datetime(2026, 3, 8, 4, 0),
+                datetime(2026, 3, 15, 7, 0),
+            ],
+            "F1ApiSupport": [True, True, True],
+        },
+    )
 
 
 @pytest.fixture()
@@ -166,7 +169,7 @@ def track_status_colors() -> DataFrame:
     return pd.DataFrame(
         data={
             "Status": [1, 2, 4, 5, 6, 7],
-            "Label": ["Green Flag","Yellow Flag", "Safety Car", "Red Flag", "VSC Deployed", "VSC Ending"],
+            "Label": ["Green Flag", "Yellow Flag", "Safety Car", "Red Flag", "VSC Deployed", "VSC Ending"],
             "Color": [
                 LVecBase4f(0, 1, 0, 0.8),
                 LVecBase4f(1, 1, 0, 0.8),
@@ -4879,78 +4882,88 @@ def fastest_lap(processed_laps: DataFrame) -> Series:
 
 @pytest.fixture()
 def session_status(session_start_time: Timedelta, session_end_time: Timedelta) -> DataFrame:
-    return DataFrame({
-        "Time": [
-            Timedelta(minutes=0, seconds=0),
-            session_start_time,
-            Timedelta(minutes=0, seconds=1),
-            session_end_time,
-            Timedelta(minutes=0, seconds=3),
-        ],
-        "Status": ["Inactive", "Started", "Finished", "Finalised", "Ends"],
-    })
+    return DataFrame(
+        {
+            "Time": [
+                Timedelta(minutes=0, seconds=0),
+                session_start_time,
+                Timedelta(minutes=0, seconds=1),
+                session_end_time,
+                Timedelta(minutes=0, seconds=3),
+            ],
+            "Status": ["Inactive", "Started", "Finished", "Finalised", "Ends"],
+        },
+    )
 
 
 @pytest.fixture()
 def session_results() -> DataFrame:
-    return DataFrame({
-        "DriverNumber": ["24", "3"],
-        "BroadcastName": ["M TOSHEV", "M VERSTAPPEN"],
-        "Abbreviation": ["TOS", "VER"],
-        "DriverId": ["toshev", "max_verstappen"],
-        "TeamName": ["SIR Racing", "Red Bull Racing"],
-        "TeamColor": ["00FF00", "4781D7"],
-        "TeamId": ["sir", "red_bull"],
-        "FirstName": ["Mitko", "Max"],
-        "LastName": ["Toshev", "Verstappen"],
-        "FullName": ["Mitko Toshev", "Max Verstappen"],
-        "HeadshotUrl": [
-            "https://some.img.url",
-            "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/1col/image.png",
-        ],
-        "CountryCode": [None, None],
-        "Position": [1.0, 8.0],
-        "ClassifiedPosition": [1, 8],
-        "GridPosition": [1.0, 11.0],
-        "Q1": [pd.NaT, pd.NaT],
-        "Q2": [pd.NaT, pd.NaT],
-        "Q3": [pd.NaT, pd.NaT],
-        "Time": [Timedelta(hours=1, minutes=28, seconds=3, milliseconds=403), Timedelta(seconds=32, milliseconds=677)],
-        "Status": ["Finished", "Finished"],
-        "Points": [25.0, 4.0],
-        "Laps": [53.0, 53.0],
-    })
+    return DataFrame(
+        {
+            "DriverNumber": ["24", "3"],
+            "BroadcastName": ["M TOSHEV", "M VERSTAPPEN"],
+            "Abbreviation": ["TOS", "VER"],
+            "DriverId": ["toshev", "max_verstappen"],
+            "TeamName": ["SIR Racing", "Red Bull Racing"],
+            "TeamColor": ["00FF00", "4781D7"],
+            "TeamId": ["sir", "red_bull"],
+            "FirstName": ["Mitko", "Max"],
+            "LastName": ["Toshev", "Verstappen"],
+            "FullName": ["Mitko Toshev", "Max Verstappen"],
+            "HeadshotUrl": [
+                "https://some.img.url",
+                "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/1col/image.png",
+            ],
+            "CountryCode": [None, None],
+            "Position": [1.0, 8.0],
+            "ClassifiedPosition": [1, 8],
+            "GridPosition": [1.0, 11.0],
+            "Q1": [pd.NaT, pd.NaT],
+            "Q2": [pd.NaT, pd.NaT],
+            "Q3": [pd.NaT, pd.NaT],
+            "Time": [
+                Timedelta(hours=1, minutes=28, seconds=3, milliseconds=403), Timedelta(seconds=32, milliseconds=677)
+            ],
+            "Status": ["Finished", "Finished"],
+            "Points": [25.0, 4.0],
+            "Laps": [53.0, 53.0],
+        },
+    )
 
 
 @pytest.fixture()
 def session_results_after_process_team_colors() -> DataFrame:
-    return DataFrame({
-        "DriverNumber": ["24", "3"],
-        "BroadcastName": ["M TOSHEV", "M VERSTAPPEN"],
-        "Abbreviation": ["TOS", "VER"],
-        "DriverId": ["toshev", "max_verstappen"],
-        "TeamName": ["SIR Racing", "Red Bull Racing"],
-        "TeamColor": [(0.0, 1.0, 0.0, 1.0), (0.2784313725490196, 0.5058823529411764, 0.8431372549019608, 1.0)],
-        "TeamId": ["sir", "red_bull"],
-        "FirstName": ["Mitko", "Max"],
-        "LastName": ["Toshev", "Verstappen"],
-        "FullName": ["Mitko Toshev", "Max Verstappen"],
-        "HeadshotUrl": [
-            "https://some.img.url",
-            "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/1col/image.png",
-        ],
-        "CountryCode": [None, None],
-        "Position": [1.0, 8.0],
-        "ClassifiedPosition": [1, 8],
-        "GridPosition": [1.0, 11.0],
-        "Q1": [pd.NaT, pd.NaT],
-        "Q2": [pd.NaT, pd.NaT],
-        "Q3": [pd.NaT, pd.NaT],
-        "Time": [Timedelta(hours=1, minutes=28, seconds=3, milliseconds=403), Timedelta(seconds=32, milliseconds=677)],
-        "Status": ["Finished", "Finished"],
-        "Points": [25.0, 4.0],
-        "Laps": [53.0, 53.0],
-    })
+    return DataFrame(
+        {
+            "DriverNumber": ["24", "3"],
+            "BroadcastName": ["M TOSHEV", "M VERSTAPPEN"],
+            "Abbreviation": ["TOS", "VER"],
+            "DriverId": ["toshev", "max_verstappen"],
+            "TeamName": ["SIR Racing", "Red Bull Racing"],
+            "TeamColor": [(0.0, 1.0, 0.0, 1.0), (0.2784313725490196, 0.5058823529411764, 0.8431372549019608, 1.0)],
+            "TeamId": ["sir", "red_bull"],
+            "FirstName": ["Mitko", "Max"],
+            "LastName": ["Toshev", "Verstappen"],
+            "FullName": ["Mitko Toshev", "Max Verstappen"],
+            "HeadshotUrl": [
+                "https://some.img.url",
+                "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/M/MAXVER01_Max_Verstappen/maxver01.png.transform/1col/image.png",
+            ],
+            "CountryCode": [None, None],
+            "Position": [1.0, 8.0],
+            "ClassifiedPosition": [1, 8],
+            "GridPosition": [1.0, 11.0],
+            "Q1": [pd.NaT, pd.NaT],
+            "Q2": [pd.NaT, pd.NaT],
+            "Q3": [pd.NaT, pd.NaT],
+            "Time": [
+                Timedelta(hours=1, minutes=28, seconds=3, milliseconds=403), Timedelta(seconds=32, milliseconds=677)
+            ],
+            "Status": ["Finished", "Finished"],
+            "Points": [25.0, 4.0],
+            "Laps": [53.0, 53.0],
+        },
+    )
 
 
 @pytest.fixture()
@@ -5406,6 +5419,7 @@ def mock_task_manager(mocker: MockerFixture) -> MagicMock:
 def mock_text_font(mocker: MockerFixture) -> MagicMock:
     return mocker.MagicMock(spec=StaticTextFont)
 
+
 @pytest.fixture()
 def mock_session_parser(mock_session: MagicMock, mocker: MockerFixture) -> MagicMock:
     mock_parser = mocker.MagicMock()
@@ -5455,14 +5469,14 @@ def pos_data() -> dict[str, DataFrame]:
                 "Time": [
                     Timedelta(milliseconds=1000),
                     Timedelta(seconds=2, milliseconds=236),
-                    Timedelta(seconds=2, milliseconds=456),
+                    Timedelta(seconds=3, milliseconds=456),
                 ],
                 "SessionTime": [
                     Timedelta(milliseconds=1000),
                     Timedelta(seconds=2, milliseconds=236),
-                    Timedelta(seconds=2, milliseconds=456),
+                    Timedelta(seconds=3, milliseconds=456),
                 ],
-            }
+            },
         ),
         "24": DataFrame(
             {
@@ -5479,14 +5493,14 @@ def pos_data() -> dict[str, DataFrame]:
                 "Time": [
                     Timedelta(milliseconds=1000),
                     Timedelta(seconds=2, milliseconds=236),
-                    Timedelta(seconds=2, milliseconds=456),
+                    Timedelta(seconds=3, milliseconds=456),
                 ],
                 "SessionTime": [
                     Timedelta(milliseconds=1000),
                     Timedelta(seconds=2, milliseconds=236),
-                    Timedelta(seconds=2, milliseconds=456),
+                    Timedelta(seconds=3, milliseconds=456),
                 ],
-            }
+            },
         ),
     }
 
@@ -5511,22 +5525,23 @@ def combined_pos_data() -> DataFrame:
             "Time": [
                 Timedelta(milliseconds=1000),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(milliseconds=1000),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "SessionTime": [
                 Timedelta(milliseconds=1000),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(milliseconds=1000),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "DriverNumber": ["3", "3", "3", "24", "24", "24"],
-        }
+        },
     )
+
 
 @pytest.fixture()
 def processed_pos_data_after_remove_records_before_session_start_time() -> DataFrame:
@@ -5545,18 +5560,18 @@ def processed_pos_data_after_remove_records_before_session_start_time() -> DataF
             "Source": ["pos", "pos", "pos", "pos"],
             "Time": [
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "SessionTime": [
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "DriverNumber": ["3", "3", "24", "24"],
-        }
+        },
     )
 
 
@@ -5577,18 +5592,18 @@ def processed_pos_data_after_normalize_position_data() -> DataFrame:
             "Source": ["pos", "pos", "pos", "pos"],
             "Time": [
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "SessionTime": [
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "DriverNumber": ["3", "3", "24", "24"],
-        }
+        },
     )
 
 
@@ -5609,24 +5624,24 @@ def processed_pos_data_after_add_session_time_in_milliseconds() -> DataFrame:
             "Source": ["pos", "pos", "pos", "pos"],
             "Time": [
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "SessionTime": [
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "DriverNumber": ["3", "3", "24", "24"],
             "SessionTimeMilliseconds": [
                 2236,
-                2456,
+                3456,
                 2236,
-                2456,
+                3456,
             ],
-        }
+        },
     )
 
 
@@ -5647,30 +5662,25 @@ def processed_pos_data_after_add_session_time_tick() -> DataFrame:
             "Source": ["pos", "pos", "pos", "pos"],
             "Time": [
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "SessionTime": [
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "DriverNumber": ["3", "3", "24", "24"],
             "SessionTimeMilliseconds": [
                 2236,
-                2456,
+                3456,
                 2236,
-                2456,
+                3456,
             ],
-            "SessionTimeTick": [
-                1,
-                2,
-                1,
-                2,
-            ],
-        }
+            "SessionTimeTick": [1, 2, 1, 2],
+        },
     )
 
 
@@ -5691,30 +5701,25 @@ def processed_pos_data() -> DataFrame:
             "Source": ["pos", "pos", "pos", "pos"],
             "Time": [
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "SessionTime": [
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "DriverNumber": ["3", "3", "24", "24"],
             "SessionTimeMilliseconds": [
                 2236,
-                2456,
+                3456,
                 2236,
-                2456,
+                3456,
             ],
-            "SessionTimeTick": [
-                1,
-                2,
-                1,
-                2,
-            ],
-        }
+            "SessionTimeTick": [1, 2, 1, 2],
+        },
     )
 
 
@@ -5738,14 +5743,14 @@ def car_data() -> dict[str, DataFrame]:
                 "Time": [
                     Timedelta(milliseconds=1000),
                     Timedelta(seconds=2, milliseconds=236),
-                    Timedelta(seconds=2, milliseconds=456),
+                    Timedelta(seconds=3, milliseconds=456),
                 ],
                 "SessionTime": [
                     Timedelta(milliseconds=1000),
                     Timedelta(seconds=2, milliseconds=236),
-                    Timedelta(seconds=2, milliseconds=456),
+                    Timedelta(seconds=3, milliseconds=456),
                 ],
-            }
+            },
         ),
         "24": DataFrame(
             {
@@ -5756,7 +5761,7 @@ def car_data() -> dict[str, DataFrame]:
                 ],
                 "Speed": [0.0, 107.5, 160.0],
                 "RPM": [0.0, 5400.0, 11000.0],
-                "nGear": [0, 1, 3],
+                "nGear": [0, 0, 3],
                 "Throttle": [0.0, 40.0, 100.0],
                 "Brake": [True, False, False],
                 "DRS": [0, 1, 1],
@@ -5764,14 +5769,14 @@ def car_data() -> dict[str, DataFrame]:
                 "Time": [
                     Timedelta(milliseconds=1000),
                     Timedelta(seconds=2, milliseconds=236),
-                    Timedelta(seconds=2, milliseconds=456),
+                    Timedelta(seconds=3, milliseconds=456),
                 ],
                 "SessionTime": [
                     Timedelta(milliseconds=1000),
                     Timedelta(seconds=2, milliseconds=236),
-                    Timedelta(seconds=2, milliseconds=456),
+                    Timedelta(seconds=3, milliseconds=456),
                 ],
-            }
+            },
         ),
     }
 
@@ -5790,7 +5795,7 @@ def processed_car_data_after_combined_car_data() -> DataFrame:
             ],
             "Speed": [0.0, 104.5, 200.0, 0.0, 107.5, 160.0],
             "RPM": [0.0, 5000.0, 10000.0, 0.0, 5400.0, 11000.0],
-            "nGear": [0, 1, 3, 0, 1, 3],
+            "nGear": [0, 1, 3, 0, 0, 3],
             "Throttle": [0.0, 60.0, 100.0, 0.0, 40.0, 100.0],
             "Brake": [True, False, False, True, False, False],
             "DRS": [0, 1, 14, 0, 1, 1],
@@ -5798,26 +5803,26 @@ def processed_car_data_after_combined_car_data() -> DataFrame:
             "Time": [
                 Timedelta(milliseconds=1000),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(milliseconds=1000),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "SessionTime": [
                 Timedelta(milliseconds=1000),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(milliseconds=1000),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "DriverNumber": ["3", "3", "3", "24", "24", "24"],
-        }
+        },
     )
 
 
 @pytest.fixture()
-def processed_car_data() -> DataFrame:
+def processed_car_data_after_trim_to_session_time() -> DataFrame:
     return DataFrame(
         {
             "Date": [
@@ -5828,39 +5833,166 @@ def processed_car_data() -> DataFrame:
             ],
             "Speed": [104.5, 200.0, 107.5, 160.0],
             "RPM": [5000.0, 10000.0, 5400.0, 11000.0],
-            "nGear": [1, 3, 1, 3],
+            "nGear": [1, 3, 0, 3],
             "Throttle": [60.0, 100.0, 40.0, 100.0],
             "Brake": [False, False, False, False],
             "DRS": [1, 14, 1, 1],
             "Source": ["car", "car", "car", "car"],
             "Time": [
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "SessionTime": [
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
                 Timedelta(seconds=2, milliseconds=236),
-                Timedelta(seconds=2, milliseconds=456),
+                Timedelta(seconds=3, milliseconds=456),
             ],
             "DriverNumber": ["3", "3", "24", "24"],
-            "SessionTimeMilliseconds": [
-                2236,
-                2456,
-                2236,
-                2456,
-            ],
-            "SessionTimeTick": [
-                1,
-                2,
-                1,
-                2,
-            ],
-        }
+        },
     )
 
+
+@pytest.fixture()
+def processed_car_data_after_add_session_time_ticks() -> DataFrame:
+    return DataFrame(
+        {
+            "Date": [
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+            ],
+            "Speed": [104.5, 200.0, 107.5, 160.0],
+            "RPM": [5000.0, 10000.0, 5400.0, 11000.0],
+            "nGear": [1, 3, 0, 3],
+            "Throttle": [60.0, 100.0, 40.0, 100.0],
+            "Brake": [False, False, False, False],
+            "DRS": [1, 14, 1, 1],
+            "Source": ["car", "car", "car", "car"],
+            "Time": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=3, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=3, milliseconds=456),
+            ],
+            "SessionTime": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=3, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=3, milliseconds=456),
+            ],
+            "DriverNumber": ["3", "3", "24", "24"],
+            "SessionTimeTick": [2, 3, 2, 3],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_car_data_after_normalize_gear_indicator() -> DataFrame:
+    return DataFrame(
+        {
+            "Date": [
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+            ],
+            "Speed": [104.5, 200.0, 107.5, 160.0],
+            "RPM": [5000.0, 10000.0, 5400.0, 11000.0],
+            "nGear": ["1", "3", "N", "3"],
+            "Throttle": [60.0, 100.0, 40.0, 100.0],
+            "Brake": [False, False, False, False],
+            "DRS": [1, 14, 1, 1],
+            "Source": ["car", "car", "car", "car"],
+            "Time": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=3, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=3, milliseconds=456),
+            ],
+            "SessionTime": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=3, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=3, milliseconds=456),
+            ],
+            "DriverNumber": ["3", "3", "24", "24"],
+            "SessionTimeTick": [2, 3, 2, 3],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_car_data_after_convert_speed_to_mph() -> DataFrame:
+    return DataFrame(
+        {
+            "Date": [
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+                datetime(2026, 3, 29, 4, 10, 19, 604),
+                datetime(2026, 3, 29, 4, 10, 19, 824),
+            ],
+            "Speed": [104.5, 200.0, 107.5, 160.0],
+            "RPM": [5000.0, 10000.0, 5400.0, 11000.0],
+            "nGear": ["1", "3", "N", "3"],
+            "Throttle": [60.0, 100.0, 40.0, 100.0],
+            "Brake": [False, False, False, False],
+            "DRS": [1, 14, 1, 1],
+            "Source": ["car", "car", "car", "car"],
+            "Time": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=3, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=3, milliseconds=456),
+            ],
+            "SessionTime": [
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=3, milliseconds=456),
+                Timedelta(seconds=2, milliseconds=236),
+                Timedelta(seconds=3, milliseconds=456),
+            ],
+            "DriverNumber": ["3", "3", "24", "24"],
+            "SessionTimeTick": [2, 3, 2, 3],
+            "SpeedMph": [64.9332895888014, 124.27423844746679, 66.7974031655134, 99.41939075797343],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_car_data_after_clean_up() -> DataFrame:
+    return DataFrame(
+        {
+            "Speed": [104.5, 200.0, 107.5, 160.0],
+            "RPM": [5000.0, 10000.0, 5400.0, 11000.0],
+            "nGear": ["1", "3", "N", "3"],
+            "Throttle": [60.0, 100.0, 40.0, 100.0],
+            "Brake": [False, False, False, False],
+            "DRS": [1, 14, 1, 1],
+            "DriverNumber": ["3", "3", "24", "24"],
+            "SessionTimeTick": [2, 3, 2, 3],
+            "SpeedMph": [64.9332895888014, 124.27423844746679, 66.7974031655134, 99.41939075797343],
+        },
+    )
+
+
+@pytest.fixture()
+def processed_car_data() -> DataFrame:
+    return DataFrame(
+        {
+            "Speed": [104.5, 200.0, 107.5, 160.0],
+            "RPM": [5000.0, 10000.0, 5400.0, 11000.0],
+            "nGear": ["1", "3", "N", "3"],
+            "Throttle": [60.0, 100.0, 40.0, 100.0],
+            "Brake": [False, False, False, False],
+            "DRS": [1, 14, 1, 1],
+            "DriverNumber": ["3", "3", "24", "24"],
+            "SessionTimeTick": [2, 3, 2, 3],
+            "SpeedMph": [64.9332895888014, 124.27423844746679, 66.7974031655134, 99.41939075797343],
+        },
+    )
 
 #
 # @pytest.fixture()
