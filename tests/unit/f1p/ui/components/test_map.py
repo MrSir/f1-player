@@ -243,7 +243,7 @@ def test_initialize_drivers(
         "Y": [0.0, 1.0, 2.0, 3.0],
         "Z": [0.0, 0.0, 0.0, 0.0],
     })
-    mock_data_extractor_service.processed_pos_data = pos_data
+    mock_data_extractor_service.data = pos_data
 
     map_component.initialize_drivers()
 

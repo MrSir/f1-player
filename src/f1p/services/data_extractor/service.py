@@ -56,6 +56,8 @@ class DataExtractorService(DirectObject):
         self._pos_parser: PositionParser | None = None
         self._telemetry_parser: TelemetryParser | None = None
 
+        self.parsed_telemetry: DataFrame | None = None
+
         self.data: DataFrame | None = None
 
         self._session_time_ticks_df: DataFrame | None = None
@@ -66,8 +68,6 @@ class DataExtractorService(DirectObject):
         self.loading_frame: DirectFrame | None = None
         self.loading_text: OnscreenText | None = None
         self.wait_bar: DirectWaitBar | None = None
-
-        self.parsed_car_data: DataFrame | None = None
 
         self.accept("loadData", self.load_data)
 
@@ -466,7 +466,7 @@ class DataExtractorService(DirectObject):
         return self
 
     def parse_telemetry(self) -> Self:
-        self.parsed_car_data = self.telemetry_parser.parse(
+        self.parsed_telemetry = self.telemetry_parser.parse(
             self.session_start_time,
             self.session_end_time,
             self.session_time_ticks_df,
@@ -478,7 +478,7 @@ class DataExtractorService(DirectObject):
 
     def merge_pos_and_car_data(self) -> Self:
         df = self.data.copy()
-        car_data = self.parsed_car_data.copy()
+        car_data = self.parsed_telemetry.copy()
 
         combined_df = df.merge(car_data, on=["DriverNumber", "SessionTimeTick"], how="left")
         combined_df["RPM"] = combined_df.groupby("DriverNumber")["RPM"].ffill()
